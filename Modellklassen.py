@@ -10,61 +10,146 @@ import numpy as np
 from miscellaneous import *
 
 
-class InjectionMouldingMachine():
+
+
+
+
+
+
+class LachhabLPV():
     """
-    Modell der Spritzgießmaschine, welches Führungsgrößen (parametriert durch 
-    an der Maschine einstellbare Größen) auf die resultierenden Prozessgrößen
-    abbildet.    
-    """
-
-    def __init__(self):
-        
-        self.NumStates = None
-        
-        self.Fuehrungsparameter = {}
-        self.Führungsgrößen = {}
-        
-        self.RefTrajectoryParams = None
-        # self.RefParamsPress = None
-        # self.RefParamsCool = None
-        
-        self.RefTrajectoryInject = None
-        self.RefTrajectoryPress = None
-        self.RefTrajectoryCool = None 
-
-        self.ModelInject = None
-        self.ModelPress = None
-        self.ModelCool = None
-        
-    # def ControlInput(self,opti_vars,k):
-    #     """
-    #     Übersetzt durch Maschinenparameter parametrierte
-    #     Führungsgrößenverläufe in optimierbare control inputs
-    #     """
-        
-    #     control = []
-                
-    #     for key in self.Führungsgrößen.keys():
-    #         control.append(self.Führungsgrößen[key](opti_vars,k))
-        
-    #     control = cs.vcat(control)
-
-    #     return control
     
-
-
-class Part():
-    """
-    Modell des Bauteils, welches die einwirkenden Prozessgrößen auf die 
-    resultierenden Bauteilqualität abbildet.    
     """
 
-    def __init__(self):
+    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA,dim_thetaB,dim_thetaC,name):
         
-        self.NumStates = None
+        self.dim_u = dim_u
+        self.dim_x = dim_x
+        self.dim_y = dim_y
+        self.dim_thetaA = dim_thetaA
+        self.dim_thetaB = dim_thetaB
+        self.dim_thetaC = dim_thetaC
+        self.name = name
+        
+        self.Initialize()
+
+    def Initialize(self):
+            
+            # For convenience of notation
+            dim_u = self.dim_u
+            dim_x = self.dim_x 
+            dim_y = self.dim_y   
+            dim_thetaA = self.dim_thetaA
+            dim_thetaB = self.dim_thetaB
+            dim_thetaC = self.dim_thetaC
+            name = self.name
+            
+            # Define input, state and output vector
+            u = cs.MX.sym('u',dim_u,1)
+            x = cs.MX.sym('x',dim_x,1)
+            y = cs.MX.sym('y',dim_y,1)
+            
+            # Define Model Parameters
+            A_0 = cs.MX.sym('A_0',dim_x,dim_x)
+            A_lpv = cs.MX.sym('A_lpv',dim_x,dim_thetaA)
+            W_A = cs.MX.sym('W_A',dim_thetaA,dim_x)
+            
+            B_0 = cs.MX.sym('B_0',dim_x,dim_u)
+            B_lpv = cs.MX.sym('B_lpv',dim_x,dim_thetaB)
+            W_B = cs.MX.sym('W_B',dim_thetaB,dim_u)
+            
+            C_0 = cs.MX.sym('C_0',dim_y,dim_x)
+            C_lpv = cs.MX.sym('C_lpv',dim_y,dim_thetaC)
+            W_C = cs.MX.sym('W_C',dim_thetaC,dim_x)
+            
+            # Put all Parameters in Dictionary with random initialization
+            self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
+                               'A_lpv':np.random.rand(dim_x,dim_thetaA),
+                               'W_A':np.random.rand(dim_thetaA,dim_x),
+                               'B_0':np.random.rand(dim_x,dim_u),
+                               'B_lpv':np.random.rand(dim_x,dim_thetaB),
+                               'W_B':np.random.rand(dim_thetaB,dim_u),
+                               'C_0':np.random.rand(dim_y,dim_x),
+                               'C_lpv':np.random.rand(dim_y,dim_thetaC),
+                               'W_C':np.random.rand(dim_thetaC,dim_x)}
+        
+            # self.Input = {'u':np.random.rand(u.shape)}
+            
+            # Define Model Equations
+            x_new = cs.mtimes(A_0,x) + cs.mtimes(B_0,u) + cs.mtimes(A_lpv,
+                    cs.mtimes(cs.tanh(cs.mtimes(W_A,x)))) + cs.mtimes(B_lpv,
+                    cs.mtimes(cs.tanh(cs.mtimes(W_B,u))))
+            y_new = cs.mtimes(A_0,x_new) + cs.mtimes(C_lpv,
+                    cs.mtimes(cs.tanh(cs.mtimes(W_C,x_new))))
+            
+            
+            input = [x,u,A_0,A_lpv,W_A,B_0,B_lpv,W_B,C_0,C_lpv,W_C]
+            input_names = ['x','u','A_0','A_lpv','W_A','B_0','B_lpv','W_B','C_0','C_lpv','W_C']
+            
+            output = [x_new,y_new]
+            output_names = ['x_new','y_new']  
+            
+            self.Function = cs.Function(name, input, output, input_names,output_names)
+            
+            return None
+   
+    def OneStepPrediction(self,x0,u0,params=None):
+        '''
+        Estimates the next state and output from current state and input
+        x0: Casadi MX, current state
+        u0: Casadi MX, current input
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+        
+        if params==None:
+            params = self.Parameters
+        
+        params_new = []
+            
+        for name in  self.Function.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        x1,y1 = self.Function(x0,u0,*params_new)     
+                              
+        return x1,y1
+   
+    def Simulation(self,x0,u,params=None):
+        '''
+        A iterative application of the OneStepPrediction in order to perform a
+        simulation for a whole input trajectory
+        x0: Casadi MX, inital state a begin of simulation
+        u: Casadi MX,  input trajectory
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+
+        x = []
+        y = []
+
+        # initial states
+        x.append(x0)
+                      
+        # Simulate Model
+        for k in range(u.shape[0]):
+            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
+            x.append(x_new)
+            y.append(y_new)
+        
+
+        # Concatenate list to casadiMX
+        y = cs.hcat(y).T    
+        x = cs.hcat(x).T
        
-        self.ModelQuality = None
-        self.ModelParamsQuality = {}    
+        return y
+
+
+
 
 class LinearSSM():
     """
