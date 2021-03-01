@@ -9,10 +9,334 @@ import numpy as np
 
 from miscellaneous import *
 
+class RBFLPV():
+    """
+    
+    """
+
+    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA,dim_thetaB,dim_thetaC,name):
+        
+        self.dim_u = dim_u
+        self.dim_x = dim_x
+        self.dim_y = dim_y
+        self.dim_thetaA = dim_thetaA
+        self.dim_thetaB = dim_thetaB
+        self.dim_thetaC = dim_thetaC
+        self.name = name
+        
+        self.Initialize()
+
+    def Initialize(self):
+            
+            # For convenience of notation
+            dim_u = self.dim_u
+            dim_x = self.dim_x 
+            dim_y = self.dim_y   
+            dim_thetaA = self.dim_thetaA
+            dim_thetaB = self.dim_thetaB
+            dim_thetaC = self.dim_thetaC
+            name = self.name
+            
+            # Define input, state and output vector
+            u = cs.MX.sym('u',dim_u,1)
+            x = cs.MX.sym('x',dim_x,1)
+            y = cs.MX.sym('y',dim_y,1)
+            
+            # Define Model Parameters
+            A = cs.MX.sym('A',dim_x,dim_x,dim_theta)
+            B = cs.MX.sym('B',dim_x,dim_u,dim_theta)
+            C = cs.MX.sym('C',dim_y,dim_x,dim_theta)
+
+            W_u = cs.MX.sym('W_u',,,dim_theta)
+            
+            
+            B_0 = cs.MX.sym('B_0',dim_x,dim_u)
+            B_lpv = cs.MX.sym('B_lpv',dim_x,dim_thetaB)
+            W_B = cs.MX.sym('W_B',dim_thetaB,dim_u)
+            
+            C_0 = cs.MX.sym('C_0',dim_y,dim_x)
+            C_lpv = cs.MX.sym('C_lpv',dim_y,dim_thetaC)
+            W_C = cs.MX.sym('W_C',dim_thetaC,dim_x)
+            
+            # Put all Parameters in Dictionary with random initialization
+            self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
+                               'A_lpv':np.random.rand(dim_x,dim_thetaA),
+                               'W_A':np.random.rand(dim_thetaA,dim_x),
+                               'B_0':np.random.rand(dim_x,dim_u),
+                               'B_lpv':np.random.rand(dim_x,dim_thetaB),
+                               'W_B':np.random.rand(dim_thetaB,dim_u),
+                               'C_0':np.random.rand(dim_y,dim_x),
+                               'C_lpv':np.random.rand(dim_y,dim_thetaC),
+                               'W_C':np.random.rand(dim_thetaC,dim_x)}
+        
+            # self.Input = {'u':np.random.rand(u.shape)}
+            
+            # Define Model Equations
+            x_new = cs.mtimes(A_0,x) + cs.mtimes(B_0,u) + cs.mtimes(A_lpv, 
+                    cs.tanh(cs.mtimes(W_A,x))) + cs.mtimes(B_lpv, 
+                    cs.tanh(cs.mtimes(W_B,u)))
+            y_new = cs.mtimes(C_0,x_new) + cs.mtimes(C_lpv, 
+                    cs.tanh(cs.mtimes(W_C,x_new)))
+            
+            
+            input = [x,u,A_0,A_lpv,W_A,B_0,B_lpv,W_B,C_0,C_lpv,W_C]
+            input_names = ['x','u','A_0','A_lpv','W_A','B_0','B_lpv','W_B','C_0','C_lpv','W_C']
+            
+            output = [x_new,y_new]
+            output_names = ['x_new','y_new']  
+            
+            self.Function = cs.Function(name, input, output, input_names,output_names)
+            
+            return None
+   
+    def OneStepPrediction(self,x0,u0,params=None):
+        '''
+        Estimates the next state and output from current state and input
+        x0: Casadi MX, current state
+        u0: Casadi MX, current input
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+        
+        if params==None:
+            params = self.Parameters
+        
+        params_new = []
+            
+        for name in  self.Function.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        x1,y1 = self.Function(x0,u0,*params_new)     
+                              
+        return x1,y1
+   
+    def Simulation(self,x0,u,params=None):
+        '''
+        A iterative application of the OneStepPrediction in order to perform a
+        simulation for a whole input trajectory
+        x0: Casadi MX, inital state a begin of simulation
+        u: Casadi MX,  input trajectory
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+
+        x = []
+        y = []
+
+        # initial states
+        x.append(x0)
+                      
+        # Simulate Model
+        for k in range(u.shape[0]):
+            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
+            x.append(x_new)
+            y.append(y_new)
+        
+
+        # Concatenate list to casadiMX
+        y = cs.hcat(y).T    
+        x = cs.hcat(x).T
+       
+        return y
 
 
+class RehmerLPV():
+    """
+    
+    """
 
+    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA,dim_thetaB,dim_thetaC,
+                 fA_dim,fB_dim,fC_dim,name):
+        
+        self.dim_u = dim_u
+        self.dim_x = dim_x
+        self.dim_y = dim_y
+        self.dim_thetaA = dim_thetaA
+        self.dim_thetaB = dim_thetaB
+        self.dim_thetaC = dim_thetaC
+        self.fA_dim = fA_dim
+        self.fB_dim = fB_dim
+        self.fC_dim = fC_dim        
+        self.name = name
+        
+        self.Initialize()
 
+    def Initialize(self):
+            
+            # For convenience of notation
+            dim_u = self.dim_u
+            dim_x = self.dim_x 
+            dim_y = self.dim_y   
+            dim_thetaA = self.dim_thetaA
+            dim_thetaB = self.dim_thetaB
+            dim_thetaC = self.dim_thetaC
+            fA_dim = self.fA_dim
+            fB_dim = self.fB_dim
+            fC_dim = self.fC_dim    
+           
+            name = self.name
+            
+            # Define input, state and output vector
+            u = cs.MX.sym('u',dim_u,1)
+            x = cs.MX.sym('x',dim_x,1)
+            y = cs.MX.sym('y',dim_y,1)
+            
+            # Define Model Parameters
+            A_0 = cs.MX.sym('A_0',dim_x,dim_x)
+            A_lpv = cs.MX.sym('A_lpv',dim_x,dim_thetaA)
+            W_A = cs.MX.sym('W_A',dim_thetaA,dim_x)
+            
+            W_fA_x = cs.MX.sym('W_fA_x',fA_dim,dim_x)
+            W_fA_u = cs.MX.sym('W_fA_u',fA_dim,dim_u)
+            b_fA_h = cs.MX.sym('b_fA_h',fA_dim,1)
+            W_fA = cs.MX.sym('W_fA',dim_thetaA,fA_dim)
+            b_fA = cs.MX.sym('b_fA',dim_thetaA,1)
+            
+            B_0 = cs.MX.sym('B_0',dim_x,dim_u)
+            B_lpv = cs.MX.sym('B_lpv',dim_x,dim_thetaB)
+            W_B = cs.MX.sym('W_B',dim_thetaB,dim_u)
+  
+            W_fB_x = cs.MX.sym('W_fB_x',fB_dim,dim_x)
+            W_fB_u = cs.MX.sym('W_fB_u',fB_dim,dim_u)
+            b_fB_h = cs.MX.sym('b_fB_h',fB_dim,1)
+            W_fB = cs.MX.sym('W_fB',dim_thetaB,fB_dim)
+            b_fB = cs.MX.sym('b_fB',dim_thetaB,1)            
+  
+            C_0 = cs.MX.sym('C_0',dim_y,dim_x)
+            C_lpv = cs.MX.sym('C_lpv',dim_y,dim_thetaC)
+            W_C = cs.MX.sym('W_C',dim_thetaC,dim_x)
+            
+            W_fC_x = cs.MX.sym('W_fC_x',fC_dim,dim_x)
+            W_fC_u = cs.MX.sym('W_fC_u',fC_dim,dim_u)
+            b_fC_h = cs.MX.sym('b_fC_h',fC_dim,1)
+            W_fC = cs.MX.sym('W_fC',dim_thetaC,fC_dim)
+            b_fC = cs.MX.sym('b_fC',dim_thetaC,1)            
+            
+            
+            
+            # Put all Parameters in Dictionary with random initialization
+            self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
+                               'A_lpv':np.random.rand(dim_x,dim_thetaA),
+                               'W_A':np.random.rand(dim_thetaA,dim_x),
+                               'W_fA_x':np.random.rand(fA_dim,dim_x),
+                               'W_fA_u':np.random.rand(fA_dim,dim_u),
+                               'b_fA_h':np.random.rand(fA_dim,1),
+                               'W_fA':np.random.rand(dim_thetaA,fA_dim),
+                               'b_fA':np.random.rand(dim_thetaA,1)  ,                             
+                               'B_0':np.random.rand(dim_x,dim_u),
+                               'B_lpv':np.random.rand(dim_x,dim_thetaB),
+                               'W_fB_x':np.random.rand(fB_dim,dim_x),
+                               'W_fB_u':np.random.rand(fB_dim,dim_u),
+                               'b_fB_h':np.random.rand(fB_dim,1),
+                               'W_fB':np.random.rand(dim_thetaB,fB_dim),
+                               'b_fB':np.random.rand(dim_thetaB,1),                               
+                               'W_B':np.random.rand(dim_thetaB,dim_u),
+                               'C_0':np.random.rand(dim_y,dim_x),
+                               'C_lpv':np.random.rand(dim_y,dim_thetaC),
+                               'W_C':np.random.rand(dim_thetaC,dim_x),
+                               'W_fC_x':np.random.rand(fC_dim,dim_x),
+                               'W_fC_u':np.random.rand(fC_dim,dim_u),
+                               'b_fC_h':np.random.rand(fC_dim,1),
+                               'W_fC':np.random.rand(dim_thetaC,fC_dim),
+                               'b_fC':np.random.rand(dim_thetaC,1)}
+        
+            # self.Input = {'u':np.random.rand(u.shape)}
+            
+            # Define Model Equations
+            fA_h = cs.tanh(cs.mtimes(W_fA_x,x) + cs.mtimes(W_fA_u,u) + b_fA_h)
+            fA = logistic(cs.mtimes(W_fA,fA_h)+b_fA)
+            
+            fB_h = cs.tanh(cs.mtimes(W_fB_x,x) + cs.mtimes(W_fB_u,u) + b_fB_h)
+            fB = logistic(cs.mtimes(W_fB,fB_h)+b_fB)
+            
+            fC_h = cs.tanh(cs.mtimes(W_fC_x,x) + cs.mtimes(W_fC_u,u) + b_fC_h)
+            fC = logistic(cs.mtimes(W_fC,fC_h)+b_fC)
+            
+            x_new = cs.mtimes(A_0,x) + cs.mtimes(B_0,u) + cs.mtimes(A_lpv, 
+                    fA*cs.tanh(cs.mtimes(W_A,x))) + cs.mtimes(B_lpv, 
+                    fB*cs.tanh(cs.mtimes(W_B,u)))
+            y_new = cs.mtimes(C_0,x_new) + cs.mtimes(C_lpv, 
+                    fC*cs.tanh(cs.mtimes(W_C,x_new)))
+            
+            
+            input = [x,u,A_0,A_lpv,W_A,W_fA_x,W_fA_u,b_fA_h,W_fA,b_fA,
+                     B_0,B_lpv,W_B,W_fB_x,W_fB_u,b_fB_h,W_fB,b_fB,
+                     C_0,C_lpv,W_C,W_fC_x,W_fC_u,b_fC_h,W_fC,b_fC]
+            
+            input_names = ['x','u',
+                           'A_0','A_lpv','W_A','W_fA_x','W_fA_u', 'b_fA_h',
+                           'W_fA','b_fA',
+                           'B_0','B_lpv','W_B','W_fB_x','W_fB_u','b_fB_h',
+                           'W_fB','b_fB',
+                           'C_0','C_lpv','W_C','W_fC_x','W_fC_u','b_fC_h',
+                           'W_fC','b_fC']
+            
+            output = [x_new,y_new]
+            output_names = ['x_new','y_new']  
+            
+            self.Function = cs.Function(name, input, output, input_names,output_names)
+            
+            return None
+   
+    def OneStepPrediction(self,x0,u0,params=None):
+        '''
+        Estimates the next state and output from current state and input
+        x0: Casadi MX, current state
+        u0: Casadi MX, current input
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+        
+        if params==None:
+            params = self.Parameters
+        
+        params_new = []
+            
+        for name in  self.Function.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        x1,y1 = self.Function(x0,u0,*params_new)     
+                              
+        return x1,y1
+   
+    def Simulation(self,x0,u,params=None):
+        '''
+        A iterative application of the OneStepPrediction in order to perform a
+        simulation for a whole input trajectory
+        x0: Casadi MX, inital state a begin of simulation
+        u: Casadi MX,  input trajectory
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+
+        x = []
+        y = []
+
+        # initial states
+        x.append(x0)
+                      
+        # Simulate Model
+        for k in range(u.shape[0]):
+            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
+            x.append(x_new)
+            y.append(y_new)
+        
+
+        # Concatenate list to casadiMX
+        y = cs.hcat(y).T    
+        x = cs.hcat(x).T
+       
+        return y
 
 
 
@@ -76,11 +400,11 @@ class LachhabLPV():
             # self.Input = {'u':np.random.rand(u.shape)}
             
             # Define Model Equations
-            x_new = cs.mtimes(A_0,x) + cs.mtimes(B_0,u) + cs.mtimes(A_lpv,
-                    cs.mtimes(cs.tanh(cs.mtimes(W_A,x)))) + cs.mtimes(B_lpv,
-                    cs.mtimes(cs.tanh(cs.mtimes(W_B,u))))
-            y_new = cs.mtimes(A_0,x_new) + cs.mtimes(C_lpv,
-                    cs.mtimes(cs.tanh(cs.mtimes(W_C,x_new))))
+            x_new = cs.mtimes(A_0,x) + cs.mtimes(B_0,u) + cs.mtimes(A_lpv, 
+                    cs.tanh(cs.mtimes(W_A,x))) + cs.mtimes(B_lpv, 
+                    cs.tanh(cs.mtimes(W_B,u)))
+            y_new = cs.mtimes(C_0,x_new) + cs.mtimes(C_lpv, 
+                    cs.tanh(cs.mtimes(W_C,x_new)))
             
             
             input = [x,u,A_0,A_lpv,W_A,B_0,B_lpv,W_B,C_0,C_lpv,W_C]

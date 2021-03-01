@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-import modellklassen as Model
+import Modellklassen as Model
 from OptimizationTools import *
 from miscellaneous import *
 
@@ -49,9 +49,12 @@ data = {'u_train':u[0:8], 'y_train':y[0:8],'init_state_train': init_state[0:8],
 
 
 ''' Define the model as a linear state space model with name 'test' '''
-model = Model.LinearSSM(dim_u=2,dim_x=2,dim_y=2,name='test')
+# model = Model.LinearSSM(dim_u=2,dim_x=2,dim_y=2,name='test')
+# model = Model.LachhabLPV(dim_u=2,dim_x=3,dim_y=2,dim_thetaA=1,dim_thetaB=2,
+#                          dim_thetaC=3,name='Lachhab')
 
-
+model = Model.RehmerLPV(dim_u=2,dim_x=2,dim_y=2,dim_thetaA=1,dim_thetaB=2,
+                         dim_thetaC=3,fA_dim=5,fB_dim=10,fC_dim=3,name='name')
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
@@ -66,7 +69,7 @@ and the estimated parameters '''
 # every model has a loss close to zero because the optimizer is really good
 # and its 'only' a linear model which we identify)
 
-model.Parameters = identification_results.loc[2,'params']
+model.Parameters = identification_results.loc[8,'params']
 
 
 # Maybe plot the simulation result to see how good the model performs
