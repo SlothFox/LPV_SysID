@@ -14,14 +14,12 @@ class RBFLPV():
     
     """
 
-    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA,dim_thetaB,dim_thetaC,name):
+    def __init__(self,dim_u,dim_x,dim_y,dim_theta,name):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
         self.dim_y = dim_y
-        self.dim_thetaA = dim_thetaA
-        self.dim_thetaB = dim_thetaB
-        self.dim_thetaC = dim_thetaC
+        self.dim_theta = dim_theta
         self.name = name
         
         self.Initialize()
@@ -32,9 +30,7 @@ class RBFLPV():
             dim_u = self.dim_u
             dim_x = self.dim_x 
             dim_y = self.dim_y   
-            dim_thetaA = self.dim_thetaA
-            dim_thetaB = self.dim_thetaB
-            dim_thetaC = self.dim_thetaC
+            dim_theta = self.dim_theta
             name = self.name
             
             # Define input, state and output vector
@@ -42,45 +38,95 @@ class RBFLPV():
             x = cs.MX.sym('x',dim_x,1)
             y = cs.MX.sym('y',dim_y,1)
             
+            
             # Define Model Parameters
             A = cs.MX.sym('A',dim_x,dim_x,dim_theta)
             B = cs.MX.sym('B',dim_x,dim_u,dim_theta)
             C = cs.MX.sym('C',dim_y,dim_x,dim_theta)
-
-            W_u = cs.MX.sym('W_u',,,dim_theta)
+            O = cs.MX.sym('O',dim_x,1,dim_theta)
+            c_u = cs.MX.sym('c_u',dim_u,1,dim_theta)
+            c_x = cs.MX.sym('c_x',dim_x,1,dim_theta)
+            w_u = cs.MX.sym('w_u',dim_u,1,dim_theta)
+            w_x = cs.MX.sym('w_x',dim_x,1,dim_theta)
             
             
-            B_0 = cs.MX.sym('B_0',dim_x,dim_u)
-            B_lpv = cs.MX.sym('B_lpv',dim_x,dim_thetaB)
-            W_B = cs.MX.sym('W_B',dim_thetaB,dim_u)
-            
-            C_0 = cs.MX.sym('C_0',dim_y,dim_x)
-            C_lpv = cs.MX.sym('C_lpv',dim_y,dim_thetaC)
-            W_C = cs.MX.sym('W_C',dim_thetaC,dim_x)
             
             # Put all Parameters in Dictionary with random initialization
-            self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
-                               'A_lpv':np.random.rand(dim_x,dim_thetaA),
-                               'W_A':np.random.rand(dim_thetaA,dim_x),
-                               'B_0':np.random.rand(dim_x,dim_u),
-                               'B_lpv':np.random.rand(dim_x,dim_thetaB),
-                               'W_B':np.random.rand(dim_thetaB,dim_u),
-                               'C_0':np.random.rand(dim_y,dim_x),
-                               'C_lpv':np.random.rand(dim_y,dim_thetaC),
-                               'W_C':np.random.rand(dim_thetaC,dim_x)}
+
         
-            # self.Input = {'u':np.random.rand(u.shape)}
             
-            # Define Model Equations
-            x_new = cs.mtimes(A_0,x) + cs.mtimes(B_0,u) + cs.mtimes(A_lpv, 
-                    cs.tanh(cs.mtimes(W_A,x))) + cs.mtimes(B_lpv, 
-                    cs.tanh(cs.mtimes(W_B,u)))
-            y_new = cs.mtimes(C_0,x_new) + cs.mtimes(C_lpv, 
-                    cs.tanh(cs.mtimes(W_C,x_new)))
+            # Define Model Equations, loop over all local models
+            
+            x_new = 0
+            y_loc = []
+            r_sum = 0
+            
+            sched = vertcat(x,u)
+            
+            for loc in range(0,len(A)):
+                
+                c = vertcat(c_x[loc],c_u[loc])
+                w = vertcat(w_x[loc],w_u[loc])
+                
+                r = RBF(sched,c,w)
+                
+                x_new = x_new + \
+                r * (cs.mtimes(A[loc],x) + cs.mtimes(B[loc],u) + O[loc])
+                
+                r_sum = r_sum + r
+                # r_loc.append(RBF(sched,c,w)) 
+                # x_loc.append(r_loc[loc] *
+                #              (cs.mtimes(A[loc],x) + cs.mtimes(B[loc],u) + O[loc]))    
+                # y_loc.append(r_loc[loc] * cs.mtimes(C[loc],x) )
+                
+            # x_new = cs.sum1(x_loc)/cs.sum1(r_loc)
+            
+            x_new = x_new / r_sum
+            
+            y_new = 0
+            
+            for loc in range(0,len(A)):
+                
+                c = vertcat(c_x[loc],c_u[loc])
+                w = vertcat(w_x[loc],w_u[loc])
+                
+                r = RBF(sched,c,w)
+                
+                y_new = y_new + r * (cs.mtimes(C[loc],x))
+                
+            # y_new = cs.sum1(y_loc)/cs.sum1(r_loc)
+            
+            y_new = y_new / r_sum
+            
+            # Define Casadi Function
+            
+            # Define input of Casadi Function and save all parameters in 
+            # dictionary
             
             
-            input = [x,u,A_0,A_lpv,W_A,B_0,B_lpv,W_B,C_0,C_lpv,W_C]
-            input_names = ['x','u','A_0','A_lpv','W_A','B_0','B_lpv','W_B','C_0','C_lpv','W_C']
+            input = [x,u]
+            input_names = ['x','u']
+            
+            Parameters = {}
+            
+            # Add local model parameters
+            for loc in range(0,len(A)):
+                input.extend([A[loc],B[loc],C[loc],O[loc],c_u[loc],c_x[loc],w_u[loc],
+                              w_x[loc]])    
+                i=str(loc)
+                input_names.extend(['A'+i,'B'+i,'C'+i,'O'+i,'c_u'+i,'c_x'+i,'w_u'+i,
+                                    'w_x'+i])
+                
+                Parameters['A'+i] = np.random.rand(dim_x,dim_x)
+                Parameters['B'+i] = np.random.rand(dim_x,dim_u)
+                Parameters['C'+i] = np.random.rand(dim_y,dim_x)
+                Parameters['O'+i] = np.random.rand(dim_x,1)
+                Parameters['c_u'+i] = np.random.rand(dim_u,1)
+                Parameters['c_x'+i] = np.random.rand(dim_x,1)
+                Parameters['w_u'+i] = np.random.rand(dim_u,1)
+                Parameters['w_x'+i] = np.random.rand(dim_x,1)
+                
+            self.Parameters=Parameters    
             
             output = [x_new,y_new]
             output_names = ['x_new','y_new']  
@@ -245,8 +291,7 @@ class RehmerLPV():
                                'W_fC':np.random.rand(dim_thetaC,fC_dim),
                                'b_fC':np.random.rand(dim_thetaC,1)}
         
-            # self.Input = {'u':np.random.rand(u.shape)}
-            
+           
             # Define Model Equations
             fA_h = cs.tanh(cs.mtimes(W_fA_x,x) + cs.mtimes(W_fA_u,u) + b_fA_h)
             fA = logistic(cs.mtimes(W_fA,fA_h)+b_fA)
@@ -674,8 +719,13 @@ class MLP():
        
         return x
 
-
+def RBF(x,c,w):
+    d = x-c    
+    e = - cs.mtimes(cs.mtimes(d.T,cs.diag(w)**2),d)
+    y = cs.exp(e)
     
+    return y
+
 def logistic(x):
     
     y = 0.5 + 0.5 * cs.tanh(0.5*x)

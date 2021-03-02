@@ -53,12 +53,15 @@ data = {'u_train':u[0:8], 'y_train':y[0:8],'init_state_train': init_state[0:8],
 # model = Model.LachhabLPV(dim_u=2,dim_x=3,dim_y=2,dim_thetaA=1,dim_thetaB=2,
 #                          dim_thetaC=3,name='Lachhab')
 
-model = Model.RehmerLPV(dim_u=2,dim_x=2,dim_y=2,dim_thetaA=1,dim_thetaB=2,
-                         dim_thetaC=3,fA_dim=5,fB_dim=10,fC_dim=3,name='name')
+# model = Model.RehmerLPV(dim_u=2,dim_x=2,dim_y=2,dim_thetaA=1,dim_thetaB=2,
+#                          dim_thetaC=3,fA_dim=5,fB_dim=10,fC_dim=3,name='name')
+
+
+model = Model.RBFLPV(dim_u=2,dim_x=2,dim_y=2,dim_theta=2,name='name')
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = ModelTraining(model,data,initializations = 10)
+identification_results = ModelTraining(model,data,initializations = 1)
 
 
 ''' The output is a pandas dataframe which contains the results for each of
@@ -69,14 +72,14 @@ and the estimated parameters '''
 # every model has a loss close to zero because the optimizer is really good
 # and its 'only' a linear model which we identify)
 
-model.Parameters = identification_results.loc[8,'params']
+# model.Parameters = identification_results.loc[8,'params']
 
 
 # Maybe plot the simulation result to see how good the model performs
-y_est = model.Simulation(init_state[0],u[0])
-y_est = np.array(y_est)  
-plt.plot(y[0],label='True output')                                                    # Plot True data
-plt.plot(y_est,label='Est. output')                                             # Plot Model Output
-plt.plot(y[0]-y_est,label='Simulation Error')                                   # Plot Error between model and true system (its almost zero)
-plt.legend()
-plt.show()
+# y_est = model.Simulation(init_state[0],u[0])
+# y_est = np.array(y_est)  
+# plt.plot(y[0],label='True output')                                                    # Plot True data
+# plt.plot(y_est,label='Est. output')                                             # Plot Model Output
+# plt.plot(y[0]-y_est,label='Simulation Error')                                   # Plot Error between model and true system (its almost zero)
+# plt.legend()
+# plt.show()
