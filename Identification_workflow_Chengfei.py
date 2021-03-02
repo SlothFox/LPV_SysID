@@ -12,7 +12,7 @@ from OptimizationTools import *
 from miscellaneous import *
 
 ''' Generate Identification Data from an arbitrary state space model with 
-two states and one output (it's just data to check if the code works) '''
+two states and two outputs (it's just data to check if the code works) '''
 
 N = 100
 
