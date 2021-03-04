@@ -37,8 +37,7 @@ class RBFLPV():
             u = cs.MX.sym('u',dim_u,1)
             x = cs.MX.sym('x',dim_x,1)
             y = cs.MX.sym('y',dim_y,1)
-            
-            
+                        
             # Define Model Parameters
             A = cs.MX.sym('A',dim_x,dim_x,dim_theta)
             B = cs.MX.sym('B',dim_x,dim_u,dim_theta)
@@ -48,62 +47,46 @@ class RBFLPV():
             c_x = cs.MX.sym('c_x',dim_x,1,dim_theta)
             w_u = cs.MX.sym('w_u',dim_u,1,dim_theta)
             w_x = cs.MX.sym('w_x',dim_x,1,dim_theta)
-            
-            
-            
-            # Put all Parameters in Dictionary with random initialization
-
-        
-            
+                       
             # Define Model Equations, loop over all local models
-            
             x_new = 0
-            y_loc = []
             r_sum = 0
-            
-            sched = vertcat(x,u)
             
             for loc in range(0,len(A)):
                 
-                c = vertcat(c_x[loc],c_u[loc])
-                w = vertcat(w_x[loc],w_u[loc])
+                c = cs.vertcat(c_x[loc],c_u[loc])
+                w = cs.vertcat(w_x[loc],w_u[loc])
                 
-                r = RBF(sched,c,w)
+                r = RBF(cs.vertcat(x,u),c,w)
                 
                 x_new = x_new + \
                 r * (cs.mtimes(A[loc],x) + cs.mtimes(B[loc],u) + O[loc])
                 
                 r_sum = r_sum + r
-                # r_loc.append(RBF(sched,c,w)) 
-                # x_loc.append(r_loc[loc] *
-                #              (cs.mtimes(A[loc],x) + cs.mtimes(B[loc],u) + O[loc]))    
-                # y_loc.append(r_loc[loc] * cs.mtimes(C[loc],x) )
-                
-            # x_new = cs.sum1(x_loc)/cs.sum1(r_loc)
             
-            x_new = x_new / r_sum
+            x_new = x_new / (r_sum + 1e-20)
             
             y_new = 0
+            r_sum = 0
             
             for loc in range(0,len(A)):
                 
                 c = vertcat(c_x[loc],c_u[loc])
                 w = vertcat(w_x[loc],w_u[loc])
                 
-                r = RBF(sched,c,w)
+                r = RBF(vertcat(x,u),c,w)
                 
-                y_new = y_new + r * (cs.mtimes(C[loc],x))
+                y_new = y_new + r * (cs.mtimes(C[loc],x_new))
                 
-            # y_new = cs.sum1(y_loc)/cs.sum1(r_loc)
-            
-            y_new = y_new / r_sum
+                r_sum = r_sum + r
+                
+            y_new = y_new / (r_sum + 1e-20)
             
             # Define Casadi Function
-            
+           
             # Define input of Casadi Function and save all parameters in 
             # dictionary
-            
-            
+                        
             input = [x,u]
             input_names = ['x','u']
             
@@ -183,7 +166,6 @@ class RBFLPV():
             x.append(x_new)
             y.append(y_new)
         
-
         # Concatenate list to casadiMX
         y = cs.hcat(y).T    
         x = cs.hcat(x).T

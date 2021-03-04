@@ -24,7 +24,7 @@ y = np.zeros((10,N-1,2))
 for i in range(0,10):
     
     u_i = np.random.normal(0,1,(N-1,2))
-    
+    u_i[0,:] = np.array([1,1])
     x_i = np.zeros((N,2))
     y_i = np.zeros((N-1,2))
     
@@ -57,11 +57,24 @@ data = {'u_train':u[0:8], 'y_train':y[0:8],'init_state_train': init_state[0:8],
 #                          dim_thetaC=3,fA_dim=5,fB_dim=10,fC_dim=3,name='name')
 
 
-model = Model.RBFLPV(dim_u=2,dim_x=2,dim_y=2,dim_theta=2,name='name')
+model = Model.RBFLPV(dim_u=2,dim_x=2,dim_y=2,dim_theta=1,name='name')
+
+# model.Parameters['A0'] = np.array([[0.7,-0.1],[0.3,0.3]])
+# model.Parameters['B0'] = np.array([[1,0],[0,-2]])
+# model.Parameters['C0'] = np.array([[1,0],[0,1]])
+# model.Parameters['O0'] = np.array([[0],[0]])
+# model.Parameters['A1'] = np.array([[0.7,-0.1],[0.3,0.3]])
+# model.Parameters['B1'] = np.array([[1,0],[0,-2]])
+# model.Parameters['C1'] = np.array([[1,0],[0,1]])
+# model.Parameters['O1'] = np.array([[0],[0]])
+# model.Parameters['c_u0'] = np.array([[0],[0]])
+# model.Parameters['c_x0'] = np.array([[0],[0]])
+# model.Parameters['w_u0'] = np.array([[1],[1]])
+# model.Parameters['w_x0'] = np.array([[1],[1]])
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = ModelTraining(model,data,initializations = 1)
+identification_results = ModelTraining(model,data,initializations = 10)
 
 
 ''' The output is a pandas dataframe which contains the results for each of
@@ -72,14 +85,19 @@ and the estimated parameters '''
 # every model has a loss close to zero because the optimizer is really good
 # and its 'only' a linear model which we identify)
 
-# model.Parameters = identification_results.loc[8,'params']
+model.Parameters = identification_results.loc[9,'params']
 
 
 # Maybe plot the simulation result to see how good the model performs
-# y_est = model.Simulation(init_state[0],u[0])
-# y_est = np.array(y_est)  
-# plt.plot(y[0],label='True output')                                                    # Plot True data
-# plt.plot(y_est,label='Est. output')                                             # Plot Model Output
-# plt.plot(y[0]-y_est,label='Simulation Error')                                   # Plot Error between model and true system (its almost zero)
-# plt.legend()
-# plt.show()
+y_est = model.Simulation(init_state[0],u[0])
+y_est = np.array(y_est)  
+plt.plot(y[0],label='True output')                                                    # Plot True data
+plt.plot(y_est,label='Est. output')                                             # Plot Model Output
+plt.plot(y[0]-y_est,label='Simulation Error')                                   # Plot Error between model and true system (its almost zero)
+plt.legend()
+plt.show()
+
+
+# e2 = y[0]-y_est
+
+
