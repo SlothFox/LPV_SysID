@@ -53,11 +53,11 @@ data = {'u_train':u[0:8], 'y_train':y[0:8],'init_state_train': init_state[0:8],
 # model = Model.LachhabLPV(dim_u=2,dim_x=3,dim_y=2,dim_thetaA=1,dim_thetaB=2,
 #                          dim_thetaC=3,name='Lachhab')
 
-# model = Model.RehmerLPV(dim_u=2,dim_x=2,dim_y=2,dim_thetaA=1,dim_thetaB=2,
-#                          dim_thetaC=3,fA_dim=5,fB_dim=10,fC_dim=3,name='name')
+model = Model.RehmerLPV(dim_u=2,dim_x=2,dim_y=2,dim_thetaA=0,dim_thetaB=0,
+                          dim_thetaC=0,fA_dim=0,fB_dim=0,fC_dim=0,name='name')
 
 
-model = Model.RBFLPV(dim_u=2,dim_x=2,dim_y=2,dim_theta=1,name='name')
+# model = Model.RBFLPV(dim_u=2,dim_x=2,dim_y=2,dim_theta=1,name='name')
 
 # model.Parameters['A0'] = np.array([[0.7,-0.1],[0.3,0.3]])
 # model.Parameters['B0'] = np.array([[1,0],[0,-2]])

@@ -178,8 +178,8 @@ class RehmerLPV():
     
     """
 
-    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA,dim_thetaB,dim_thetaC,
-                 fA_dim,fB_dim,fC_dim,name):
+    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA=0,dim_thetaB=0,dim_thetaC=0,
+                 fA_dim=0,fB_dim=0,fC_dim=0,name=None):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
