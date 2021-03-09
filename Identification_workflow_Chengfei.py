@@ -12,7 +12,7 @@ from OptimizationTools import *
 from miscellaneous import *
 
 ''' Generate Identification Data from an arbitrary state space model with 
-two states and two outputs (it's just data to check if the code works) '''
+two states and two output (it's just data to check if the code works) '''
 
 N = 100
 
@@ -24,7 +24,7 @@ y = np.zeros((10,N-1,2))
 for i in range(0,10):
     
     u_i = np.random.normal(0,1,(N-1,2))
-    u_i[0,:] = np.array([1,1])
+    
     x_i = np.zeros((N,2))
     y_i = np.zeros((N-1,2))
     
@@ -49,12 +49,15 @@ data = {'u_train':u[0:8], 'y_train':y[0:8],'init_state_train': init_state[0:8],
 
 
 ''' Define the model as a linear state space model with name 'test' '''
+# model = Model.LinearSSM2(dim_u=2,dim_x=2,dim_y=2,name='test')
+model = Model.RehmerLPV(dim_u=2,dim_x=2,dim_y=2,dim_thetaA=2,fA_dim=1,
+                        name='test')
 # model = Model.LinearSSM(dim_u=2,dim_x=2,dim_y=2,name='test')
 # model = Model.LachhabLPV(dim_u=2,dim_x=3,dim_y=2,dim_thetaA=1,dim_thetaB=2,
 #                          dim_thetaC=3,name='Lachhab')
 
-model = Model.RehmerLPV(dim_u=2,dim_x=2,dim_y=2,dim_thetaA=0,dim_thetaB=0,
-                          dim_thetaC=0,fA_dim=0,fB_dim=0,fC_dim=0,name='name')
+# model = Model.RehmerLPV(dim_u=2,dim_x=2,dim_y=2,dim_thetaA=1,dim_thetaB=1,
+#                           dim_thetaC=1,fA_dim=1,fB_dim=1,fC_dim=1,name='name')
 
 
 # model = Model.RBFLPV(dim_u=2,dim_x=2,dim_y=2,dim_theta=1,name='name')
@@ -89,6 +92,7 @@ model.Parameters = identification_results.loc[9,'params']
 
 
 # Maybe plot the simulation result to see how good the model performs
+model = Model.LinearSSM(dim_u=2,dim_x=2,dim_y=2,name='test')
 y_est = model.Simulation(init_state[0],u[0])
 y_est = np.array(y_est)  
 plt.plot(y[0],label='True output')                                                    # Plot True data

@@ -34,6 +34,23 @@ import pickle as pkl
 from miscellaneous import *
 
 
+def SimulateModel(model,x,u,params=None):
+    # Casadi Function needs list of parameters as input
+    if params==None:
+        params = model.Parameters
+    
+    params_new = []
+        
+    for name in  model.Function.name_in():
+        try:
+            params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+        except:
+            continue
+    
+    x_new = model.Function(x,u,*params_new)     
+                          
+    return x_new
+
 def ControlInput(ref_trajectories,opti_vars,k):
     """
     Übersetzt durch Maschinenparameter parametrierte
@@ -65,6 +82,25 @@ def CreateOptimVariables(opti, RefTrajectoryParams):
         
         opti_vars[param] = opti.variable(dim0,dim1)
     
+    # Create one parameter dictionary for each phase
+    # opti_vars['RefParamsInject'] = {}
+    # opti_vars['RefParamsPress'] = {}
+    # opti_vars['RefParamsCool'] = {}
+
+    # for key in opti_vars.keys():
+        
+    #     param_dict = getattr(process_model,key)
+        
+    #     if param_dict is not None:
+        
+    #         for param in param_dict.keys():
+                
+    #             dim0 = param_dict[param].shape[0]
+    #             dim1 = param_dict[param].shape[1]
+                
+    #             opti_vars[key][param] = opti.variable(dim0,dim1)
+    #     else:
+    #         opti_vars[key] = None
   
     return opti_vars
 
@@ -146,13 +182,16 @@ def MultiStageOptimization(process_model,ref):
     
     return values
 
-def ModelTraining(model,data,initializations = 10, BFR=False, p_opts=None, s_opts=None):
+
+
+def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=False, p_opts=None, s_opts=None):
     
     # Solver options
     if p_opts is None:
         p_opts = {"expand":False}
     if s_opts is None:
-        s_opts = {"max_iter": 1000, "print_level":0}
+        s_opts = {"max_iter": 1000, "print_level":0,
+                  "hessian_approximation":'exact'}
     
     results = [] 
     
@@ -310,6 +349,9 @@ def HyperParameterPSO(model,data,param_bounds,n_particles,options,
             else:
                 cost[particle] = hist.loc[idx].cost.item()
                 
+        
+        
+        
         cost = cost.reshape((n_particles,))
         return cost
     
@@ -415,3 +457,9 @@ def SingleStageOptimization(model,ref,N):
     values['U'] = sol.value(U)
     
     return values
+
+
+
+
+
+

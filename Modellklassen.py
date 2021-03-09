@@ -9,6 +9,7 @@ import numpy as np
 
 from miscellaneous import *
 
+
 class RBFLPV():
     """
     
@@ -179,7 +180,7 @@ class RehmerLPV():
     """
 
     def __init__(self,dim_u,dim_x,dim_y,dim_thetaA=0,dim_thetaB=0,dim_thetaC=0,
-                 fA_dim=0,fB_dim=0,fC_dim=0,name=None):
+                 fA_dim=0,fB_dim=0,fC_dim=0,initial_params=None, name=None):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
@@ -192,9 +193,9 @@ class RehmerLPV():
         self.fC_dim = fC_dim        
         self.name = name
         
-        self.Initialize()
+        self.Initialize(initial_params)
 
-    def Initialize(self):
+    def Initialize(self,initial_params=None):
             
             # For convenience of notation
             dim_u = self.dim_u
@@ -208,13 +209,13 @@ class RehmerLPV():
             fC_dim = self.fC_dim    
            
             name = self.name
-            
+
             # Define input, state and output vector
             u = cs.MX.sym('u',dim_u,1)
             x = cs.MX.sym('x',dim_x,1)
             y = cs.MX.sym('y',dim_y,1)
             
-            # Define Model Parameters
+            # # Define Model Parameters
             A_0 = cs.MX.sym('A_0',dim_x,dim_x)
             A_lpv = cs.MX.sym('A_lpv',dim_x,dim_thetaA)
             W_A = cs.MX.sym('W_A',dim_thetaA,dim_x)
@@ -243,37 +244,38 @@ class RehmerLPV():
             W_fC_u = cs.MX.sym('W_fC_u',fC_dim,dim_u)
             b_fC_h = cs.MX.sym('b_fC_h',fC_dim,1)
             W_fC = cs.MX.sym('W_fC',dim_thetaC,fC_dim)
-            b_fC = cs.MX.sym('b_fC',dim_thetaC,1)            
-            
-            
-            
+            b_fC = cs.MX.sym('b_fC',dim_thetaC,1)
+ 
             # Put all Parameters in Dictionary with random initialization
-            self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
-                               'A_lpv':np.random.rand(dim_x,dim_thetaA),
-                               'W_A':np.random.rand(dim_thetaA,dim_x),
-                               'W_fA_x':np.random.rand(fA_dim,dim_x),
-                               'W_fA_u':np.random.rand(fA_dim,dim_u),
-                               'b_fA_h':np.random.rand(fA_dim,1),
-                               'W_fA':np.random.rand(dim_thetaA,fA_dim),
-                               'b_fA':np.random.rand(dim_thetaA,1)  ,                             
-                               'B_0':np.random.rand(dim_x,dim_u),
-                               'B_lpv':np.random.rand(dim_x,dim_thetaB),
-                               'W_fB_x':np.random.rand(fB_dim,dim_x),
-                               'W_fB_u':np.random.rand(fB_dim,dim_u),
-                               'b_fB_h':np.random.rand(fB_dim,1),
-                               'W_fB':np.random.rand(dim_thetaB,fB_dim),
-                               'b_fB':np.random.rand(dim_thetaB,1),                               
-                               'W_B':np.random.rand(dim_thetaB,dim_u),
-                               'C_0':np.random.rand(dim_y,dim_x),
-                               'C_lpv':np.random.rand(dim_y,dim_thetaC),
-                               'W_C':np.random.rand(dim_thetaC,dim_x),
-                               'W_fC_x':np.random.rand(fC_dim,dim_x),
-                               'W_fC_u':np.random.rand(fC_dim,dim_u),
-                               'b_fC_h':np.random.rand(fC_dim,1),
-                               'W_fC':np.random.rand(dim_thetaC,fC_dim),
-                               'b_fC':np.random.rand(dim_thetaC,1)}
-        
-           
+            self.Parameters = {'A_0':np.random.normal(0,0.1,(dim_x,dim_x)),
+                                'A_lpv':np.random.normal(0,0.1,(dim_x,dim_thetaA)),
+                                'W_A':np.random.normal(0,0.1,(dim_thetaA,dim_x)),
+                                'W_fA_x':np.random.normal(0,0.1,(fA_dim,dim_x)),
+                                'W_fA_u':np.random.normal(0,0.1,(fA_dim,dim_u)),
+                                'b_fA_h':np.random.normal(0,0.1,(fA_dim,1)),
+                                'W_fA':np.random.normal(0,0.1,(dim_thetaA,fA_dim)),
+                                'b_fA':np.random.normal(0,0.1,(dim_thetaA,1))  ,                             
+                                'B_0':np.random.normal(0,0.1,(dim_x,dim_u)),
+                                'B_lpv':np.random.normal(0,0.1,(dim_x,dim_thetaB)),
+                                'W_fB_x':np.random.normal(0,0.1,(fB_dim,dim_x)),
+                                'W_fB_u':np.random.normal(0,0.1,(fB_dim,dim_u)),
+                                'b_fB_h':np.random.normal(0,0.1,(fB_dim,1)),
+                                'W_fB':np.random.normal(0,0.1,(dim_thetaB,fB_dim)),
+                                'b_fB':np.random.normal(0,0.1,(dim_thetaB,1)),                               
+                                'W_B':np.random.normal(0,0.1,(dim_thetaB,dim_u)),
+                                'C_0':np.random.normal(0,0.1,(dim_y,dim_x)),
+                                'C_lpv':np.random.normal(0,0.1,(dim_y,dim_thetaC)),
+                                'W_C':np.random.normal(0,0.1,(dim_thetaC,dim_x)),
+                                'W_fC_x':np.random.normal(0,0.1,(fC_dim,dim_x)),
+                                'W_fC_u':np.random.normal(0,0.1,(fC_dim,dim_u)),
+                                'b_fC_h':np.random.normal(0,0.1,(fC_dim,1)),
+                                'W_fC':np.random.normal(0,0.1,(dim_thetaC,fC_dim)),
+                                'b_fC':np.random.normal(0,0.1,(dim_thetaC,1))}
+            
+            if initial_params is not None:
+                for param in initial_params.keys():
+                    self.Parameters[param] = initial_params[param]
+            
             # Define Model Equations
             fA_h = cs.tanh(cs.mtimes(W_fA_x,x) + cs.mtimes(W_fA_u,u) + b_fA_h)
             fA = logistic(cs.mtimes(W_fA,fA_h)+b_fA)
@@ -290,19 +292,18 @@ class RehmerLPV():
             y_new = cs.mtimes(C_0,x_new) + cs.mtimes(C_lpv, 
                     fC*cs.tanh(cs.mtimes(W_C,x_new)))
             
-            
             input = [x,u,A_0,A_lpv,W_A,W_fA_x,W_fA_u,b_fA_h,W_fA,b_fA,
-                     B_0,B_lpv,W_B,W_fB_x,W_fB_u,b_fB_h,W_fB,b_fB,
-                     C_0,C_lpv,W_C,W_fC_x,W_fC_u,b_fC_h,W_fC,b_fC]
+                      B_0,B_lpv,W_B,W_fB_x,W_fB_u,b_fB_h,W_fB,b_fB,
+                      C_0,C_lpv,W_C,W_fC_x,W_fC_u,b_fC_h,W_fC,b_fC]
             
             input_names = ['x','u',
-                           'A_0','A_lpv','W_A','W_fA_x','W_fA_u', 'b_fA_h',
-                           'W_fA','b_fA',
-                           'B_0','B_lpv','W_B','W_fB_x','W_fB_u','b_fB_h',
-                           'W_fB','b_fB',
-                           'C_0','C_lpv','W_C','W_fC_x','W_fC_u','b_fC_h',
-                           'W_fC','b_fC']
-            
+                            'A_0','A_lpv','W_A','W_fA_x','W_fA_u', 'b_fA_h',
+                            'W_fA','b_fA',
+                            'B_0','B_lpv','W_B','W_fB_x','W_fB_u','b_fB_h',
+                            'W_fB','b_fB',
+                            'C_0','C_lpv','W_C','W_fC_x','W_fC_u','b_fC_h',
+                            'W_fC','b_fC']
+          
             output = [x_new,y_new]
             output_names = ['x_new','y_new']  
             
@@ -500,23 +501,21 @@ class LachhabLPV():
         return y
 
 
-
-
 class LinearSSM():
     """
     
     """
 
-    def __init__(self,dim_u,dim_x,dim_y,name):
+    def __init__(self,dim_u,dim_x,dim_y,initial_params=None,name=None):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
         self.dim_y = dim_y
         self.name = name
         
-        self.Initialize()
+        self.Initialize(initial_params)
 
-    def Initialize(self):
+    def Initialize(self,initial_params=None):
             
             # For convenience of notation
             dim_u = self.dim_u
@@ -540,7 +539,9 @@ class LinearSSM():
                                'B':np.random.rand(dim_x,dim_u),
                                'C':np.random.rand(dim_y,dim_x)}
         
-            # self.Input = {'u':np.random.rand(u.shape)}
+            if initial_params is not None:
+                for param in initial_params.keys():
+                    self.Parameters[param] = initial_params[param]
             
             # Define Model Equations
             x_new = cs.mtimes(A,x) + cs.mtimes(B,u)

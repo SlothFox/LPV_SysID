@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import pickle as pkl
 
+from scipy.io import loadmat
+
 import Modellklassen as Model
 from OptimizationTools import *
 from miscellaneous import *
@@ -30,9 +32,9 @@ Schroeder80mV = pd.DataFrame(data = scaler.transform(Schroeder80mV),
 
 ################# Pick Training- Validation- and Test-Data ####################
 
-train = SNLS80mV.iloc[40580:49270][['u','y']]
-val = SNLS80mV.iloc[0:40580][['u','y']]
-test = Schroeder80mV.iloc[10585:10585+1023][['u','y']]
+train = SNLS80mV.iloc[40580:49270][['u','y']]-SNLS80mV.mean()
+val = SNLS80mV.iloc[0:40580][['u','y']]-SNLS80mV.mean()
+test = Schroeder80mV.iloc[10585:10585+1023][['u','y']]-Schroeder80mV.mean()
 
 train_u = np.array(train[0:-1]['u']).reshape(1,-1,1)
 train_y = np.array(train[1::]['y']).reshape(1,-1,1)
@@ -53,18 +55,29 @@ data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
         'u_val':val_u, 'y_val':val_y,'init_state_val': init_state}
 
 
-''' Define the model as a linear state space model with name 'test' '''
-# model = Model.LinearSSM(dim_u=2,dim_x=2,dim_y=2,name='test')
-# model = Model.LachhabLPV(dim_u=2,dim_x=3,dim_y=2,dim_thetaA=1,dim_thetaB=2,
-#                          dim_thetaC=3,name='Lachhab')
 
-model = Model.RehmerLPV(dim_u=2,dim_x=2,dim_y=2,dim_thetaA=1,dim_thetaB=0,
-                          dim_thetaC=0,fA_dim=10,fB_dim=0,fC_dim=0,name='name')
+# Load inital linear state space model
+LSS=loadmat("./BenchmarkData/Silverbox//Silverbox_LSS_s2")
+LSS=LSS['LSS']
+
+initial_params = {'A_0': LSS['A'][0][0], 'B_0': LSS['B'][0][0], 'C_0': LSS['C'][0][0] }
+
+''' Define the model as a linear state space model with name 'test' '''
+# model = Model.LinearSSM(dim_u=1,dim_x=2,dim_y=1,initial_params=initial_params,
+#                         name='test')
+# model = Model.LachhabLPV(dim_u=2,dim_x=3,dim_y=2,dim_thetaA=1,dim_thetaB=2,
+#                           dim_thetaC=3,name='Lachhab')
+
+model = Model.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=0,
+                          dim_thetaC=0,fA_dim=2,fB_dim=0,fC_dim=0,
+                          initial_params=initial_params,name='name')
+
+
 
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = ModelTraining(model,data,initializations = 10)
+identification_results = ModelTraining(model,data,1,initial_params)
 
 
 ''' The output is a pandas dataframe which contains the results for each of
@@ -79,11 +92,11 @@ model.Parameters = identification_results.loc[0,'params']
 
 
 # Maybe plot the simulation result to see how good the model performs
-y_est = model.Simulation(init_state[0],u[0])
+y_est = model.Simulation(init_state[0],test_u[0])
 y_est = np.array(y_est)  
-plt.plot(y[0],label='True output')                                              # Plot True data
-plt.plot(y_est,label='Est. output')                                             # Plot Model Output
-plt.plot(y[0]-y_est,label='Simulation Error')                                   # Plot Error between model and true system (its almost zero)
+plt.plot(test_y[0],label='True output')                                        # Plot True data
+plt.plot(y_est,label='Est. output')                                            # Plot Model Output
+plt.plot(test_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
 plt.legend()
 plt.show()
 
