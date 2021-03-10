@@ -295,6 +295,8 @@ class RehmerLPV():
             theta_B = fB * cs.tanh(cs.mtimes(W_B,u))/cs.mtimes(W_B,u)
             theta_C = fC * cs.tanh(cs.mtimes(W_C,x))/cs.mtimes(W_C,x)
             
+            theta = cs.vertcat(theta_A,theta_B,theta_C)
+
             
             input = [x,u,A_0,A_lpv,W_A,W_fA_x,W_fA_u,b_fA_h,W_fA,b_fA,
                      B_0,B_lpv,W_B,W_fB_x,W_fB_u,b_fB_h,W_fB,b_fB,
@@ -308,12 +310,41 @@ class RehmerLPV():
                            'C_0','C_lpv','W_C','W_fC_x','W_fC_u','b_fC_h',
                            'W_fC','b_fC']
             
-            output = [x_new,y_new,theta_A,theta_B,theta_C]
-            output_names = ['x_new','y_new','theta_A','theta_B','theta_C']  
+            # output = [x_new,y_new,theta_A,theta_B,theta_C]
+            # output_names = ['x_new','y_new','theta_A','theta_B','theta_C']
+
+            output = [x_new,y_new,theta]
+            output_names = ['x_new','y_new','theta']
             
             self.Function = cs.Function(name, input, output, input_names,output_names)
             
             return None
+        
+    def AffineStateSpaceMatrices(self,theta):
+        
+        A_0 = self.Parameters['A_0']
+        B_0 = self.Parameters['B_0']
+        C_0 = self.Parameters['C_0']
+    
+        A_lpv = self.Parameters['A_0']
+        B_lpv = self.Parameters['B_lpv']
+        C_lpv = self.Parameters['C_lpv']  
+    
+        W_A = self.Parameters['W_A']
+        W_B = self.Parameters['W_B']
+        W_C = self.Parameters['W_C']      
+    
+        theta_A = theta[0:self.dim_thetaA]
+        theta_B = theta[self.dim_thetaA:self.dim_thetaA+self.dim_thetaB]
+        theta_C = theta[self.dim_thetaA+self.dim_thetaB:self.dim_thetaA+
+                        self.dim_thetaB+self.dim_thetaC]
+        
+        A = A_0 + np.linalg.multi_dot([A_lpv,np.diag(theta_A),W_A])
+        B = B_0 + np.linalg.multi_dot([B_lpv,np.diag(theta_B),W_B])
+        C = C_0 + np.linalg.multi_dot([C_lpv,np.diag(theta_C),W_C]) 
+        
+        return A,B,C
+    
    
     def OneStepPrediction(self,x0,u0,params=None):
         '''
@@ -336,9 +367,11 @@ class RehmerLPV():
             except:
                 continue
         
-        x1,y1,theta_A,theta_B,theta_C = self.Function(x0,u0,*params_new)     
-                              
-        return x1,y1,theta_A,theta_B,theta_C
+        # x1,y1,theta_A,theta_B,theta_C = self.Function(x0,u0,*params_new)     
+        
+        x1,y1,theta = self.Function(x0,u0,*params_new) 
+                     
+        return x1,y1,theta
    
     def Simulation(self,x0,u,params=None,y_out=True):
         '''
@@ -373,16 +406,16 @@ class RehmerLPV():
             
         else:
             
-            theta_A,theta_B,theta_C = [],[],[]
+            theta,theta_B,theta_C = [],[],[]
                           
             # Simulate Model
             for k in range(u.shape[0]):
-                x_new,y_new,t_A,t_B,t_C = \
+                x_new,y_new,t = \
                     self.OneStepPrediction(x[k],u[[k],:],params)
                 
-                theta_A.append(t_A)
-                theta_B.append(t_B)
-                theta_C.append(t_C)
+                theta.append(t)
+                # theta_B.append(t_B)
+                # theta_C.append(t_C)
                 
                 x.append(x_new)
                 y.append(y_new)
@@ -391,12 +424,12 @@ class RehmerLPV():
             y = cs.hcat(y).T    
             x = cs.hcat(x).T   
             
-            theta_A = cs.hcat(theta_A).T    
-            theta_B = cs.hcat(theta_B).T
-            theta_C = cs.hcat(theta_C).T    
+            theta = cs.hcat(theta).T    
+            # theta_B = cs.hcat(theta_B).T
+            # theta_C = cs.hcat(theta_C).T    
         
             
-            return y,x,theta_A,theta_B,theta_C 
+            return y,x,theta
 
 
 

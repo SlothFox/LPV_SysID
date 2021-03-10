@@ -74,11 +74,11 @@ and the estimated parameters '''
 
 
 # Maybe plot the simulation result to see how good the model performs
-y_est,x_est,thetaA,thetaB,thetaC = model.Simulation(init_state[0],u[0],
+y_est,x_est,theta = model.Simulation(init_state[0],u[0],
                                                     y_out=False)
 y_est = np.array(y_est)  
-thetaA = np.array(thetaA)  
-plt.plot(y[0],label='True output')                                                    # Plot True data
+theta = np.array(theta)  
+plt.plot(y[0],label='True output')                                              # Plot True data
 plt.plot(y_est,label='Est. output')                                             # Plot Model Output
 plt.plot(y[0]-y_est,label='Simulation Error')                                   # Plot Error between model and true system (its almost zero)
 plt.legend()
@@ -87,9 +87,10 @@ plt.show()
 plt.figure()
 # plt.plot(thetaA[:,0],label='Theta_A1')    
 # plt.plot(thetaA[:,1],label='Theta_A2')   
-plt.scatter(thetaA[:,0],thetaA[:,1])  
+plt.scatter(theta[:,0],theta[:,1])  
 plt.legend()
 plt.show()
 # e2 = y[0]-y_est
 
+model.AffineStateSpaceMatrices([1,1])
 
