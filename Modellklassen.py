@@ -290,6 +290,11 @@ class RehmerLPV():
             y_new = cs.mtimes(C_0,x_new) + cs.mtimes(C_lpv, 
                     fC*cs.tanh(cs.mtimes(W_C,x_new)))
             
+            # Calculate affine parameters
+            theta_A = fA * cs.tanh(cs.mtimes(W_A,x))/cs.mtimes(W_A,x)
+            theta_B = fB * cs.tanh(cs.mtimes(W_B,u))/cs.mtimes(W_B,u)
+            theta_C = fC * cs.tanh(cs.mtimes(W_C,x))/cs.mtimes(W_C,x)
+            
             
             input = [x,u,A_0,A_lpv,W_A,W_fA_x,W_fA_u,b_fA_h,W_fA,b_fA,
                      B_0,B_lpv,W_B,W_fB_x,W_fB_u,b_fB_h,W_fB,b_fB,
@@ -303,8 +308,8 @@ class RehmerLPV():
                            'C_0','C_lpv','W_C','W_fC_x','W_fC_u','b_fC_h',
                            'W_fC','b_fC']
             
-            output = [x_new,y_new]
-            output_names = ['x_new','y_new']  
+            output = [x_new,y_new,theta_A,theta_B,theta_C]
+            output_names = ['x_new','y_new','theta_A','theta_B','theta_C']  
             
             self.Function = cs.Function(name, input, output, input_names,output_names)
             
@@ -331,11 +336,11 @@ class RehmerLPV():
             except:
                 continue
         
-        x1,y1 = self.Function(x0,u0,*params_new)     
+        x1,y1,theta_A,theta_B,theta_C = self.Function(x0,u0,*params_new)     
                               
-        return x1,y1
+        return x1,y1,theta_A,theta_B,theta_C
    
-    def Simulation(self,x0,u,params=None):
+    def Simulation(self,x0,u,params=None,y_out=True):
         '''
         A iterative application of the OneStepPrediction in order to perform a
         simulation for a whole input trajectory
@@ -345,25 +350,53 @@ class RehmerLPV():
                 should be optimized, if None, then the current parameters of
                 the model are used
         '''
-
         x = []
-        y = []
+        y = []        
 
         # initial states
-        x.append(x0)
-                      
-        # Simulate Model
-        for k in range(u.shape[0]):
-            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
-            x.append(x_new)
-            y.append(y_new)
+        x.append(x0)        
         
-
-        # Concatenate list to casadiMX
-        y = cs.hcat(y).T    
-        x = cs.hcat(x).T
-       
-        return y
+        if y_out:
+                          
+            # Simulate Model
+            for k in range(u.shape[0]):
+                x_new,y_new,_,_,_ = self.OneStepPrediction(x[k],u[[k],:],params)
+                
+                x.append(x_new)
+                y.append(y_new)
+            
+            # Concatenate list to casadiMX
+            y = cs.hcat(y).T    
+            x = cs.hcat(x).T
+            
+            return y
+            
+        else:
+            
+            theta_A,theta_B,theta_C = [],[],[]
+                          
+            # Simulate Model
+            for k in range(u.shape[0]):
+                x_new,y_new,t_A,t_B,t_C = \
+                    self.OneStepPrediction(x[k],u[[k],:],params)
+                
+                theta_A.append(t_A)
+                theta_B.append(t_B)
+                theta_C.append(t_C)
+                
+                x.append(x_new)
+                y.append(y_new)
+            
+            # Concatenate list to casadiMX
+            y = cs.hcat(y).T    
+            x = cs.hcat(x).T   
+            
+            theta_A = cs.hcat(theta_A).T    
+            theta_B = cs.hcat(theta_B).T
+            theta_C = cs.hcat(theta_C).T    
+        
+            
+            return y,x,theta_A,theta_B,theta_C 
 
 
 

@@ -53,28 +53,13 @@ data = {'u_train':u[0:8], 'y_train':y[0:8],'init_state_train': init_state[0:8],
 # model = Model.LachhabLPV(dim_u=2,dim_x=3,dim_y=2,dim_thetaA=1,dim_thetaB=2,
 #                          dim_thetaC=3,name='Lachhab')
 
-model = Model.RehmerLPV(dim_u=2,dim_x=2,dim_y=2,dim_thetaA=0,dim_thetaB=0,
-                          dim_thetaC=0,fA_dim=0,fB_dim=0,fC_dim=0,name='name')
+model = Model.RehmerLPV(dim_u=2,dim_x=2,dim_y=2,dim_thetaA=2,dim_thetaB=0,
+                          dim_thetaC=0,fA_dim=4,fB_dim=0,fC_dim=0,name='name')
 
-
-# model = Model.RBFLPV(dim_u=2,dim_x=2,dim_y=2,dim_theta=1,name='name')
-
-# model.Parameters['A0'] = np.array([[0.7,-0.1],[0.3,0.3]])
-# model.Parameters['B0'] = np.array([[1,0],[0,-2]])
-# model.Parameters['C0'] = np.array([[1,0],[0,1]])
-# model.Parameters['O0'] = np.array([[0],[0]])
-# model.Parameters['A1'] = np.array([[0.7,-0.1],[0.3,0.3]])
-# model.Parameters['B1'] = np.array([[1,0],[0,-2]])
-# model.Parameters['C1'] = np.array([[1,0],[0,1]])
-# model.Parameters['O1'] = np.array([[0],[0]])
-# model.Parameters['c_u0'] = np.array([[0],[0]])
-# model.Parameters['c_x0'] = np.array([[0],[0]])
-# model.Parameters['w_u0'] = np.array([[1],[1]])
-# model.Parameters['w_x0'] = np.array([[1],[1]])
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = ModelTraining(model,data,initializations = 10)
+# identification_results = ModelTraining(model,data,initializations = 10)
 
 
 ''' The output is a pandas dataframe which contains the results for each of
@@ -85,19 +70,26 @@ and the estimated parameters '''
 # every model has a loss close to zero because the optimizer is really good
 # and its 'only' a linear model which we identify)
 
-model.Parameters = identification_results.loc[9,'params']
+# model.Parameters = identification_results.loc[9,'params']
 
 
 # Maybe plot the simulation result to see how good the model performs
-y_est = model.Simulation(init_state[0],u[0])
+y_est,x_est,thetaA,thetaB,thetaC = model.Simulation(init_state[0],u[0],
+                                                    y_out=False)
 y_est = np.array(y_est)  
+thetaA = np.array(thetaA)  
 plt.plot(y[0],label='True output')                                                    # Plot True data
 plt.plot(y_est,label='Est. output')                                             # Plot Model Output
 plt.plot(y[0]-y_est,label='Simulation Error')                                   # Plot Error between model and true system (its almost zero)
 plt.legend()
 plt.show()
 
-
+plt.figure()
+# plt.plot(thetaA[:,0],label='Theta_A1')    
+# plt.plot(thetaA[:,1],label='Theta_A2')   
+plt.scatter(thetaA[:,0],thetaA[:,1])  
+plt.legend()
+plt.show()
 # e2 = y[0]-y_est
 
 
