@@ -17,8 +17,8 @@ from miscellaneous import *
 from sklearn.preprocessing import MinMaxScaler
 
 ################ Load Data ####################################################
-SNLS80mV = pkl.load(open('BenchmarkData/Silverbox/SNLS80mV.pkl','rb'))
-Schroeder80mV = pkl.load(open('BenchmarkData/Silverbox/Schroeder80mV.pkl','rb'))
+SNLS80mV = pkl.load(open('Benchmarks/Silverbox/SNLS80mV.pkl','rb'))
+Schroeder80mV = pkl.load(open('Benchmarks/Silverbox/Schroeder80mV.pkl','rb'))
 
 ################# Scale Data ##################################################
                                           
@@ -57,7 +57,7 @@ data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
 
 
 # Load inital linear state space model
-LSS=loadmat("./BenchmarkData/Silverbox//Silverbox_LSS_s2")
+LSS=loadmat("./Benchmarks/Silverbox/Silverbox_LSS_s2")
 LSS=LSS['LSS']
 
 initial_params = {'A_0': LSS['A'][0][0], 'B_0': LSS['B'][0][0], 'C_0': LSS['C'][0][0] }
@@ -77,8 +77,8 @@ model = Model.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=0,
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = ModelTraining(model,data,1,initial_params)
-
+# identification_results = ModelTraining(model,data,1,initial_params)
+identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
 
 ''' The output is a pandas dataframe which contains the results for each of
 the 10 initializations, specifically the loss on the validation data
@@ -92,15 +92,23 @@ model.Parameters = identification_results.loc[0,'params']
 
 
 # Maybe plot the simulation result to see how good the model performs
-y_est = model.Simulation(init_state[0],test_u[0])
-y_est = np.array(y_est)  
+y_est,x_est,theta = model.Simulation(init_state[0],test_u[0],y_out=False)
+
+y_est = np.array(y_est) 
+theta = np.array(theta)  
+ 
 plt.plot(test_y[0],label='True output')                                        # Plot True data
 plt.plot(y_est,label='Est. output')                                            # Plot Model Output
 plt.plot(test_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
 plt.legend()
 plt.show()
 
-
+plt.figure()
+# plt.plot(thetaA[:,0],label='Theta_A1')    
+# plt.plot(thetaA[:,1],label='Theta_A2')   
+plt.scatter(theta[:,0],theta[:,1])  
+plt.legend()
+plt.show()
 # e2 = y[0]-y_est
 
-
+model.AffineStateSpaceMatrices([1,1])

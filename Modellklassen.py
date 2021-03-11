@@ -179,7 +179,7 @@ class RehmerLPV():
     """
 
     def __init__(self,dim_u,dim_x,dim_y,dim_thetaA=0,dim_thetaB=0,dim_thetaC=0,
-                 fA_dim=0,fB_dim=0,fC_dim=0,name=None):
+                 fA_dim=0,fB_dim=0,fC_dim=0,initial_params=None,name=None):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
@@ -192,9 +192,9 @@ class RehmerLPV():
         self.fC_dim = fC_dim        
         self.name = name
         
-        self.Initialize()
+        self.Initialize(initial_params)
 
-    def Initialize(self):
+    def Initialize(self,initial_params):
             
             # For convenience of notation
             dim_u = self.dim_u
@@ -273,7 +273,12 @@ class RehmerLPV():
                                'W_fC':np.random.rand(dim_thetaC,fC_dim),
                                'b_fC':np.random.rand(dim_thetaC,1)}
         
-           
+            # Initialize if inital parameters are given
+            if initial_params is not None:
+                for param in initial_params.keys():
+                    self.Parameters[param] = initial_params[param]
+                    
+            
             # Define Model Equations
             fA_h = cs.tanh(cs.mtimes(W_fA_x,x) + cs.mtimes(W_fA_u,u) + b_fA_h)
             fA = logistic(cs.mtimes(W_fA,fA_h)+b_fA)
@@ -393,7 +398,7 @@ class RehmerLPV():
                           
             # Simulate Model
             for k in range(u.shape[0]):
-                x_new,y_new,_,_,_ = self.OneStepPrediction(x[k],u[[k],:],params)
+                x_new,y_new,_ = self.OneStepPrediction(x[k],u[[k],:],params)
                 
                 x.append(x_new)
                 y.append(y_new)
