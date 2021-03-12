@@ -36,15 +36,7 @@ S3 = model.AffineStateSpaceMatrices(v3)
 S4 = model.AffineStateSpaceMatrices(v4)
 
 
-# Formulate Optimization Problem
-import cvxopt as cvx
-from cvxopt import matrix, solvers
-
-c = cvx.matrix([1.])  
-
-cvx.solvers.sdp(c[, Gl, hl[, Gs, hs[, A, b[, solver[, primalstart[, dualstart]]]]]]
-                  
-c = cvx.matrix([1.])            
+    
 
 
 
