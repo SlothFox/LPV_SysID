@@ -7,7 +7,7 @@ A1 = Anominal;A1(1,3) = -0.1;
 A2 = Anominal;A2(1,3) =  0.1;
 
 Y = sdpvar(3,3);
-L = sdpvar(1,3,'full');
+L = sdpvar(3,3,'symmetric');
 
 F = [Y >= 0];
 F = [F, [-A1*Y-B*L + (-A1*Y-B*L)' Y L';Y inv(Q) zeros(3,1);L zeros(1,3) inv(R)] >= 0];
