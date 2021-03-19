@@ -21,7 +21,7 @@ r = sdpvar(1,1);
 R = sdpvar(nx,nx,'symmetric');
 S = sdpvar(nx,nx,'symmetric');
 
-LMI = [[R,eye(nx);eye(nx),S] <= 0];
+LMI = [R,eye(3);eye(3),S] <= 0];
 
 
 VertexSystems = {'S1','S2','S3','S4'};
@@ -45,7 +45,7 @@ for vertex = [1:4]
           C1*R*A',     -r*eye(ny)+C1*R*C1',  D11;
           B1',        D11',                  -r*eye(nw)];
 
-    MS = [A'*S*A-S,   A'*S*B1,               C1';
+    MS = [A'*S*A-S,   A'*S*B1',              C1';
          B1'*S*A,     -r*eye(ny)+B1'*S*B1,   D11';
          C1,          D11,                   -r*eye(nw)];
  
@@ -61,10 +61,5 @@ for vertex = [1:4]
     
 end
 
-optimize(LMI,r)
 
-
-% Calculate wo full column rank matrices M and N
-
-% M = chol(eye(nx)-double(R)*double(S));
-[M,N] = qr(eye(nx)-double(R)*double(S));
+% optimize(F,r)

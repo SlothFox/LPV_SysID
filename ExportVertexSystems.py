@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import pickle as pkl
 
+import scipy.io
+
 import Modellklassen as Model
 
 model = Model.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=0,
@@ -34,6 +36,15 @@ S1 = model.AffineStateSpaceMatrices(v1)
 S2 = model.AffineStateSpaceMatrices(v2)
 S3 = model.AffineStateSpaceMatrices(v3)
 S4 = model.AffineStateSpaceMatrices(v4)
+
+VertexSystems = dict(S1=S1,S2=S2,S3=S3,S4=S4)
+
+scipy.io.savemat('VertexSystemsSilverbox.mat', VertexSystems)
+
+
+
+
+
 
 
     
