@@ -101,10 +101,14 @@ zeros(k,nx), M'];
 Xcl = O*pinv(P);
 
 % Solve one LMI for each vertex controller
+
+VertexController= {};
+
+for vertex = [1:4]
+    
+    system = eval(VertexSystems{vertex});
     
     theta = sdpvar(k+nu,k+ny,'full');
-    vertex=3;
-    system = eval(VertexSystems{vertex});
     
     A  = system{1};
     B2 = system{2};
@@ -137,6 +141,10 @@ Xcl = O*pinv(P);
     LMI = [[Mcl] <= 0];
 
 
-optimize(LMI,[],ops)
+    optimize(LMI,[],ops)
 
-theta = double(theta);
+    theta = double(theta);
+    
+    VertexController{vertex} = double(theta);
+    
+end
