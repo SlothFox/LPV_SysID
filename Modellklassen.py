@@ -315,9 +315,6 @@ class RehmerLPV():
                            'C_0','C_lpv','W_C','W_fC_x','W_fC_u','b_fC_h',
                            'W_fC','b_fC']
             
-            # output = [x_new,y_new,theta_A,theta_B,theta_C]
-            # output_names = ['x_new','y_new','theta_A','theta_B','theta_C']
-
             output = [x_new,y_new,theta]
             output_names = ['x_new','y_new','theta']
             
