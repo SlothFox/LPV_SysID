@@ -46,28 +46,7 @@ v4 = (0.515,0.61)
 LPV_Controller = LPV_Controller_full(Omega=None, vertices=(v1,v2,v3,v4))
 
 
-""" 
-FUNKTIONIERT, IN CONTROLLER IMPLEMENTIEREN
-"""
 
-
-vertices=(v1,v2,v3,v4)
-
-bounds = [(min(v),max(v)) for v in zip(*vertices)]
-
-theta = (0.51+(0.515-0.51)/2, 0.61+(0.65-0.61)/2)
-
-c = np.array(1)
-
-for i in range(0,2):
-    
-    t = (theta[i] - bounds[i][0]) / (bounds[i][1] - bounds[i][0])
-
-    c = np.vstack((c*(1-t),c*t))
-    
-
-
-    
 
 
 
