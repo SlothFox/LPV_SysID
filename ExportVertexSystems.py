@@ -45,7 +45,8 @@ v4 = (0.515,0.61)
 
 LPV_Controller = LPV_Controller_full(Omega=None, vertices=(v1,v2,v3,v4))
 
-
+x = np.zeros(2,1)
+y = 
 
 
 
