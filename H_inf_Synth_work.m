@@ -1,5 +1,6 @@
 % Add YALMIP to path
 addpath(genpath('YALMIP-master'))  
+addpath(genpath('mosek'))  
 ops = sdpsettings('solver','mosek');
 
 
@@ -19,7 +20,7 @@ k = 2;
 B1  = zeros(nx,nw);
 D11 = -eye(nq,nw);
 D12 = zeros(nq,nu);
-D21 = zeros(ny,nw);
+D21 = -eye(ny,nw);
 D22 = zeros(ny,nu);
 
 %% Solvability conditions
@@ -38,12 +39,10 @@ for vertex = [1:4]
     
     system = eval(VertexSystems{vertex});
     
-    A  = system{1}+1E-2*eye(nx);
+    A  = system{1};
     B2 = system{2};
     C1 = system{3};
     C2 = system{3};
-    
-    
     
     
     NR = null([B2',D12']);
@@ -83,43 +82,46 @@ S = double(S);
 % Calculate rank of controller
 % [U,Sigma,V] = svd(eye(nx)-R*S);
 
-k = 2;%rank(Sigma);
 
-% M = U(:,1:k);
-% N = (Sigma(1:k,1:k)*V(:,1:k)')';
+% Calculate Xcl by Apkarian
+% [M,N] = qr(eye(nx)-R*S);
+% 
+% O=[S, eye(nx);
+%  N, zeros(k,nx)];
+% 
+% P=[eye(nx), R;
+% zeros(k,nx), M'];
+% 
+% Xcl = O*pinv(P);
 
-[M,N] = qr(eye(nx)-R*S);
+% Try another way to calculate Xcl
 
-% Calculate Xcl
+X1 = S;
+X2 = X1-inv(R);
+[U,T] = schur(X2);
+X2 = U*sqrt(T)*U';
 
-O=[S, eye(nx);
- N', zeros(k,nx)];
-
-P=[eye(nx), R;
-zeros(k,nx), M'];
-
-Xcl = O*pinv(P);
-
+Xcl = [X1,X2;X2',eye(nx)];
 % Solve one LMI for each vertex controller
 
 VertexController= {};
+
 
 for vertex = [1:4]
     
     system = eval(VertexSystems{vertex});
     
     theta = sdpvar(k+nu,k+ny,'full');
+%     r = sdpvar(1,1);
     
     A  = system{1};
     B2 = system{2};
     C1 = system{3};
     C2 = system{3};
 
-
-
     A0 = [A,zeros(nx,k);zeros(k,nx),zeros(k,k)];
     B0 = [B1;zeros(k,nw)];
-    C0 = [C1, zeros(ny,k)];
+    C0 = [C1, zeros(nq,k)];
     D11 = D11;
     
     BB = [zeros(nx,k) B2;eye(k) zeros(k,nu)];
@@ -133,10 +135,22 @@ for vertex = [1:4]
     Bcl = B0 + BB*theta*DD21;
     Ccl = C0 + DD12*theta*CC;
     Dcl = D11+ DD12*theta*DD21;
+
+    %    Conti Time ? : 
+%     Mcl = [Acl'*Xcl+Xcl*Acl, Xcl*Bcl,    Ccl';
+%            Bcl'*Xcl,         -r*eye(nw),   Dcl';
+%            Ccl,               Dcl,       -r*eye(ny)   ];
+
+% Try discrete time
     
-    Mcl = [Acl'*Xcl+Xcl*Acl, Xcl*Bcl,    Ccl';
-           Bcl'*Xcl,         -r*eye(nw),   Dcl';
-           Ccl,               Dcl,       -r*eye(ny)   ];
+%     Mcl = [Acl'*Xcl*Acl-Xcl, Acl'*Xcl*Bcl,              Ccl';
+%            Bcl'*Xcl*Acl,     Bcl'*Xcl*Bcl-r*eye(nw),      Dcl';
+%            Ccl,              Dcl,                       -r*eye(nq)];       
+
+       Mcl = [-inv(Xcl),        Acl,               Bcl,            zeros(nx+k,ny);
+               Acl',            -Xcl,              zeros(nx+k,nw), Ccl';
+               Bcl',            zeros(nw,nx+k),   -r*eye(nw)       Dcl';
+               zeros(nq,nx+k),  Ccl,               Dcl,             -r*eye(ny)];  
     
     LMI = [[Mcl] <= 0];
 
