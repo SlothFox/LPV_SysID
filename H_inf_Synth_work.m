@@ -1,8 +1,10 @@
 % Add YALMIP to path
 addpath(genpath('YALMIP-master'))  
-addpath(genpath('mosek'))  
+% addpath(genpath('mosek'))  
+addpath 'C:\Users\LocalAdmin\Documents\GitHub\LPV_SysID\mosek\9.2\toolbox\r2015a'
 ops = sdpsettings('solver','mosek');
 
+% ops = []
 
 % Load identified Vertex Systems
 load('VertexSystemsSilverbox.mat') 
