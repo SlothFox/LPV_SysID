@@ -56,31 +56,16 @@ data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
 
 
 
-# Load inital linear state space model
-LSS=loadmat("./Benchmarks/Silverbox/Silverbox_LSS_s2")
-LSS=LSS['LSS']
-
-initial_params = {'A_0': LSS['A'][0][0], 'B_0': LSS['B'][0][0], 'C_0': LSS['C'][0][0] }
-
-''' Define the model as a linear state space model with name 'test' '''
-# model = Model.LinearSSM(dim_u=1,dim_x=2,dim_y=1,initial_params=initial_params,
-#                         name='test')
-# model = Model.LachhabLPV(dim_u=2,dim_x=3,dim_y=2,dim_thetaA=1,dim_thetaB=2,
-#                           dim_thetaC=3,name='Lachhab')
-
-model = Model.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=0,
-                          dim_thetaC=0,fA_dim=2,fB_dim=0,fC_dim=0,
-                          initial_params=initial_params,name='name')
-
-model = SilverBoxPhysikal()
+model = Model.SilverBoxPhysikal(name='PhysikalSilverboxModel')
 
 
 
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-# identification_results = ModelTraining(model,data,1,initial_params)
-identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
+identification_results = ModelTraining(model,data,5)
+
+#identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
 
 ''' The output is a pandas dataframe which contains the results for each of
 the 10 initializations, specifically the loss on the validation data
@@ -90,27 +75,29 @@ and the estimated parameters '''
 # every model has a loss close to zero because the optimizer is really good
 # and its 'only' a linear model which we identify)
 
-model.Parameters = identification_results.loc[0,'params']
+# model.Parameters = identification_results.loc[0,'params']
 
+
+test_u[0] = 10*np.ones((1022,1))
 
 # Maybe plot the simulation result to see how good the model performs
-y_est,x_est,theta = model.Simulation(init_state[0],test_u[0],y_out=False)
+y_est = model.Simulation(init_state[0],test_u[0])
 
 y_est = np.array(y_est) 
-theta = np.array(theta)  
- 
-plt.plot(test_y[0],label='True output')                                        # Plot True data
+
+
+# plt.plot(test_y[0],label='True output')                                        # Plot True data
 plt.plot(y_est,label='Est. output')                                            # Plot Model Output
-plt.plot(test_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
+# plt.plot(test_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
 plt.legend()
 plt.show()
 
-plt.figure()
+# plt.figure()
 # plt.plot(thetaA[:,0],label='Theta_A1')    
 # plt.plot(thetaA[:,1],label='Theta_A2')   
-plt.scatter(theta[:,0],theta[:,1])  
-plt.legend()
-plt.show()
+# plt.scatter(theta[:,0],theta[:,1])  
+# plt.legend()
+# plt.show()
 # e2 = y[0]-y_est
 
-model.AffineStateSpaceMatrices([1,1])
+# model.AffineStateSpaceMatrices([1,1])

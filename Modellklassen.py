@@ -907,3 +907,124 @@ class GRU():
         x = cs.hcat(x).T
         
         return x[-1]
+    
+    
+class SilverBoxPhysikal():
+    """
+    
+    """
+
+    def __init__(self,name):
+        
+        self.name = name
+        
+        self.Initialize()
+
+    def Initialize(self):
+            
+            # For convenience of notation
+            name = self.name
+            
+            # Define input, state and output vector
+            u = cs.MX.sym('u',1,1)
+            x = cs.MX.sym('x',2,1)
+            y = cs.MX.sym('y',1,1)
+            
+            # Define Model Parameters
+            dt = 1/610.35  # cs.MX.sym('dt',1,1)     # Sampling rate fixed from literature
+            d = cs.MX.sym('d',1,1)
+            a = cs.MX.sym('a',1,1)
+            b = cs.MX.sym('b',1,1)
+            m = cs.MX.sym('m',1,1)
+            
+            # Put all Parameters in Dictionary with random initialization
+            self.Parameters = {'d':0.01+0.0001*np.random.rand(1,1),
+                               'a':2+0.0001*np.random.rand(1,1),
+                               'b':0.0001*np.random.rand(1,1),
+                               'm':0.0001+0.0001*np.random.rand(1,1)}
+        
+            # self.Input = {'u':np.random.rand(u.shape)}
+            
+            # Define Discrete Model Equations
+            k11 = x[0]
+            k12 = x[0] + dt*k11/2
+            k13 = x[0] + dt*k12/2
+            k14 = x[0] + dt*k13
+            
+            x1_new = x[0] + 1/6 * dt * (k11+2*k12+2*k13+k14)
+            
+            k21 = -(a + b*x[0]**2)/m*x[0] - d/m*x[1] + u/m
+            k22 = x[1] + dt*k21/2
+            k23 = x[1] + dt*k22/2
+            k24 = x[1] + dt*k23
+            
+            x2_new = x[1] + 1/6 * dt * (k21+2*k22+2*k23+k24)
+                                 
+            x_new = cs.vcat((x1_new,x2_new))
+            
+            y_new = x_new[0]
+            
+            input = [x,u,d,a,b,m]
+            input_names = ['x','u','d','a','b','m']
+            
+            output = [x_new,y_new]
+            output_names = ['x_new','y_new']  
+            
+            self.Function = cs.Function(name, input, output, input_names,output_names)
+            
+            return None
+   
+    def OneStepPrediction(self,x0,u0,params=None):
+        '''
+        Estimates the next state and output from current state and input
+        x0: Casadi MX, current state
+        u0: Casadi MX, current input
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+        
+        if params==None:
+            params = self.Parameters
+        
+        params_new = []
+            
+        for name in  self.Function.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        x1,y1 = self.Function(x0,u0,*params_new)     
+                              
+        return x1,y1
+   
+    def Simulation(self,x0,u,params=None):
+        '''
+        A iterative application of the OneStepPrediction in order to perform a
+        simulation for a whole input trajectory
+        x0: Casadi MX, inital state a begin of simulation
+        u: Casadi MX,  input trajectory
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+
+        x = []
+        y = []
+
+        # initial states
+        x.append(x0)
+                      
+        # Simulate Model
+        for k in range(u.shape[0]):
+            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
+            x.append(x_new)
+            y.append(y_new)
+        
+
+        # Concatenate list to casadiMX
+        y = cs.hcat(y).T    
+        x = cs.hcat(x).T
+       
+        return y
