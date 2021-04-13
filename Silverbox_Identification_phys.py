@@ -63,7 +63,7 @@ model = Model.SilverBoxPhysikal(name='PhysikalSilverboxModel')
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = ModelTraining(model,data,5)
+identification_results = ModelTraining(model,data,100)
 
 #identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
 
@@ -75,10 +75,10 @@ and the estimated parameters '''
 # every model has a loss close to zero because the optimizer is really good
 # and its 'only' a linear model which we identify)
 
-# model.Parameters = identification_results.loc[0,'params']
+model.Parameters = identification_results.loc[0,'params']
 
 
-test_u[0] = 10*np.ones((1022,1))
+# test_u[0] = 10*np.ones((1022,1))
 
 # Maybe plot the simulation result to see how good the model performs
 y_est = model.Simulation(init_state[0],test_u[0])
@@ -86,9 +86,9 @@ y_est = model.Simulation(init_state[0],test_u[0])
 y_est = np.array(y_est) 
 
 
-# plt.plot(test_y[0],label='True output')                                        # Plot True data
+plt.plot(test_y[0],label='True output')                                        # Plot True data
 plt.plot(y_est,label='Est. output')                                            # Plot Model Output
-# plt.plot(test_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
+plt.plot(test_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
 plt.legend()
 plt.show()
 

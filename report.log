@@ -16,3 +16,4 @@
 2021-04-08 15:08:53,288 - numexpr.utils - INFO - NumExpr defaulting to 8 threads.
 2021-04-13 09:22:06,872 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
 2021-04-13 09:22:17,129 - numexpr.utils - INFO - NumExpr defaulting to 8 threads.
+2021-04-13 14:25:32,423 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
