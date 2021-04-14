@@ -931,7 +931,7 @@ class SilverBoxPhysikal():
             y = cs.MX.sym('y',1,1)
             
             # Define Model Parameters
-            dt =  1/610.35     #  cs.MX.sym('dt',1,1)  #Sampling rate fixed from literature
+            dt =  1/610.35 / 10.0    #  cs.MX.sym('dt',1,1)  #Sampling rate fixed from literature
             d = cs.MX.sym('d',1,1)
             a = cs.MX.sym('a',1,1)
             b = cs.MX.sym('b',1,1)
@@ -1024,5 +1024,7 @@ class SilverBoxPhysikal():
         # Concatenate list to casadiMX
         y = cs.hcat(y).T    
         x = cs.hcat(x).T
+        
+        y = y[0::10]
        
         return y

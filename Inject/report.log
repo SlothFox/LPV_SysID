@@ -1,0 +1,2 @@
+2021-04-14 11:03:40,777 - DiscreteBoundedPSO - INFO - Optimize for 100 iters with {'c1': 0.6, 'c2': 0.3, 'w': 0.4, 'k': 5, 'p': 1}
+2021-04-14 11:04:55,041 - DiscreteBoundedPSO - INFO - Optimization finished | best cost: 13.845650250915673, best pos: [0 1]

@@ -17,3 +17,4 @@
 2021-04-13 09:22:06,872 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
 2021-04-13 09:22:17,129 - numexpr.utils - INFO - NumExpr defaulting to 8 threads.
 2021-04-13 14:25:32,423 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
+2021-04-14 11:01:07,611 - DiscreteBoundedPSO - INFO - Optimize for 100 iters with {'c1': 0.6, 'c2': 0.3, 'w': 0.4, 'k': 5, 'p': 1}

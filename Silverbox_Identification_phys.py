@@ -36,14 +36,40 @@ train = SNLS80mV.iloc[40580:49270][['u','y']]-SNLS80mV.mean()
 val = SNLS80mV.iloc[0:40580][['u','y']]-SNLS80mV.mean()
 test = Schroeder80mV.iloc[10585:10585+1023][['u','y']]-Schroeder80mV.mean()
 
-train_u = np.array(train[0:-1]['u']).reshape(1,-1,1)
+# train_u = np.array(train[0:-1]['u']).reshape(1,-1,1)
 train_y = np.array(train[1::]['y']).reshape(1,-1,1)
 
-val_u = np.array(val[0:-1]['u']).reshape(1,-1,1)
+# val_u = np.array(val[0:-1]['u']).reshape(1,-1,1)
 val_y = np.array(val[1::]['y']).reshape(1,-1,1)
 
-test_u = np.array(test[0:-1]['u']).reshape(1,-1,1)
+# test_u = np.array(test[0:-1]['u']).reshape(1,-1,1)
 test_y = np.array(test[1::]['y']).reshape(1,-1,1)
+
+rate = 10
+
+train_u = np.array(train[0:-1]['u'])
+train_u = numpy.interp(np.linspace(0,train_u.shape[0],rate*train_u.shape[0]),np.linspace(0,train_u.shape[0],train_u.shape[0]),train_u)
+train_u = train_u.reshape(1,-1,1)
+
+# train_y = np.array(train[1::]['y'])
+# train_y = numpy.interp(np.linspace(0,train_y.shape[0],rate*train_y.shape[0]),np.linspace(0,train_y.shape[0],train_y.shape[0]),train_y)
+# train_y = train_y.reshape(1,-1,1)
+
+val_u = np.array(val[0:-1]['u'])
+val_u = numpy.interp(np.linspace(0,val_u.shape[0],rate*val_u.shape[0]),np.linspace(0,val_u.shape[0],val_u.shape[0]),val_u)
+val_u = val_u.reshape(1,-1,1)
+
+# val_y = np.array(val[1::]['y'])
+# val_y = numpy.interp(np.linspace(0,val_y.shape[0],rate*val_y.shape[0]),np.linspace(0,val_y.shape[0],val_y.shape[0]),val_y)
+# val_y = val_y.reshape(1,-1,1)
+
+test_u = np.array(test[0:-1]['u'])
+test_u = numpy.interp(np.linspace(0,test_u.shape[0],rate*test_u.shape[0]),np.linspace(0,test_u.shape[0],test_u.shape[0]),test_u)
+test_u = test_u.reshape(1,-1,1)
+
+# test_y = np.array(test[1::]['y'])
+# test_y = numpy.interp(np.linspace(0,test_y.shape[0],rate*test_y.shape[0]),np.linspace(0,test_y.shape[0],test_y.shape[0]),test_y)
+# test_y = test_y.reshape(1,-1,1)
 
 
 init_state = np.zeros((1,2,1))
@@ -63,7 +89,7 @@ model = Model.SilverBoxPhysikal(name='PhysikalSilverboxModel')
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = ModelTraining(model,data,100)
+identification_results = ModelTraining(model,data,5)
 
 #identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
 
@@ -81,12 +107,12 @@ model.Parameters = identification_results.loc[0,'params']
 # test_u[0] = 10*np.ones((1022,1))
 
 # Maybe plot the simulation result to see how good the model performs
-y_est = model.Simulation(init_state[0],test_u[0])
+y_est = model.Simulation(init_state[0],train_u[0])
 
 y_est = np.array(y_est) 
 
 
-plt.plot(test_y[0],label='True output')                                        # Plot True data
+plt.plot(train_y[0],label='True output')                                        # Plot True data
 plt.plot(y_est,label='Est. output')                                            # Plot Model Output
 plt.plot(test_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
 plt.legend()
