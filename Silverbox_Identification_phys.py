@@ -99,7 +99,7 @@ model = Model.SilverBoxPhysikal(name='PhysikalSilverboxModel')
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = ModelTraining(model,data,1)
+identification_results = ModelTraining(model,data,50)
 
 # identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
 
