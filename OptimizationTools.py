@@ -348,7 +348,7 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None):
         # Simulate Model
         y = model.Simulation(init_state[i],u[i],params_opti)
         
-        e = e + sumsqr(y_ref[i,:,:] - y)
+        e = e + cs.sumsqr(y_ref[i,:,:] - y)
     
     opti.minimize(e)
     

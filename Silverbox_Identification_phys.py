@@ -16,19 +16,25 @@ from miscellaneous import *
 
 from sklearn.preprocessing import MinMaxScaler
 
+
+
+m,d,c,=5.20520623e-06,0.00022129,0.996
+np.linalg.eigvals(np.array([[0,1],[-c/m,-d/m]]))
+
+
 ################ Load Data ####################################################
 SNLS80mV = pkl.load(open('Benchmarks/Silverbox/SNLS80mV.pkl','rb'))
 Schroeder80mV = pkl.load(open('Benchmarks/Silverbox/Schroeder80mV.pkl','rb'))
 
 ################# Scale Data ##################################################
                                           
-scaler = MinMaxScaler(feature_range=(-1,1))
+# scaler = MinMaxScaler(feature_range=(-1,1))
 
 # Validierungsdatensatz2 (Data_val) hat den größten Wertebereich, daher dieses Signal für Skalierung verwenden
-SNLS80mV = pd.DataFrame(data = scaler.fit_transform(SNLS80mV),
-                                  columns=SNLS80mV.columns)
-Schroeder80mV = pd.DataFrame(data = scaler.transform(Schroeder80mV),
-                                    columns=Schroeder80mV.columns)
+# SNLS80mV = pd.DataFrame(data = scaler.fit_transform(SNLS80mV),
+#                                   columns=SNLS80mV.columns)
+# Schroeder80mV = pd.DataFrame(data = scaler.transform(Schroeder80mV),
+#                                     columns=Schroeder80mV.columns)
 
 ################# Pick Training- Validation- and Test-Data ####################
 
@@ -36,36 +42,36 @@ train = SNLS80mV.iloc[40580:49270][['u','y']]-SNLS80mV.mean()
 val = SNLS80mV.iloc[0:40580][['u','y']]-SNLS80mV.mean()
 test = Schroeder80mV.iloc[10585:10585+1023][['u','y']]-Schroeder80mV.mean()
 
-# train_u = np.array(train[0:-1]['u']).reshape(1,-1,1)
+train_u = np.array(train[0:-1]['u']).reshape(1,-1,1)
 train_y = np.array(train[1::]['y']).reshape(1,-1,1)
 
-# val_u = np.array(val[0:-1]['u']).reshape(1,-1,1)
+val_u = np.array(val[0:-1]['u']).reshape(1,-1,1)
 val_y = np.array(val[1::]['y']).reshape(1,-1,1)
 
-# test_u = np.array(test[0:-1]['u']).reshape(1,-1,1)
+test_u = np.array(test[0:-1]['u']).reshape(1,-1,1)
 test_y = np.array(test[1::]['y']).reshape(1,-1,1)
 
-rate = 10
+# rate = 10
 
-train_u = np.array(train[0:-1]['u'])
-train_u = numpy.interp(np.linspace(0,train_u.shape[0],rate*train_u.shape[0]),np.linspace(0,train_u.shape[0],train_u.shape[0]),train_u)
-train_u = train_u.reshape(1,-1,1)
+# train_u = np.array(train[0:-1]['u'])
+# train_u = np.interp(np.linspace(0,train_u.shape[0],rate*train_u.shape[0]),np.linspace(0,train_u.shape[0],train_u.shape[0]),train_u)
+# train_u = train_u.reshape(1,-1,1)
 
 # train_y = np.array(train[1::]['y'])
 # train_y = numpy.interp(np.linspace(0,train_y.shape[0],rate*train_y.shape[0]),np.linspace(0,train_y.shape[0],train_y.shape[0]),train_y)
 # train_y = train_y.reshape(1,-1,1)
 
-val_u = np.array(val[0:-1]['u'])
-val_u = numpy.interp(np.linspace(0,val_u.shape[0],rate*val_u.shape[0]),np.linspace(0,val_u.shape[0],val_u.shape[0]),val_u)
-val_u = val_u.reshape(1,-1,1)
+# val_u = np.array(val[0:-1]['u'])
+# val_u = np.interp(np.linspace(0,val_u.shape[0],rate*val_u.shape[0]),np.linspace(0,val_u.shape[0],val_u.shape[0]),val_u)
+# val_u = val_u.reshape(1,-1,1)
 
 # val_y = np.array(val[1::]['y'])
 # val_y = numpy.interp(np.linspace(0,val_y.shape[0],rate*val_y.shape[0]),np.linspace(0,val_y.shape[0],val_y.shape[0]),val_y)
 # val_y = val_y.reshape(1,-1,1)
 
-test_u = np.array(test[0:-1]['u'])
-test_u = numpy.interp(np.linspace(0,test_u.shape[0],rate*test_u.shape[0]),np.linspace(0,test_u.shape[0],test_u.shape[0]),test_u)
-test_u = test_u.reshape(1,-1,1)
+# test_u = np.array(test[0:-1]['u'])
+# test_u = np.interp(np.linspace(0,test_u.shape[0],rate*test_u.shape[0]),np.linspace(0,test_u.shape[0],test_u.shape[0]),test_u)
+# test_u = test_u.reshape(1,-1,1)
 
 # test_y = np.array(test[1::]['y'])
 # test_y = numpy.interp(np.linspace(0,test_y.shape[0],rate*test_y.shape[0]),np.linspace(0,test_y.shape[0],test_y.shape[0]),test_y)
@@ -83,15 +89,19 @@ data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
 
 
 model = Model.SilverBoxPhysikal(name='PhysikalSilverboxModel')
-
-
-
+# model.Parameters['m'] = np.array([[0.00001]])
+# model.Parameters['d'] = np.array([[0.0001]])
+# model.Parameters['a'] = np.array([[2.1]])
+# model.Parameters['m'] = np.array([[1.09992821e-05]])
+# model.Parameters['d'] = np.array([[0.00046762]])
+# model.Parameters['a'] = np.array([[2.106375]])
+# model.Parameters['b'] = np.array([[0.748]])
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = ModelTraining(model,data,5)
+identification_results = ModelTraining(model,data,1)
 
-#identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
+# identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
 
 ''' The output is a pandas dataframe which contains the results for each of
 the 10 initializations, specifically the loss on the validation data
@@ -107,14 +117,26 @@ model.Parameters = identification_results.loc[0,'params']
 # test_u[0] = 10*np.ones((1022,1))
 
 # Maybe plot the simulation result to see how good the model performs
+y_est = model.Simulation(init_state[0],test_u[0])
+
+y_est = np.array(y_est) 
+
+# plt.plot(test_u[0],label='input') 
+plt.plot(test_y[0],label='True output')                                        # Plot True data
+plt.plot(y_est,label='Est. output')                                            # Plot Model Output
+plt.plot(test_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
+plt.legend()
+plt.show()
+
+
 y_est = model.Simulation(init_state[0],train_u[0])
 
 y_est = np.array(y_est) 
 
-
+# plt.plot(test_u[0],label='input') 
 plt.plot(train_y[0],label='True output')                                        # Plot True data
 plt.plot(y_est,label='Est. output')                                            # Plot Model Output
-plt.plot(test_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
+plt.plot(train_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
 plt.legend()
 plt.show()
 

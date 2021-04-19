@@ -931,44 +931,44 @@ class SilverBoxPhysikal():
             y = cs.MX.sym('y',1,1)
             
             # Define Model Parameters
-            dt =  1/610.35 / 10.0    #  cs.MX.sym('dt',1,1)  #Sampling rate fixed from literature
+            dt = 1/610.352    #1/610.35  cs.MX.sym('dt',1,1)  #Sampling rate fixed from literature
             d = cs.MX.sym('d',1,1)
             a = cs.MX.sym('a',1,1)
             b = cs.MX.sym('b',1,1)
             m = cs.MX.sym('m',1,1)
             
+            
+            m_init = 1.e-05*abs(np.random.rand(1,1))#1.09992821e-05
+            d_init = 2*m_init*21.25
+            a_init = d_init**2/(4*m_init)+437.091**2*m_init
+            # dt_init = np.array([[ 1/610.35]])
+            
             # Put all Parameters in Dictionary with random initialization
-            self.Parameters = {'d':0.01+0.001*np.random.rand(1,1),
-                               'a':2+0.001*np.random.rand(1,1),
-                               'b':0.001*np.random.rand(1,1),
-                               'm':0.0001+0.001*np.random.rand(1,1)}
+            self.Parameters = {'d':d_init,#0.01+0.001*np.random.rand(1,1),
+                               'a':a_init,#2+0.001*np.random.rand(1,1),
+                               'b':0.01*abs(np.random.rand(1,1)),
+                               'm':m_init}#0.0001+0.001*np.random.rand(1,1)}
+            
+           
         
-            # self.Input = {'u':np.random.rand(u.shape)}
-            
-            # Define Discrete Model Equations
-            k1 = cs.vertcat(x[1], (-(a + b*x[0]**2)*x[0] - d*x[1] + u)/m)
-            k2 = cs.vertcat(x[1]+dt*k1[1]/2, 
-                            (-(a + b*(x[0]+dt*k1[0]/2)**2)*(x[0]+dt*k1[0]/2) \
-                                - d*(x[1]+dt*k1[1]/2) + u)/m)
-            k3 = cs.vertcat(x[1]+dt*k2[1]/2, 
-                            (-(a + b*(x[0]+dt*k2[0]/2)**2)*(x[0]+dt*k2[0]/2) \
-                                - d*(x[1]+dt*k2[1]/2) + u)/m)
-            k4 = cs.vertcat(x[1]+dt*k3[1], 
-                            (-(a + b*(x[0]+dt*k3[0])**2)*(x[0]+dt*k3[0]) \
-                                - d*(x[1]+dt*k3[1]) + u)/m)                
-            
-            x_new = x + 1/6 * dt * (k1+2*k2+2*k3+k4)
-            
-          
-            y_new = x_new[0]
+            # continuous dynamics
+            x_new = cs.vertcat(x[1],(-(a + b*x[0]**2)*x[0] - d*x[1] + u)/m)
             
             input = [x,u,d,a,b,m]
             input_names = ['x','u','d','a','b','m']
             
-            output = [x_new,y_new]
-            output_names = ['x_new','y_new']  
+            output = [x_new]
+            output_names = ['x_new']  
             
-            self.Function = cs.Function(name, input, output, input_names,output_names)
+            
+            f_cont = cs.Function(name,input,output,
+                                 input_names,output_names)  
+            
+            x1 = RK4(f_cont,input,dt)
+            y1 = x1[0]
+            
+            self.Function = cs.Function(name, input, [x1,y1],
+                                        input_names,['x1','y1'])
             
             return None
    
@@ -1025,6 +1025,7 @@ class SilverBoxPhysikal():
         y = cs.hcat(y).T    
         x = cs.hcat(x).T
         
-        y = y[0::10]
+        # y = y[0::10]
        
         return y
+    
