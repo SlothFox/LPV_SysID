@@ -146,7 +146,7 @@ def MultiStageOptimization(process_model,ref):
     
     return values
 
-def ModelTraining(model,data,initializations = 10, BFR=False, p_opts=None, s_opts=None):
+def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=False, p_opts=None, s_opts=None):
     
     # Solver options
     if p_opts is None:
@@ -161,7 +161,7 @@ def ModelTraining(model,data,initializations = 10, BFR=False, p_opts=None, s_opt
         # in first run use initial model parameters (useful for online 
         # training when only time for one initialization) 
         if i > 0:
-            model.Initialize()
+            model.Initialize(initial_params)
         
         # Estimate Parameters on training data
         new_params = ModelParameterEstimation(model,data,p_opts,s_opts)

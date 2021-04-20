@@ -72,15 +72,14 @@ model = Model.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=0,
                           dim_thetaC=0,fA_dim=2,fB_dim=0,fC_dim=0,
                           initial_params=initial_params,name='name')
 
-model = SilverBoxPhysikal()
 
 
 
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-# identification_results = ModelTraining(model,data,1,initial_params)
-identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
+identification_results = ModelTraining(model,data,50,initial_params=initial_params)
+# identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
 
 ''' The output is a pandas dataframe which contains the results for each of
 the 10 initializations, specifically the loss on the validation data
@@ -90,7 +89,7 @@ and the estimated parameters '''
 # every model has a loss close to zero because the optimizer is really good
 # and its 'only' a linear model which we identify)
 
-model.Parameters = identification_results.loc[0,'params']
+# model.Parameters = identification_results.loc[0,'params']
 
 
 # Maybe plot the simulation result to see how good the model performs

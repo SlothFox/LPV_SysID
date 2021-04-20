@@ -194,7 +194,7 @@ class RehmerLPV():
         
         self.Initialize(initial_params)
 
-    def Initialize(self,initial_params):
+    def Initialize(self,initial_params=None):
             
             # For convenience of notation
             dim_u = self.dim_u
@@ -249,7 +249,7 @@ class RehmerLPV():
             
             # Put all Parameters in Dictionary with random initialization
             self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
-                               'A_lpv':np.random.rand(dim_x,dim_thetaA),
+                               'A_lpv':np.random.rand(dim_x,dim_thetaA)*0.001,
                                'W_A':np.random.rand(dim_thetaA,dim_x),
                                'W_fA_x':np.random.rand(fA_dim,dim_x),
                                'W_fA_u':np.random.rand(fA_dim,dim_u),
@@ -315,8 +315,10 @@ class RehmerLPV():
                            'C_0','C_lpv','W_C','W_fC_x','W_fC_u','b_fC_h',
                            'W_fC','b_fC']
             
-            output = [x_new,y_new,theta]
-            output_names = ['x_new','y_new','theta']
+            # output = [x_new,y_new,theta]
+            # output_names = ['x_new','y_new','theta']
+            output = [x_new,y_new]
+            output_names = ['x_new','y_new']
             
             self.Function = cs.Function(name, input, output, input_names,output_names)
             
@@ -371,9 +373,10 @@ class RehmerLPV():
         
         # x1,y1,theta_A,theta_B,theta_C = self.Function(x0,u0,*params_new)     
         
-        x1,y1,theta = self.Function(x0,u0,*params_new) 
-                     
-        return x1,y1,theta
+        # x1,y1,theta = self.Function(x0,u0,*params_new) 
+        x1,y1 = self.Function(x0,u0,*params_new)  
+        return x1,y1    
+        # return x1,y1,theta
    
     def Simulation(self,x0,u,params=None,y_out=True):
         '''
@@ -395,7 +398,7 @@ class RehmerLPV():
                           
             # Simulate Model
             for k in range(u.shape[0]):
-                x_new,y_new,_ = self.OneStepPrediction(x[k],u[[k],:],params)
+                x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
                 
                 x.append(x_new)
                 y.append(y_new)
