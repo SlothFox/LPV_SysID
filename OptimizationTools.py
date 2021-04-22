@@ -174,17 +174,20 @@ def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=Fals
         y_ref_val = data['y_val']
         init_state_val = data['init_state_val']
 
-        # Loop over all experiments
-        
+        # Validation part
         e = 0
         
         for j in range(0,u_val.shape[0]):   
                
             # Simulate Model
-            y = model.Simulation(init_state_val[j],u_val[j])
-            y = np.array(y)
+            pred = model.Simulation(init_state_val[j],u_val[j])
+            
+            if isinstance(pred,tuple):
+                pred = pred[1]
+            
+            pred = np.array(pred)
                      
-            e = e + cs.sumsqr(y_ref_val[j] - y) 
+            e = e + cs.sumsqr(y_ref_val[j] - pred) 
         
         # Calculate mean error over all validation batches
         e = e / u_val.shape[0]
@@ -346,9 +349,12 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None):
     for i in range(0,u.shape[0]):   
            
         # Simulate Model
-        y = model.Simulation(init_state[i],u[i],params_opti)
+        pred = model.Simulation(init_state[i],u[i],params_opti)
         
-        e = e + cs.sumsqr(y_ref[i,:,:] - y)
+        if isinstance(pred, tuple):
+            pred = pred[1]
+        
+        e = e + cs.sumsqr(y_ref[i,:,:] - pred)
     
     opti.minimize(e)
     

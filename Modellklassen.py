@@ -14,7 +14,8 @@ class RBFLPV():
     
     """
 
-    def __init__(self,dim_u,dim_x,dim_y,dim_theta,name):
+    def __init__(self,dim_u,dim_x,dim_y,dim_theta,initial_params=None,
+                 name='RBF_LPV'):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
@@ -22,9 +23,9 @@ class RBFLPV():
         self.dim_theta = dim_theta
         self.name = name
         
-        self.Initialize()
+        self.Initialize(initial_params)
 
-    def Initialize(self):
+    def Initialize(self,initial_params=None):
             
             # For convenience of notation
             dim_u = self.dim_u
@@ -71,10 +72,10 @@ class RBFLPV():
             
             for loc in range(0,len(A)):
                 
-                c = vertcat(c_x[loc],c_u[loc])
-                w = vertcat(w_x[loc],w_u[loc])
+                c = cs.vertcat(c_x[loc],c_u[loc])
+                w = cs.vertcat(w_x[loc],w_u[loc])
                 
-                r = RBF(vertcat(x,u),c,w)
+                r = RBF(cs.vertcat(x,u),c,w)
                 
                 y_new = y_new + r * (cs.mtimes(C[loc],x_new))
                 
@@ -111,13 +112,75 @@ class RBFLPV():
                 
             self.Parameters=Parameters    
             
+            # Initialize if inital parameters are given
+            if initial_params is not None:
+                for param in initial_params.keys():
+                    self.Parameters[param] = initial_params[param]
+            
+            
+            
             output = [x_new,y_new]
             output_names = ['x_new','y_new']  
             
             self.Function = cs.Function(name, input, output, input_names,output_names)
+
+            # Calculate affine parameters
+            # theta = XXX
+            
+            # self.AffineParameters = cs.Function('AffineParameters',input,
+            #                                     [theta],input_names,['theta'])
             
             return None
-   
+    
+    
+    def AffineStateSpaceMatrices(self,theta):
+        """
+        A function that returns the state space matrices at a given value 
+        for theta
+        """
+        # A_0 = self.Parameters['A_0']
+        # B_0 = self.Parameters['B_0']
+        # C_0 = self.Parameters['C_0']
+    
+        # A_lpv = self.Parameters['A_0']
+        # B_lpv = self.Parameters['B_lpv']
+        # C_lpv = self.Parameters['C_lpv']  
+    
+        # W_A = self.Parameters['W_A']
+        # W_B = self.Parameters['W_B']
+        # W_C = self.Parameters['W_C']      
+    
+        # theta_A = theta[0:self.dim_thetaA]
+        # theta_B = theta[self.dim_thetaA:self.dim_thetaA+self.dim_thetaB]
+        # theta_C = theta[self.dim_thetaA+self.dim_thetaB:self.dim_thetaA+
+        #                 self.dim_thetaB+self.dim_thetaC]
+        
+        # A = A_0 + np.linalg.multi_dot([A_lpv,np.diag(theta_A),W_A])
+        # B = B_0 + np.linalg.multi_dot([B_lpv,np.diag(theta_B),W_B])
+        # C = C_0 + np.linalg.multi_dot([C_lpv,np.diag(theta_C),W_C]) 
+        
+        return None #A,B,C
+
+    def AffineParameters(self,x0,u0):
+        '''
+
+        '''
+        
+        params = self.Parameters
+        
+        params_new = []
+            
+        for name in self.AffineParameters.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        theta = self.AffineParameters(x0,u0,*params_new) 
+
+        return theta   
+    
+    
     def OneStepPrediction(self,x0,u0,params=None):
         '''
         Estimates the next state and output from current state and input
@@ -170,7 +233,7 @@ class RBFLPV():
         y = cs.hcat(y).T    
         x = cs.hcat(x).T
        
-        return y
+        return x,y
 
 
 class RehmerLPV():
@@ -295,14 +358,6 @@ class RehmerLPV():
             y_new = cs.mtimes(C_0,x_new) + cs.mtimes(C_lpv, 
                     fC*cs.tanh(cs.mtimes(W_C,x_new)))
             
-            # Calculate affine parameters
-            theta_A = fA * cs.tanh(cs.mtimes(W_A,x))/cs.mtimes(W_A,x)
-            theta_B = fB * cs.tanh(cs.mtimes(W_B,u))/cs.mtimes(W_B,u)
-            theta_C = fC * cs.tanh(cs.mtimes(W_C,x))/cs.mtimes(W_C,x)
-            
-            theta = cs.vertcat(theta_A,theta_B,theta_C)
-
-            
             input = [x,u,A_0,A_lpv,W_A,W_fA_x,W_fA_u,b_fA_h,W_fA,b_fA,
                      B_0,B_lpv,W_B,W_fB_x,W_fB_u,b_fB_h,W_fB,b_fB,
                      C_0,C_lpv,W_C,W_fC_x,W_fC_u,b_fC_h,W_fC,b_fC]
@@ -315,12 +370,23 @@ class RehmerLPV():
                            'C_0','C_lpv','W_C','W_fC_x','W_fC_u','b_fC_h',
                            'W_fC','b_fC']
             
-            # output = [x_new,y_new,theta]
-            # output_names = ['x_new','y_new','theta']
             output = [x_new,y_new]
             output_names = ['x_new','y_new']
             
-            self.Function = cs.Function(name, input, output, input_names,output_names)
+            self.Function = cs.Function(name, input, output, input_names,
+                                        output_names)
+            
+            
+            # Calculate affine parameters
+            theta_A = fA * cs.tanh(cs.mtimes(W_A,x))/cs.mtimes(W_A,x)
+            theta_B = fB * cs.tanh(cs.mtimes(W_B,u))/cs.mtimes(W_B,u)
+            theta_C = fC * cs.tanh(cs.mtimes(W_C,x))/cs.mtimes(W_C,x)
+            
+            theta = cs.vertcat(theta_A,theta_B,theta_C)   
+            
+            self.AffineParameters = cs.Function('AffineParameters',input,
+                                                [theta],input_names,['theta'])
+            
             
             return None
         
@@ -348,8 +414,26 @@ class RehmerLPV():
         C = C_0 + np.linalg.multi_dot([C_lpv,np.diag(theta_C),W_C]) 
         
         return A,B,C
-    
-   
+
+    def AffineParameters(self,x0,u0):
+        '''
+
+        '''
+        
+        params = self.Parameters
+        
+        params_new = []
+            
+        for name in self.AffineParameters.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        theta = self.AffineParameters(x0,u0,*params_new) 
+
+        return theta
+
     def OneStepPrediction(self,x0,u0,params=None):
         '''
         Estimates the next state and output from current state and input
@@ -371,14 +455,12 @@ class RehmerLPV():
             except:
                 continue
         
-        # x1,y1,theta_A,theta_B,theta_C = self.Function(x0,u0,*params_new)     
-        
-        # x1,y1,theta = self.Function(x0,u0,*params_new) 
-        x1,y1 = self.Function(x0,u0,*params_new)  
+        x1,y1 = self.Function(x0,u0,*params_new) 
+
         return x1,y1    
-        # return x1,y1,theta
-   
-    def Simulation(self,x0,u,params=None,y_out=True):
+
+
+    def Simulation(self,x0,u,params=None):
         '''
         A iterative application of the OneStepPrediction in order to perform a
         simulation for a whole input trajectory
@@ -389,52 +471,27 @@ class RehmerLPV():
                 the model are used
         '''
         x = []
-        y = []        
+        y = []  
+        theta = []
 
         # initial states
         x.append(x0)        
         
-        if y_out:
-                          
-            # Simulate Model
-            for k in range(u.shape[0]):
-                x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
-                
-                x.append(x_new)
-                y.append(y_new)
+        # Simulate Model
+        for k in range(u.shape[0]):
+            x_new,y_new = \
+                self.OneStepPrediction(x[k],u[[k],:],params)
             
-            # Concatenate list to casadiMX
-            y = cs.hcat(y).T    
-            x = cs.hcat(x).T
-            
-            return y
-            
-        else:
-            
-            theta,theta_B,theta_C = [],[],[]
-                          
-            # Simulate Model
-            for k in range(u.shape[0]):
-                x_new,y_new,t = \
-                    self.OneStepPrediction(x[k],u[[k],:],params)
-                
-                theta.append(t)
-                # theta_B.append(t_B)
-                # theta_C.append(t_C)
-                
-                x.append(x_new)
-                y.append(y_new)
-            
-            # Concatenate list to casadiMX
-            y = cs.hcat(y).T    
-            x = cs.hcat(x).T   
-            
-            theta = cs.hcat(theta).T    
-            # theta_B = cs.hcat(theta_B).T
-            # theta_C = cs.hcat(theta_C).T    
+            # theta.append(t)
+            x.append(x_new)
+            y.append(y_new)
         
-            
-            return y,x,theta
+        # Concatenate list to casadiMX
+        y = cs.hcat(y).T    
+        x = cs.hcat(x).T   
+        # theta = cs.hcat(theta).T
+        
+        return x,y
 
 
 
@@ -495,7 +552,11 @@ class LachhabLPV():
                                'C_lpv':np.random.rand(dim_y,dim_thetaC),
                                'W_C':np.random.rand(dim_thetaC,dim_x)}
         
-            # self.Input = {'u':np.random.rand(u.shape)}
+            
+            # Initialize if inital parameters are given
+            if initial_params is not None:
+                for param in initial_params.keys():
+                    self.Parameters[param] = initial_params[param]
             
             # Define Model Equations
             x_new = cs.mtimes(A_0,x) + cs.mtimes(B_0,u) + cs.mtimes(A_lpv, 
@@ -512,9 +573,40 @@ class LachhabLPV():
             output_names = ['x_new','y_new']  
             
             self.Function = cs.Function(name, input, output, input_names,output_names)
+
+            # Calculate affine parameters
+            # theta_A = XXX
+            # theta_B = XXX
+            # theta_C = XXX
+            
+            # theta = cs.vertcat(theta_A,theta_B,theta_C)   
+            
+            # self.AffineParameters = cs.Function('AffineParameters',input,
+            #                                     [theta],input_names,['theta'])
+
+
             
             return None
-   
+
+    def AffineParameters(self,x0,u0):
+        '''
+        Returns the affine Parameters of the LPV model
+        '''
+        
+        params = self.Parameters
+        
+        params_new = []
+            
+        for name in self.AffineParameters.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        theta = self.AffineParameters(x0,u0,*params_new) 
+
+        return theta    
+
     def OneStepPrediction(self,x0,u0,params=None):
         '''
         Estimates the next state and output from current state and input
@@ -585,9 +677,9 @@ class LinearSSM():
         self.dim_y = dim_y
         self.name = name
         
-        self.Initialize()
+        self.Initialize(initial_params)
 
-    def Initialize(self):
+    def Initialize(self,initial_params=None):
             
             # For convenience of notation
             dim_u = self.dim_u
