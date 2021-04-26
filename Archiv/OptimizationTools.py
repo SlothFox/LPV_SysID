@@ -34,23 +34,6 @@ import pickle as pkl
 from miscellaneous import *
 
 
-def SimulateModel(model,x,u,params=None):
-    # Casadi Function needs list of parameters as input
-    if params==None:
-        params = model.Parameters
-    
-    params_new = []
-        
-    for name in  model.Function.name_in():
-        try:
-            params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-        except:
-            continue
-    
-    x_new = model.Function(x,u,*params_new)     
-                          
-    return x_new
-
 def ControlInput(ref_trajectories,opti_vars,k):
     """
     Übersetzt durch Maschinenparameter parametrierte
@@ -82,25 +65,6 @@ def CreateOptimVariables(opti, RefTrajectoryParams):
         
         opti_vars[param] = opti.variable(dim0,dim1)
     
-    # Create one parameter dictionary for each phase
-    # opti_vars['RefParamsInject'] = {}
-    # opti_vars['RefParamsPress'] = {}
-    # opti_vars['RefParamsCool'] = {}
-
-    # for key in opti_vars.keys():
-        
-    #     param_dict = getattr(process_model,key)
-        
-    #     if param_dict is not None:
-        
-    #         for param in param_dict.keys():
-                
-    #             dim0 = param_dict[param].shape[0]
-    #             dim1 = param_dict[param].shape[1]
-                
-    #             opti_vars[key][param] = opti.variable(dim0,dim1)
-    #     else:
-    #         opti_vars[key] = None
   
     return opti_vars
 
@@ -182,16 +146,13 @@ def MultiStageOptimization(process_model,ref):
     
     return values
 
-
-
 def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=False, p_opts=None, s_opts=None):
     
     # Solver options
     if p_opts is None:
         p_opts = {"expand":False}
     if s_opts is None:
-        s_opts = {"max_iter": 1000, "print_level":0,
-                  "hessian_approximation":'exact'}
+        s_opts = {"max_iter": 1000, "print_level":0}
     
     results = [] 
     
@@ -200,7 +161,7 @@ def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=Fals
         # in first run use initial model parameters (useful for online 
         # training when only time for one initialization) 
         if i > 0:
-            model.Initialize()
+            model.Initialize(initial_params)
         
         # Estimate Parameters on training data
         new_params = ModelParameterEstimation(model,data,p_opts,s_opts)
@@ -213,17 +174,20 @@ def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=Fals
         y_ref_val = data['y_val']
         init_state_val = data['init_state_val']
 
-        # Loop over all experiments
-        
+        # Validation part
         e = 0
         
         for j in range(0,u_val.shape[0]):   
                
             # Simulate Model
-            y = model.Simulation(init_state_val[j],u_val[j])
-            y = np.array(y)
+            pred = model.Simulation(init_state_val[j],u_val[j])
+            
+            if isinstance(pred,tuple):
+                pred = pred[1]
+            
+            pred = np.array(pred)
                      
-            e = e + cs.sumsqr(y_ref_val[j] - y) 
+            e = e + cs.sumsqr(y_ref_val[j] - pred) 
         
         # Calculate mean error over all validation batches
         e = e / u_val.shape[0]
@@ -349,9 +313,6 @@ def HyperParameterPSO(model,data,param_bounds,n_particles,options,
             else:
                 cost[particle] = hist.loc[idx].cost.item()
                 
-        
-        
-        
         cost = cost.reshape((n_particles,))
         return cost
     
@@ -388,9 +349,12 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None):
     for i in range(0,u.shape[0]):   
            
         # Simulate Model
-        y = model.Simulation(init_state[i],u[i],params_opti)
+        pred = model.Simulation(init_state[i],u[i],params_opti)
         
-        e = e + sumsqr(y_ref[i,:,:] - y)
+        if isinstance(pred, tuple):
+            pred = pred[1]
+        
+        e = e + cs.sumsqr(y_ref[i,:,:] - pred)
     
     opti.minimize(e)
     
@@ -457,9 +421,3 @@ def SingleStageOptimization(model,ref,N):
     values['U'] = sol.value(U)
     
     return values
-
-
-
-
-
-
