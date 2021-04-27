@@ -19,48 +19,42 @@ from testsignals.testsignals import APRBS
 
 
 ''' Design Input Signals '''
-N = 1000
-
-# u1 = np.zeros((1,N))#np.hstack((np.zeros((1,20)),10*np.ones((1,80))))
-
-# u2 = np.zeros((1,N))
+N = 10000
 
 
-# # u1 = APRBS(N,[-1,1],[150,250])
-# # u2 = APRBS(N,[-1,1],[150,250])
 
-# # u1[0,0:100] = -1
-# u1[0,400::] = 0.2
-# u = np.vstack((u1,u2)).T
-
-x0 = np.array([[0],[0],[0],[0]])
+x0 = np.array([[-np.pi/2],[0],[0],[0]])
 
 model = RobotManipulator('RobotManipulator')
 
+
 x = []
 y = []
+u = []
 
 x.append(x0)
 
-u = np.zeros((1,2))
+u.append(np.zeros((1,2)))
 holding_time = np.zeros((1,2))
 
-holding_range = np.array([[10,50],[50,100]])
-step_range = np.array([[-2,2],[-1,1]])
+holding_range = np.array([[50,80],[50,100]])
+step_range = np.array([[-0.5,1.5],[-0.9,0.9]])
 
-u[0,0] = np.random.rand(1,1) * (step_range[0,1]-step_range[0,0]) + step_range[0,0]
-u[0,1] = np.random.rand(1,1) * (step_range[1,1]-step_range[1,0]) + step_range[1,0]
+u[0][0,0] = np.random.rand(1,1) * (step_range[0,1]-step_range[0,0]) + step_range[0,0]
+u[0][0,1] = np.random.rand(1,1) * (step_range[1,1]-step_range[1,0]) + step_range[1,0]
 
-holding_time[0,0] = np.random.rand(1,1) * (holding_range[0,1]-holding_range[0,0]) + holding_range[0,0]
-holding_time[0,1] = np.random.rand(1,1) * (holding_range[1,1]-holding_range[1,0]) + holding_range[1,0]
+holding_time[0,0] = abs(np.random.rand(1,1) * (holding_range[0,1]-holding_range[0,0]) + holding_range[0,0])
+holding_time[0,1] = abs(np.random.rand(1,1) * (holding_range[1,1]-holding_range[1,0]) + holding_range[1,0])
 
 
+locku1 = False
+locku2 = False
  
 # Online Testsignal Generation
 for k in range(0,N):
-    
+    # u[-1]=np.zeros((1,2))
     x_new,y_new = model.OneStepPrediction(x[-1],u[-1])
-    
+    # print(y_new)
     x_new = np.array(x_new)
     y_new = np.array(y_new)
     
@@ -68,33 +62,58 @@ for k in range(0,N):
     y.append(y_new.T)
     
     holding_time = holding_time -1
-    
+    # print(holding_time)
     # Check if angles are in desired range
-    if y_new [0] < -1.9:
-        u[0,0] = abs(np.random.rand(1,1)) * (step_range[0,1]-step_range[0,0]) + step_range[0,0]
-        holding_time[0,0] = 0
+    u_new = np.copy(u[-1])
+    
+    if y_new [0] < -np.pi and locku1==False:
+        u_new[0,0] = step_range[0,1] #abs(np.random.rand(1,1)* (step_range[0,1]-step_range[0,0]) + step_range[0,0])
+        holding_time[0,0] = abs(np.random.rand(1,1) * (holding_range[0,1]-holding_range[0,0]) + holding_range[0,0])
+        locku1 = True
 
-    elif y_new [0] > 1.9:    
-        u[0,0] = -abs(np.random.rand(1,1)) * (step_range[0,1]-step_range[0,0]) + step_range[0,0]                                  
-        holding_time[0,0] = 0
+    elif y_new [0] > 0 and locku1==False:    
+        u_new[0,0] = -abs(np.random.rand(1,1) * (step_range[0,1]-step_range[0,0]) + step_range[0,0])                                  
+        holding_time[0,0] = abs(np.random.rand(1,1) * (holding_range[0,1]-holding_range[0,0]) + holding_range[0,0])
+        locku1 = True
         
-    if y_new [1] < -1.9:
-        u[0,1] = abs(np.random.rand(1,1)) * (step_range[0,1]-step_range[0,0]) + step_range[0,0]
-        holding_time[0,0] = 0
+    if y_new [1] < -np.pi/2 and locku2==False:    
+        u_new[0,1] = abs(np.random.rand(1,1) * (step_range[1,1]-step_range[1,0]) + step_range[1,0])
+        holding_time[0,1] = abs(np.random.rand(1,1) * (holding_range[1,1]-holding_range[1,0]) + holding_range[1,0])
+        locku2 = True
         
-    elif y_new [1] > 1.9:    
-        u[0,1] = -abs(np.random.rand(1,1)) * (step_range[0,1]-step_range[0,0]) + step_range[0,0]                                       
-        holding_time[0,0] = 0
+    elif y_new [1] > np.pi/2 and locku2==False:       
+        u_new[0,1] = -abs(np.random.rand(1,1) * (step_range[1,1]-step_range[1,0]) + step_range[1,0])                                       
+        holding_time[0,1] = abs(np.random.rand(1,1) * (holding_range[1,1]-holding_range[1,0]) + holding_range[1,0])
+        locku2 = True
         
     # Check if holding time of current step is over
-    if holding_time[0,0]==0:
-        holding_time[0,0] = np.random.rand(1,1) * (holding_range[0,1]-holding_range[0,0]) + holding_range[0,0]
-    elif holding_time[0,1]==0:
-        holding_time[0,1] = np.random.rand(1,1) * (holding_range[1,1]-holding_range[1,0]) + holding_range[1,0]
+    if holding_time[0,0]<=0:
+        u_new[0,0] = np.random.rand(1,1)* (step_range[0,1]-step_range[0,0]) + step_range[0,0]
+        holding_time[0,0] = abs(np.random.rand(1,1) * (holding_range[0,1]-holding_range[0,0]) + holding_range[0,0])
+        locku1 = False
+        
+    elif holding_time[0,1]<=0:
+        u_new[0,1] = np.random.rand(1,1) * (step_range[1,1]-step_range[1,0]) + step_range[1,0]
+        holding_time[0,1] = abs(np.random.rand(1,1) * (holding_range[1,1]-holding_range[1,0]) + holding_range[1,0])
+        locku2 = False
+        
+    u.append(u_new)
     
     holding_time = holding_time.astype(int)
 
 
-  
-plt
+y = np.vstack(y)  
+u = np.vstack(u) 
+
+plt.close('all')
+
+plt.figure()
+plt.plot(y)
+plt.plot(u)
+
+plt.figure()
+plt.scatter(y[:,0],y[:,1])
+plt.xlim([-2,2])
+plt.ylim([-2,2])
+
 

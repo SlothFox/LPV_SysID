@@ -8,6 +8,38 @@ Created on Wed Mar 31 14:29:52 2021
 
 import numpy as np
 
+class PID_Controller():
+    
+    def __init__(self, P,I,D,AW_limit):
+        '''
+        
+
+        Parameters
+        ----------
+        P : float
+            P-Channel gain
+        I : float
+            I-Channel gain
+        D : float
+            D-Channel gain
+        AW_limit: float
+            Anti-Wind-Up limit
+
+        Returns
+        -------
+        None.
+
+        '''
+
+        self.P = P
+        self.I = I
+        self.D = D
+        self.AW_limit = AW_limit
+        
+        self.e_int = 0
+        self.e_diff = 0
+        
+
 class LPV_Controller_full():
     
     def __init__(self,Omega = None,vertices = None, x_dim = None, y_dim = None,
