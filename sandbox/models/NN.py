@@ -426,7 +426,7 @@ class RehmerLPV():
             except:
                 continue
         
-        theta = self.AffineParameters(x0,u0,*params_new) 
+        theta = self.AffineParameters(x0,u0,*params_new)
 
         return theta
 

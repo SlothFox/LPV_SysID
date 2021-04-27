@@ -4,8 +4,8 @@ Created on Thu Mar 11 09:18:31 2021
 
 @author: alexa
 """
-from sys import path
-path.append(r"C:\Users\LocalAdmin\Documents\casadi-windows-py38-v3.5.5-64bit")
+# from sys import path
+# path.append(r"C:\Users\LocalAdmin\Documents\casadi-windows-py38-v3.5.5-64bit")
 
 import casadi as cs
 import matplotlib.pyplot as plt
@@ -15,17 +15,46 @@ import pickle as pkl
 
 import scipy.io
 
-import Modellklassen as Model
+from models.NN import RehmerLPV
 
-from Controllers import LPV_Controller_full
+# from Controllers import LPV_Controller_full
 
-model = Model.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=0,
+model = RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=0,
                           dim_thetaC=0,fA_dim=2,fB_dim=0,fC_dim=0,
                           initial_params=None,name='name')
 
 identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
 
 model.Parameters = identification_results.loc[0,'params']
+
+
+x_est, y_est = model.Simulation([0,0],test_u[0])
+
+y_est = np.array(y_est)
+
+plt.plot(y_est,label='Estimation')
+plt.plot(test_y[0], label='TrueOutput')
+plt.plot(test_y[0]-y_est, label='error')
+plt.legend()
+
+x=[]
+y=[]
+
+x.append(np.zeros((2,1)))
+
+theta = []
+
+for k in range(0,test_u[0].shape[0]):
+    
+    x_est, y_est = model.OneStepPrediction([0,0],test_u[0,k,:])    
+    theta_new = model.AffineParameters(x[-1],test_u[0,k,:])    
+    
+    
+    x.append(x_new)
+    theta.append(theta_new)
+    
+
+
 
 # Get vertices from data
 v1 = (0.51,0.61)

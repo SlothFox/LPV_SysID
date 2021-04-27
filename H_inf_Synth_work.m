@@ -13,6 +13,7 @@ ops = sdpsettings('solver','mosek');
 load('VertexSystemsSilverbox.mat') 
 
 
+
 % Specify dimensions of problem
 nx = 2;
 nw = 1;
