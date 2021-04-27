@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pickle as pkl
 
-from scipy.io import loadmat
+from scipy.io import loadmat, savemat
 
 from models.RealWorldSystems import RobotManipulator
 from testsignals.testsignals import APRBS
@@ -117,3 +117,8 @@ plt.xlim([-2,2])
 plt.ylim([-2,2])
 
 
+io_data = np.hstack((u[:-1],y))
+
+mdic = {"data": io_data, "label": "APRBS_Ident_Data"}
+
+savemat('\Benchmarks\RobotManipulator\APRBS_Ident_Data')
