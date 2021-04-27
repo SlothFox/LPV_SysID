@@ -19,11 +19,11 @@ from testsignals.testsignals import APRBS
 
 
 ''' Design Input Signals '''
-N = 10000
+N = 1000
 
 
 
-x0 = np.array([[-np.pi/2],[0],[0],[0]])
+x0 = np.array([[0],[0],[0],[0]])
 
 model = RobotManipulator('RobotManipulator')
 
@@ -52,7 +52,7 @@ locku2 = False
  
 # Online Testsignal Generation
 for k in range(0,N):
-    # u[-1]=np.zeros((1,2))
+    u[-1]=np.zeros((1,2))
     x_new,y_new = model.OneStepPrediction(x[-1],u[-1])
     # print(y_new)
     x_new = np.array(x_new)
@@ -119,6 +119,6 @@ plt.ylim([-2,2])
 
 io_data = np.hstack((u[:-1],y))
 
-mdic = {"data": io_data, "label": "APRBS_Ident_Data"}
+mdic = {"data": io_data, "label": "APRBS_Val_Data"}
 
-savemat('\Benchmarks\RobotManipulator\APRBS_Ident_Data')
+# savemat('Benchmarks/RobotManipulator/APRBS_Val_Data.mat',mdic)

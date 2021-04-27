@@ -47,18 +47,10 @@ class RobotManipulator():
                                 'f': np.array([[2]]),
                                 'n': np.array([[1]])}
             
-            # M = cs.MX.sym('M',2,2)
-            # g = cs.MX.sym('g',2,1)
-            # C = cs.MX.sym('C',2,1)
-            
+          
             cosd = cs.cos(x[0]-x[1])
             sind = cs.sin(x[0]-x[1])
-            
-            # M[0,0] = a
-            # M[0,1] = b*cosd
-            # M[1,0] = b*cosd
-            # M[1,1] = c
-            
+
             M = cs.horzcat(a,b*cosd,b*cosd,c).reshape((2,2)).T
             g = cs.vertcat(d*np.cos(x[0]),
                            e*np.sin(x[1]))
@@ -66,13 +58,6 @@ class RobotManipulator():
                            -b*sind*x[2]**2 + f*(x[3]-x[2]))
                            
             
-            # g[0,0] = -d*np.cos(x[0])
-            # g[1,0] = -e*np.sin(x[1])
-            
-            # C[0,0] =  b*sind*x[3]**2 + f*x[2]
-            # C[1,0] = -b*sind*x[2]**2 + f*(x[3]-x[1])
-            
-       
             # continuous dynamics
             x_new = cs.vertcat(x[2::],
                                cs.mtimes(cs.inv(M),n*u-C-g))

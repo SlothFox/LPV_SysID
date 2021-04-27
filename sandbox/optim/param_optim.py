@@ -129,17 +129,18 @@ def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=Fals
         y_ref_val = data['y_val']
         init_state_val = data['init_state_val']
 
-        # Loop over all experiments
-        
+        # Evaluate estimated model on validation data        
         e = 0
         
         for j in range(0,u_val.shape[0]):   
                
             # Simulate Model
-            y = model.Simulation(init_state_val[j],u_val[j])
-            y = np.array(y)
-                     
-            e = e + cs.sumsqr(y_ref_val[j] - y) 
+            pred = model.Simulation(init_state_val[i],u_val[i])
+            
+            if isinstance(pred, tuple):
+                pred = pred[1]
+            
+            e = e + cs.sumsqr(y_ref_val[i,:,:] - pred)
         
         # Calculate mean error over all validation batches
         e = e / u_val.shape[0]
