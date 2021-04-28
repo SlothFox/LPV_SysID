@@ -308,7 +308,7 @@ class RehmerLPV():
             
             # Put all Parameters in Dictionary with random initialization
             self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
-                               'A_lpv':np.random.rand(dim_x,dim_thetaA)*0.001,
+                               'A_lpv':np.random.rand(dim_x,dim_thetaA)*0.0001,
                                'W_A':np.random.rand(dim_thetaA,dim_x),
                                'W_fA_x':np.random.rand(fA_dim,dim_x),
                                'W_fA_u':np.random.rand(fA_dim,dim_u),

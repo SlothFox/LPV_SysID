@@ -133,14 +133,14 @@ def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=Fals
         e = 0
         
         for j in range(0,u_val.shape[0]):   
-               
+            print(j)   
             # Simulate Model
-            pred = model.Simulation(init_state_val[i],u_val[i])
+            pred = model.Simulation(init_state_val[j],u_val[j])
             
             if isinstance(pred, tuple):
                 pred = pred[1]
             
-            e = e + cs.sumsqr(y_ref_val[i,:,:] - pred)
+            e = e + cs.sumsqr(y_ref_val[j,:,:] - pred)
         
         # Calculate mean error over all validation batches
         e = e / u_val.shape[0]

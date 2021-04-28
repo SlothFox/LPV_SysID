@@ -24,14 +24,14 @@ val = val['data']
 
 ################# Pick Training- Validation- and Test-Data ####################
 
-train_u = train[0:5000,0:2].reshape(1,-1,2)
-train_y = train[0:5000,2::].reshape(1,-1,2)
+train_u = train[0:,0:2].reshape(1,-1,2)
+train_y = train[0:,2::].reshape(1,-1,2)
 
 val_u = train[0:1000,0:2].reshape(1,-1,2)
 val_y = val[0:1000,2::].reshape(1,-1,2)
 
 
-init_state = np.zeros((1,4,1))
+init_state = np.array([[[-np.pi/2],[0],[0],[0]]])
 
 
 # Arrange Training and Validation data in a dictionary with the following
@@ -48,8 +48,8 @@ LSS=LSS['Results']
 
 ''' Approach Rehmer '''
 initial_params = {'A_0': LSS['A'][0][0], 'B_0': LSS['B'][0][0], 'C_0': LSS['C'][0][0] }
-model = NN.RehmerLPV(dim_u=2,dim_x=4,dim_y=2,dim_thetaA=2,dim_thetaB=0,
-                          dim_thetaC=0,fA_dim=20,fB_dim=0,fC_dim=0,
+model = NN.RehmerLPV(dim_u=2,dim_x=4,dim_y=2,dim_thetaA=0,dim_thetaB=0,
+                          dim_thetaC=0,fA_dim=0,fB_dim=0,fC_dim=0,
                           initial_params=initial_params,name='Rehmer_LPV')
 
 ''' Approach Lachhab '''
@@ -66,9 +66,16 @@ model = NN.RehmerLPV(dim_u=2,dim_x=4,dim_y=2,dim_thetaA=2,dim_thetaB=0,
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = param_optim.ModelTraining(model,data,1,initial_params=initial_params)
 
-pkl.dump(identification_results,open('RobotMan_theta2_Neur20_tanh.pkl','wb'))
+# Solver options
+p_opts = {"expand":False}
+s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
+    
+# identification_results = param_optim.ModelTraining(model,data,100,
+#                                                  initial_params=initial_params,
+#                                                  p_opts=p_opts,s_opts=s_opts)
+
+# pkl.dump(identification_results,open('RobotMan_theta2_Neur20_tanh.pkl','wb'))
 # identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
 
 ''' The output is a pandas dataframe which contains the results for each of
@@ -83,16 +90,16 @@ and the estimated parameters '''
 
 
 # Maybe plot the simulation result on test data to see how good the model performs
-# x_est,y_est = model.Simulation(init_state[0],train_u[0,0:1000])
+x_est,y_est = model.Simulation(init_state[0],train_u[0,0:1000])
 
-# y_est = np.array(y_est) 
+y_est = np.array(y_est) 
  
  
-# plt.plot(train_y[0,0:5000],label='True output')                                        # Plot True data
-# plt.plot(y_est,label='Est. output')                                            # Plot Model Output
+plt.plot(train_y[0,0:1000],label='True output')                                        # Plot True data
+plt.plot(y_est,label='Est. output')                                            # Plot Model Output
 # plt.plot(val_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
-# plt.legend()
-# plt.show()
+plt.legend()
+plt.show()
 
 
 # Scatterplot of affine Parameters for visual inspection
