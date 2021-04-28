@@ -71,9 +71,9 @@ starts the optimization procedure 'initializations'-times. '''
 p_opts = {"expand":False}
 s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
     
-# identification_results = param_optim.ModelTraining(model,data,100,
-#                                                  initial_params=initial_params,
-#                                                  p_opts=p_opts,s_opts=s_opts)
+identification_results = param_optim.ModelTraining(model,data,100,
+                                                  initial_params=initial_params,
+                                                  p_opts=p_opts,s_opts=s_opts)
 
 # pkl.dump(identification_results,open('RobotMan_theta2_Neur20_tanh.pkl','wb'))
 # identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
