@@ -43,7 +43,7 @@ def APRBS(N,step_range,holding_range):
     APRBS = np.zeros((1,N))
     while holding_time[i]<np.size(APRBS):
         k = holding_time[i]
-        APRBS[k:] = steps[i]
+        APRBS[0,k:] = steps[i]
         i=i+1
     
     return APRBS

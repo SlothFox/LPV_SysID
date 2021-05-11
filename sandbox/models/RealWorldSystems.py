@@ -313,4 +313,108 @@ class RobotManipulator2():
         # y = y[0::10]
        
         return y    
+
+class Bioreactor():
+    """
+    Implementation of Bioreactor described in dissertation by Verdult 
+    on page 218
+    """
+
+    def __init__(self,name):
+        
+        self.name = name
+        
+        self.Initialize()
+
+    def Initialize(self):
+            
+            # For convenience of notation
+            name = self.name
+            
+            # Define input, state and output vector
+            u = cs.MX.sym('u',1,1)
+            x = cs.MX.sym('x',2,1)
+            
+            # Sampling Time
+            T = 0.01
+            
+            # Define Model Parameters
+            G = cs.MX.sym('G',1,1)
+            b = cs.MX.sym('b',1,1)
+            
+            # Put all Parameters in Dictionary with random initialization
+            self.Parameters = { 'G': np.array([[0.48]]),
+                                'b': np.array([[0.02]])}
+          
+            # discrete dynamics
+            x1_new = x[0] + T * (-x[0]*u + x[0]*(1-x[1]))*np.exp(x[1]/G)
+            x2_new = x[1] + T * (-x[1]*u + x[0]*(1-x[1]))*np.exp(x[1]/G) * ((1+b)/(1+b-x[1]))
+            
+            x_new = cs.vertcat(x1_new,x2_new)
+            y_new = x_new[0]
+            
+            input = [x,u,G,b]
+            input_names = ['x','u','G','b']
+            
+            output = [x_new,y_new]
+            output_names = ['x_new','y_new']  
+          
+            self.Function = cs.Function(name, input, output,
+                                        input_names, output_names)
+            
+            return None
+   
+    def OneStepPrediction(self,x0,u0,params=None):
+        '''
+        Estimates the next state and output from current state and input
+        x0: Casadi MX, current state
+        u0: Casadi MX, current input
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+        
+        if params==None:
+            params = self.Parameters
+        
+        params_new = []
+            
+        for name in  self.Function.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        x1,y1 = self.Function(x0,u0,*params_new)     
+                              
+        return x1,y1
+   
+    def Simulation(self,x0,u,params=None):
+        '''
+        A iterative application of the OneStepPrediction in order to perform a
+        simulation for a whole input trajectory
+        x0: Casadi MX, inital state a begin of simulation
+        u: Casadi MX,  input trajectory
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+
+        x = []
+        y = []
+
+        # initial states
+        x.append(x0)
+                      
+        # Simulate Model
+        for k in range(u.shape[0]):
+            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
+            x.append(x_new)
+            y.append(y_new)
+        
+
+        # Concatenate list to casadiMX
+        y = cs.hcat(y).T    
+        x = cs.hcat(x).T
     
+        return y
