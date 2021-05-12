@@ -347,8 +347,9 @@ class Bioreactor():
                                 'b': np.array([[0.02]])}
           
             # discrete dynamics
-            x1_new = x[0] + T * (-x[0]*u + x[0]*(1-x[1]))*np.exp(x[1]/G)
-            x2_new = x[1] + T * (-x[1]*u + x[0]*(1-x[1]))*np.exp(x[1]/G) * ((1+b)/(1+b-x[1]))
+            
+            x1_new = x[0] + T * ( -x[0]*u  + x[0]*(1-x[1]) * cs.exp(x[1]/G) ) 
+            x2_new = x[1] + T * ( -x[1]*u + x[0]*(1-x[1])*cs.exp(x[1]/G) * ((1+b)/(1+b-x[1])) )
             
             x_new = cs.vertcat(x1_new,x2_new)
             y_new = x_new[0]
@@ -361,6 +362,9 @@ class Bioreactor():
           
             self.Function = cs.Function(name, input, output,
                                         input_names, output_names)
+            
+            # continuous dynamics
+            
             
             return None
    
