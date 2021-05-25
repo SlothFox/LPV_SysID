@@ -233,9 +233,7 @@ class RBFLPV():
 
 
 class RehmerLPV_new():
-    """
-    
-    """
+
 
     def __init__(self,dim_u,dim_x,dim_y,dim_thetaA=0,dim_thetaB=0,dim_thetaC=0,
                  NN_1_dim=[],NN_2_dim=[],NN_3_dim=[],activation_hidden=0,
@@ -370,29 +368,29 @@ class RehmerLPV_new():
                 NN3.append(params)             
             
 
-           # Define Model Equations
+            # Define Model Equations
            
-           # Calculate the activations of the NNs by looping over each layer
-           NN1_act = 0
-           for l in range(0,len(NN1)):
-               if l == 0:
-                   NN1_act = NN_function([x,u],weights,bias,nonlinearity)
-               else:
-                   NN1_act = NN_function(NN1_act,weights,bias,nonlinearity)
+            # Calculate the activations of the NNs by looping over each layer
+            NN1_act = 0
+            for l in range(0,len(NN1)):
+                if l == 0:
+                    NN1_act = NN_function([x,u],weights,bias,nonlinearity)
+                else:
+                    NN1_act = NN_function(NN1_act,weights,bias,nonlinearity)
 
-           NN2_act = 0
-           for l in range(0,len(NN2)):
-               if l == 0:
-                   NN2_act = NN_function([x,u],weights,bias,nonlinearity)
-               else:
-                   NN2_act = NN_function(NN2_act,weights,bias,nonlinearity)
+            NN2_act = 0
+            for l in range(0,len(NN2)):
+                if l == 0:
+                    NN2_act = NN_function([x,u],weights,bias,nonlinearity)
+                else:
+                    NN2_act = NN_function(NN2_act,weights,bias,nonlinearity)
                    
-           NN3_act = 0
-           for l in range(0,len(NN3)):
-               if l == 0:
-                   NN3_act = NN_function([x,u],weights,bias,nonlinearity)
-               else:
-                   NN3_act = NN_function(NN3_act,weights,bias,nonlinearity)
+            NN3_act = 0
+            for l in range(0,len(NN3)):
+                if l == 0:
+                    NN3_act = NN_function([x,u],weights,bias,nonlinearity)
+                else:
+                    NN3_act = NN_function(NN3_act,weights,bias,nonlinearity)
 
             fA_h = cs.tanh(cs.mtimes(W_fA_x,x) + cs.mtimes(W_fA_u,u) + b_fA_h)
             fA = logistic(cs.mtimes(W_fA,fA_h)+b_fA)
@@ -425,10 +423,10 @@ class RehmerLPV_new():
                                'E_3':np.random.rand(dim_thetaC,dim_x)}
             
             # Add remaining parameters in loop since they depend on depth of NNs
-            for l in range(0,len(NN1))
-            input.extend()
-            input_names.extend(NN1[l])
-            Parameters[key based on casadi variable name] = init based on casadi variable dimension
+            # for l in range(0,len(NN1))
+            # input.extend()
+            # input_names.extend(NN1[l])
+            # Parameters[key based on casadi variable name] = init based on casadi variable dimension
     
             # Initialize if inital parameters are given
             if initial_params is not None:
@@ -458,111 +456,108 @@ class RehmerLPV_new():
         
     def AffineStateSpaceMatrices(self,theta):
         
-        A_0 = self.Parameters['A_0']
-        B_0 = self.Parameters['B_0']
-        C_0 = self.Parameters['C_0']
-    
-        A_lpv = self.Parameters['A_0']
-        B_lpv = self.Parameters['B_lpv']
-        C_lpv = self.Parameters['C_lpv']  
-    
-        W_A = self.Parameters['W_A']
-        W_B = self.Parameters['W_B']
-        W_C = self.Parameters['W_C']      
-    
-        theta_A = theta[0:self.dim_thetaA]
-        theta_B = theta[self.dim_thetaA:self.dim_thetaA+self.dim_thetaB]
-        theta_C = theta[self.dim_thetaA+self.dim_thetaB:self.dim_thetaA+
-                        self.dim_thetaB+self.dim_thetaC]
+            A_0 = self.Parameters['A_0']
+            B_0 = self.Parameters['B_0']
+            C_0 = self.Parameters['C_0']
         
-        A = A_0 + np.linalg.multi_dot([A_lpv,np.diag(theta_A),W_A])
-        B = B_0 + np.linalg.multi_dot([B_lpv,np.diag(theta_B),W_B])
-        C = C_0 + np.linalg.multi_dot([C_lpv,np.diag(theta_C),W_C]) 
+            A_lpv = self.Parameters['A_0']
+            B_lpv = self.Parameters['B_lpv']
+            C_lpv = self.Parameters['C_lpv']  
         
-        return A,B,C
+            W_A = self.Parameters['W_A']
+            W_B = self.Parameters['W_B']
+            W_C = self.Parameters['W_C']      
+        
+            theta_A = theta[0:self.dim_thetaA]
+            theta_B = theta[self.dim_thetaA:self.dim_thetaA+self.dim_thetaB]
+            theta_C = theta[self.dim_thetaA+self.dim_thetaB:self.dim_thetaA+
+                            self.dim_thetaB+self.dim_thetaC]
+            
+            A = A_0 + np.linalg.multi_dot([A_lpv,np.diag(theta_A),W_A])
+            B = B_0 + np.linalg.multi_dot([B_lpv,np.diag(theta_B),W_B])
+            C = C_0 + np.linalg.multi_dot([C_lpv,np.diag(theta_C),W_C]) 
+            
+            return A,B,C
 
     def AffineParameters(self,x0,u0):
-        '''
-
-        '''
-        
-        params = self.Parameters
-        
-        params_new = []
+            '''
+    
+            '''
             
-        for name in self.AffineParameters.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        theta = self.AffineParameters(x0,u0,*params_new)
-
-        return theta
+            params = self.Parameters
+            
+            params_new = []
+                
+            for name in self.AffineParameters.name_in():
+                try:
+                    params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+                except:
+                    continue
+            
+            theta = self.AffineParameters(x0,u0,*params_new)
+    
+            return theta
 
     def OneStepPrediction(self,x0,u0,params=None):
-        '''
-        Estimates the next state and output from current state and input
-        x0: Casadi MX, current state
-        u0: Casadi MX, current input
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-        
-        if params==None:
-            params = self.Parameters
-        
-        params_new = []
+            '''
+            Estimates the next state and output from current state and input
+            x0: Casadi MX, current state
+            u0: Casadi MX, current input
+            params: A dictionary of opti variables, if the parameters of the model
+                    should be optimized, if None, then the current parameters of
+                    the model are used
+            '''
             
-        for name in  self.Function.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        x1,y1 = self.Function(x0,u0,*params_new) 
-
-        return x1,y1    
+            if params==None:
+                params = self.Parameters
+            
+            params_new = []
+                
+            for name in  self.Function.name_in():
+                try:
+                    params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+                except:
+                    continue
+            
+            x1,y1 = self.Function(x0,u0,*params_new) 
+    
+            return x1,y1    
 
 
     def Simulation(self,x0,u,params=None):
-        '''
-        A iterative application of the OneStepPrediction in order to perform a
-        simulation for a whole input trajectory
-        x0: Casadi MX, inital state a begin of simulation
-        u: Casadi MX,  input trajectory
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-        x = []
-        y = []  
-        theta = []
-
-        # initial states
-        x.append(x0)        
-        
-        # Simulate Model
-        for k in range(u.shape[0]):
-            x_new,y_new = \
-                self.OneStepPrediction(x[k],u[[k],:],params)
+            '''
+            A iterative application of the OneStepPrediction in order to perform a
+            simulation for a whole input trajectory
+            x0: Casadi MX, inital state a begin of simulation
+            u: Casadi MX,  input trajectory
+            params: A dictionary of opti variables, if the parameters of the model
+                    should be optimized, if None, then the current parameters of
+                    the model are used
+            '''
+            x = []
+            y = []  
+            theta = []
+    
+            # initial states
+            x.append(x0)        
             
-            # theta.append(t)
-            x.append(x_new)
-            y.append(y_new)
-        
-        # Concatenate list to casadiMX
-        y = cs.hcat(y).T    
-        x = cs.hcat(x).T   
-        # theta = cs.hcat(theta).T
-        
-        return x,y
+            # Simulate Model
+            for k in range(u.shape[0]):
+                x_new,y_new = \
+                    self.OneStepPrediction(x[k],u[[k],:],params)
+                
+                # theta.append(t)
+                x.append(x_new)
+                y.append(y_new)
+            
+            # Concatenate list to casadiMX
+            y = cs.hcat(y).T    
+            x = cs.hcat(x).T   
+            # theta = cs.hcat(theta).T
+            
+            return x,y
 
 class RehmerLPV():
-    """
-    
-    """
 
     def __init__(self,dim_u,dim_x,dim_y,dim_thetaA=0,dim_thetaB=0,dim_thetaC=0,
                  fA_dim=0,fB_dim=0,fC_dim=0,activation=0,initial_params=None,name=None):
@@ -764,12 +759,12 @@ class RehmerLPV():
         
         return A,B,C
 
-    def AffineParameters(self,x0,u0):
+    def EvalAffineParameters(self,x0,u0,params=None):
         '''
 
         '''
-        
-        params = self.Parameters
+        if params==None:
+            params = self.Parameters        
         
         params_new = []
             
