@@ -16,23 +16,27 @@ from optim import param_optim
 ''' Data Preprocessing '''
 
 ################ Load Data ####################################################
-train = loadmat('Benchmarks/RobotManipulator/APRBS_Ident_Data')
+train = loadmat('Benchmarks/Bioreactor/APRBS_Data_1')
 train = train['data']
-val = loadmat('Benchmarks/RobotManipulator/APRBS_Val_Data')
+val = loadmat('Benchmarks/Bioreactor/APRBS_Data_2')
 val = val['data']
+test = loadmat('Benchmarks/Bioreactor/APRBS_Data_3')
+test = test['data']
+
 
 
 ################# Pick Training- Validation- and Test-Data ####################
 
-train_u = train[0:,0:2].reshape(1,-1,2)
-train_y = train[0:,2::].reshape(1,-1,2)
+train_u = train[0:-1,0].reshape(1,-1,1)
+train_y = train[1::,1].reshape(1,-1,1)
 
-val_u = train[0:1000,0:2].reshape(1,-1,2)
-val_y = val[0:1000,2::].reshape(1,-1,2)
+val_u = val[0:-1,0].reshape(1,-1,1)
+val_y = val[1::,1].reshape(1,-1,1)
 
+test_u = test[0:-1,0].reshape(1,-1,1)
+test_y = test[1::,1].reshape(1,-1,1)
 
-init_state = np.array([[[-np.pi/2],[0],[0],[0]]])
-
+init_state = np.zeros((1,2,1))
 
 # Arrange Training and Validation data in a dictionary with the following
 # structure. The dictionary must have these keys
@@ -42,15 +46,15 @@ data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
 
 ''' Identification '''
 # Load inital linear state space model
-LSS=loadmat("./Benchmarks/RobotManipulator/RobotManipulator_LSS")
+LSS=loadmat("./Benchmarks/Bioreactor/Bioreactor_LSS")
 LSS=LSS['Results']
 
 
 ''' Approach Rehmer '''
-initial_params = {'A_0': LSS['A'][0][0], 'B_0': LSS['B'][0][0], 'C_0': LSS['C'][0][0] }
-model = NN.RehmerLPV(dim_u=2,dim_x=4,dim_y=2,dim_thetaA=0,dim_thetaB=0,
-                          dim_thetaC=0,fA_dim=0,fB_dim=0,fC_dim=0,
-                          initial_params=initial_params,name='Rehmer_LPV')
+# initial_params = {'A_0': LSS['A'][0][0], 'B_0': LSS['B'][0][0], 'C_0': LSS['C'][0][0] }
+# model = NN.RehmerLPV(dim_u=2,dim_x=4,dim_y=2,dim_thetaA=0,dim_thetaB=0,
+#                           dim_thetaC=0,fA_dim=0,fB_dim=0,fC_dim=0,
+#                           initial_params=initial_params,name='Rehmer_LPV')
 
 ''' Approach Lachhab '''
 # initial_params = {'A_0': LSS['A'][0][0], 'B_0': LSS['B'][0][0], 'C_0': LSS['C'][0][0] }
@@ -59,10 +63,10 @@ model = NN.RehmerLPV(dim_u=2,dim_x=4,dim_y=2,dim_thetaA=0,dim_thetaB=0,
 
 
 ''' RBF approach'''
-# initial_params = {'A0': LSS['A'][0][0], 'B0': LSS['B'][0][0], 'C0': LSS['C'][0][0],
-#                   'A1': LSS['A'][0][0], 'B1': LSS['B'][0][0], 'C1': LSS['C'][0][0]}
-# model = Model.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=2,
-#                       initial_params=initial_params,name='RBF_network')
+initial_params = {'A0': LSS['A'][0][0], 'B0': LSS['B'][0][0], 'C0': LSS['C'][0][0],
+                  'A1': LSS['A'][0][0], 'B1': LSS['B'][0][0], 'C1': LSS['C'][0][0]}
+model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=2,
+                      initial_params=initial_params,name='RBF_network')
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
@@ -71,9 +75,9 @@ starts the optimization procedure 'initializations'-times. '''
 p_opts = {"expand":False}
 s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
     
-identification_results = param_optim.ModelTraining(model,data,100,
-                                                  initial_params=initial_params,
-                                                  p_opts=p_opts,s_opts=s_opts)
+# identification_results = param_optim.ModelTraining(model,data,100,
+#                                                   initial_params=initial_params,
+#                                                   p_opts=p_opts,s_opts=s_opts)
 
 # pkl.dump(identification_results,open('RobotMan_theta2_Neur20_tanh.pkl','wb'))
 # identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))

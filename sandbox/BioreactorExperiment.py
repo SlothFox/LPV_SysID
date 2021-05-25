@@ -43,7 +43,7 @@ y = np.zeros((N,1))
 
 # x[0] = [0.22,0.69894]
 x[0] = [0.107,1]
-
+_,y[0] = model.OneStepPrediction(x[0],np.array([0]))
 # G = 0.48
 # b = 0.02
 # T = 0.01

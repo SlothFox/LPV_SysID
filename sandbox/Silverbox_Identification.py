@@ -92,7 +92,7 @@ model = NN.RehmerLPV_new(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=3,dim_thetaB=0,dim_t
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
 identification_results = param_optim.ModelTraining(model,data,5,initial_params=initial_params)
-# identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
+identification_results_save = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
 
 ''' The output is a pandas dataframe which contains the results for each of
 the 10 initializations, specifically the loss on the validation data
