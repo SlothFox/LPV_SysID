@@ -68,10 +68,15 @@ LSS=LSS['LSS']
 
 ''' Approach Rehmer '''
 initial_params = {'A_0': LSS['A'][0][0], 'B_0': LSS['B'][0][0], 'C_0': LSS['C'][0][0] }
-model = NN.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=1,dim_thetaB=0,
-                          dim_thetaC=0,fA_dim=20,fB_dim=0,fC_dim=0,
-                          initial_params=initial_params,name='Rehmer_LPV')
+# model = NN.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=1,dim_thetaB=0,
+#                           dim_thetaC=0,fA_dim=20,fB_dim=0,fC_dim=0,
+#                           initial_params=initial_params,name='Rehmer_LPV')
 
+model = NN.RehmerLPV_new(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=3,dim_thetaB=0,dim_thetaC=0,
+                 NN_1_dim=[5,3],NN_2_dim=[],NN_3_dim=[],NN1_act=[0,0],NN2_act=[],
+                 NN3_act=[], initial_params=initial_params,name='Rehmer_LPV')
+
+# model.OneStepPrediction(init_state,np.array([[1]]))
 ''' Approach Lachhab '''
 # initial_params = {'A_0': LSS['A'][0][0], 'B_0': LSS['B'][0][0], 'C_0': LSS['C'][0][0] }
 # model = Model.LachhabLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=0,
@@ -86,7 +91,7 @@ model = NN.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=1,dim_thetaB=0,
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = param_optim.ModelTraining(model,data,1,initial_params=initial_params)
+identification_results = param_optim.ModelTraining(model,data,5,initial_params=initial_params)
 # identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
 
 ''' The output is a pandas dataframe which contains the results for each of
@@ -97,20 +102,20 @@ and the estimated parameters '''
 # every model has a loss close to zero because the optimizer is really good
 # and its 'only' a linear model which we identify)
 
-model.Parameters = identification_results.loc[0,'params']
+# model.Parameters = identification_results.loc[0,'params']
 
 
 # Maybe plot the simulation result on test data to see how good the model performs
-x_est,y_est = model.Simulation(init_state[0],test_u[0])
+# x_est,y_est = model.Simulation(init_state[0],test_u[0])
 
-y_est = np.array(y_est) 
+# y_est = np.array(y_est) 
  
  
-plt.plot(test_y[0],label='True output')                                        # Plot True data
-plt.plot(y_est,label='Est. output')                                            # Plot Model Output
-plt.plot(test_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
-plt.legend()
-plt.show()
+# plt.plot(test_y[0],label='True output')                                        # Plot True data
+# plt.plot(y_est,label='Est. output')                                            # Plot Model Output
+# plt.plot(test_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
+# plt.legend()
+# plt.show()
 
 
 # Scatterplot of affine Parameters for visual inspection
