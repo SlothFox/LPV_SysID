@@ -11,10 +11,11 @@ data2 = data2.data(1:50:end,:);
 data3 = load('APRBS_Data_3');
 data3 = data3.data(1:50:end,:);
 
-%%
-% data1(:,2)=data1(:,2)-0.107;
-% data2(:,2)=data2(:,2)-0.107;
-% data3(:,2)=data3(:,2)-0.107;
+%% Center output data
+
+data1(:,2)=data1(:,2);%-0.107;
+data2(:,2)=data2(:,2);%-0.107;
+data3(:,2)=data3(:,2);%-0.107;
 
 
 
@@ -22,8 +23,8 @@ data3 = data3.data(1:50:end,:);
 
 Ts = 0.01;
 
-train = iddata(data1(:,1),data1(:,2),Ts);
-test  = iddata(data2(:,1),data2(:,2),Ts);
+train = iddata(data3(:,2),data3(:,1),Ts);
+test  = iddata(data2(:,2),data2(:,1),Ts);
 %% Identify state space model from data with n4sid
 
 % Overview over options: https://de.mathworks.com/help/ident/ref/n4sidoptions.html
@@ -31,7 +32,7 @@ opt = n4sidOptions('InitialState','estimate','N4Weight','auto','Focus','simulati
     'WeightingFilter',[],'EnforceStability',0,...
     'Display','on');
     
-[ssm,x0] = n4sid(train,4,opt,'DisturbanceModel','none');
+[ssm,x0] = n4sid(train,3,opt,'DisturbanceModel','none');
 
 
 %% Simulate identified model
@@ -44,7 +45,7 @@ close all
 
 figure;
 hold on
-plot(data1(:,2))
+plot(data3(:,2))
 plot(y_train(:,1))
 hold off
 
@@ -64,4 +65,4 @@ Results = struct(...
 'input_train_data',train.u,...
 'target_train_data',train.y);
 
-save('Bioreactor_LSS.mat','Results')
+save('Bioreactor_LSS_3states.mat','Results')

@@ -39,7 +39,8 @@ class RBFLPV():
             A = cs.MX.sym('A',dim_x,dim_x,dim_theta)
             B = cs.MX.sym('B',dim_x,dim_u,dim_theta)
             C = cs.MX.sym('C',dim_y,dim_x,dim_theta)
-            O = cs.MX.sym('O',dim_x,1,dim_theta)
+            # C = cs.MX.sym('C',dim_y,dim_x,dim_theta)
+            # O = cs.MX.sym('O',dim_x,1,dim_theta)
             c_u = cs.MX.sym('c_u',dim_u,1,dim_theta)
             c_x = cs.MX.sym('c_x',dim_x,1,dim_theta)
             w_u = cs.MX.sym('w_u',dim_u,1,dim_theta)
@@ -57,7 +58,7 @@ class RBFLPV():
                 r = RBF(cs.vertcat(x,u),c,w)
                 
                 x_new = x_new + \
-                r * (cs.mtimes(A[loc],x) + cs.mtimes(B[loc],u) + O[loc])
+                r * (cs.mtimes(A[loc],x) + cs.mtimes(B[loc],u)) # + O[loc])
                 
                 r_sum = r_sum + r
             
@@ -91,16 +92,16 @@ class RBFLPV():
             
             # Add local model parameters
             for loc in range(0,len(A)):
-                input.extend([A[loc],B[loc],C[loc],O[loc],c_u[loc],c_x[loc],w_u[loc],
+                input.extend([A[loc],B[loc],C[loc],c_u[loc],c_x[loc],w_u[loc],
                               w_x[loc]])    
                 i=str(loc)
-                input_names.extend(['A'+i,'B'+i,'C'+i,'O'+i,'c_u'+i,'c_x'+i,'w_u'+i,
+                input_names.extend(['A'+i,'B'+i,'C'+i,'c_u'+i,'c_x'+i,'w_u'+i,
                                     'w_x'+i])
                 
                 Parameters['A'+i] = np.random.rand(dim_x,dim_x)
                 Parameters['B'+i] = np.random.rand(dim_x,dim_u)
                 Parameters['C'+i] = np.random.rand(dim_y,dim_x)
-                Parameters['O'+i] = np.random.rand(dim_x,1)
+                # Parameters['O'+i] = np.random.rand(dim_x,1)
                 Parameters['c_u'+i] = np.random.rand(dim_u,1)
                 Parameters['c_x'+i] = np.random.rand(dim_x,1)
                 Parameters['w_u'+i] = np.random.rand(dim_u,1)
@@ -109,9 +110,18 @@ class RBFLPV():
             self.Parameters=Parameters    
             
             # Initialize if inital parameters are given
-            if initial_params is not None:
-                for param in initial_params.keys():
-                    self.Parameters[param] = initial_params[param]
+            if 'A' and 'B' and 'C' in initial_params.keys():
+                A = initial_params['A']
+                B = initial_params['B']
+                C = initial_params['C']
+                range_x = initial_params['range_x']
+                range_u = initial_params['range_u']
+                
+                self.InitializeLocalModels(A,B,C,range_x,range_u)
+            else:
+                if initial_params is not None:
+                    for param in initial_params.keys():
+                        self.Parameters[param] = initial_params[param]
             
             
             
@@ -127,7 +137,38 @@ class RBFLPV():
             #                                     [theta],input_names,['theta'])
             
             return None
-    
+    def InitializeLocalModels(self,A,B,C,range_x=None,range_u=None):
+        '''
+        Initializes all local models with a given linear model and distributes
+        the weighting functions uniformly over a given range
+        A: array, system matrix
+        B: array, input matrix
+        C: array, output matrix
+        op_range: array, expected operating range over which to distribute 
+        the weighting functions
+        '''
+        
+        # Create Dictionary to give to the Initialize function
+        initial_params = {}
+        
+        # Distribute centers of RBFs uniformly over given range
+        initial_params['c_u0'] =np.array([[0.35]])
+        initial_params['c_x0'] =np.array([[0.1],[0.1]])
+        
+        for loc in range(0,self.dim_theta):
+            
+                i = str(loc)
+                initial_params['A'+i] = A
+                initial_params['B'+i] = B
+                initial_params['C'+i] = C
+                initial_params['c_u'+i] = range_u[:,[0]] + \
+                    (range_u[:,[1]]-range_u[:,[0]]) * np.random.uniform(size=(self.dim_u,1))
+                initial_params['c_x'+i] = range_x[:,[0]] + \
+                    (range_x[:,[1]]-range_x[:,[0]]) * np.random.uniform(size=(self.dim_x,1))
+        self.Initialize(initial_params)
+        
+        return None
+        
     
     def AffineStateSpaceMatrices(self,theta):
         """
@@ -854,7 +895,8 @@ class LachhabLPV():
     
     """
 
-    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA,dim_thetaB,dim_thetaC,name):
+    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA,dim_thetaB,dim_thetaC,
+                 initial_params,name):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
@@ -864,9 +906,9 @@ class LachhabLPV():
         self.dim_thetaC = dim_thetaC
         self.name = name
         
-        self.Initialize()
+        self.Initialize(initial_params)
 
-    def Initialize(self):
+    def Initialize(self,initial_params):
             
             # For convenience of notation
             dim_u = self.dim_u

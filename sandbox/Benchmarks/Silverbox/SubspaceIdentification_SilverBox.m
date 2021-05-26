@@ -2,8 +2,8 @@ clear
 clc
 
 %% Load Data
-SNLS80mV = load('data/Silverbox/SNLS80mV.mat');
-Schroeder80mV = load('data/Silverbox/Schroeder80mV.mat');
+SNLS80mV = load('SNLS80mV.mat');
+Schroeder80mV = load('Schroeder80mV.mat');
 
 %% Remove Offset Errors in Input and Output as suggested in README.txt
 
@@ -18,20 +18,18 @@ Schroeder80mV.V2 = Schroeder80mV.V2-mean(Schroeder80mV.V2);
 
 %% Select which data to use for identification, validation and testing
 
-Identifikationsdaten = [SNLS80mV.V1(1:4E4);SNLS80mV.V2(1:4E4)]';            % White Gaussian noise with increasing amplitude
+train = [SNLS80mV.V1(40580:41270); SNLS80mV.V2(40580:41270)]';                            % White Gaussian noise with increasing amplitude
 
-Validierungsdaten    = [SNLS80mV.V1(4.05E4+40:4.05E4+8720);...
-    SNLS80mV.V2(4.05E4+40:4.05E4+8720)]';                                   % Odd random multisine
+val    = [SNLS80mV.V1(1:40580); SNLS80mV.V2(1:40580)]';                                   % Odd random multisine
 
-Testdaten    = [Schroeder80mV.V1(1.055E4:2.19E4);...
-    Schroeder80mV.V2(1.055E4:2.19E4)]';                                     % Multisine with Schroeder phases
+test    = [Schroeder80mV.V1(10585:10585+1023); Schroeder80mV.V2(10585:10585+1023)]';      % Multisine with Schroeder phases
 
 
 %% Save Data Sets for use in python
 
-save('data/Silverbox/Identifikationsdaten.mat','Identifikationsdaten')
-save('data/Silverbox/Validierungsdaten.mat','Validierungsdaten')
-save('data/Silverbox/Testdaten.mat','Testdaten')
+% save('data/Silverbox/Identifikationsdaten.mat','Identifikationsdaten')
+% save('data/Silverbox/Validierungsdaten.mat','Validierungsdaten')
+% save('data/Silverbox/Testdaten.mat','Testdaten')
 
 
 
@@ -40,8 +38,8 @@ save('data/Silverbox/Testdaten.mat','Testdaten')
 fs=1e7/2^14;
 Ts = 1/fs;
 
-train = iddata(Identifikationsdaten(:,2),Identifikationsdaten(:,1),Ts);
-test  = iddata(Testdaten(:,2),Testdaten(:,1),Ts);
+train = iddata(train(:,2),train(:,1),Ts);
+test  = iddata(test(:,2),test(:,1),Ts);
 %% Identify state space model from data with n4sid
 
 % Overview over options: https://de.mathworks.com/help/ident/ref/n4sidoptions.html
@@ -49,7 +47,7 @@ opt = n4sidOptions('InitialState','estimate','N4Weight','auto','Focus','simulati
     'WeightingFilter',[],'EnforceStability',0,...
     'Display','on');
     
-[ssm,x0] = n4sid(train,8,opt,'DisturbanceModel','none');
+[ssm,x0] = n4sid(train,2,opt,'DisturbanceModel','none');
 
 
 %% Simulate identified model
@@ -61,13 +59,13 @@ opt = simOptions('InitialCondition',x0);
 
 figure;
 hold on
-plot(Identifikationsdaten(:,2))
+plot(train.y)
 plot(y_train)
 hold off
 
 figure;
 hold on
-plot(Testdaten(:,2))
+plot(test.y)
 plot(y_test)
 hold off
 
@@ -83,7 +81,3 @@ Results = struct(...
 'target_train_data_1',train.y);
 
 save('SilverBox_LSS.mat','Results')
-%%
-
-
-abs(eig(ssm.A))

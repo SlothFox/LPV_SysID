@@ -133,7 +133,6 @@ def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=Fals
         e = 0
         
         for j in range(0,u_val.shape[0]):   
-            print(j)   
             # Simulate Model
             pred = model.Simulation(init_state_val[j],u_val[j])
             

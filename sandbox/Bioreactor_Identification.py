@@ -16,19 +16,25 @@ from optim import param_optim
 ''' Data Preprocessing '''
 
 ################ Load Data ####################################################
-train = loadmat('Benchmarks/Bioreactor/APRBS_Data_1')
+train = loadmat('Benchmarks/Bioreactor/APRBS_Data_3')
 train = train['data']
-val = loadmat('Benchmarks/Bioreactor/APRBS_Data_2')
+val = loadmat('Benchmarks/Bioreactor/APRBS_Data_1')
 val = val['data']
-test = loadmat('Benchmarks/Bioreactor/APRBS_Data_3')
+test = loadmat('Benchmarks/Bioreactor/APRBS_Data_2')
 test = test['data']
 
 
-
+################ Subsample Data ###############################################
+train = train[0::50,:]
+val = val[0::50,:]
+test = test[0::50,:]
 ################# Pick Training- Validation- and Test-Data ####################
 
 train_u = train[0:-1,0].reshape(1,-1,1)
 train_y = train[1::,1].reshape(1,-1,1)
+
+# train_u = train[:,0].reshape(1,-1,1)
+# train_y = train[:,1].reshape(1,-1,1)
 
 val_u = val[0:-1,0].reshape(1,-1,1)
 val_y = val[1::,1].reshape(1,-1,1)
@@ -36,7 +42,7 @@ val_y = val[1::,1].reshape(1,-1,1)
 test_u = test[0:-1,0].reshape(1,-1,1)
 test_y = test[1::,1].reshape(1,-1,1)
 
-init_state = np.zeros((1,2,1))
+init_state = np.array([[[0.2059],[-0.0968]]])
 
 # Arrange Training and Validation data in a dictionary with the following
 # structure. The dictionary must have these keys
@@ -63,17 +69,18 @@ LSS=LSS['Results']
 
 
 ''' RBF approach'''
-initial_params = {'A0': LSS['A'][0][0], 'B0': LSS['B'][0][0], 'C0': LSS['C'][0][0],
-                  'A1': LSS['A'][0][0], 'B1': LSS['B'][0][0], 'C1': LSS['C'][0][0]}
-model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=2,
-                      initial_params=initial_params,name='RBF_network')
+model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=1,
+                      initial_params=None,name='RBF_network')
+model.InitializeLocalModels(LSS['A'][0][0],LSS['B'][0][0],LSS['C'][0][0],
+                            range_u = np.array([[0,0.7]]),
+                            range_x = np.array([[0.004,0.231],[-0.248,0.0732]]))
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
 
 # Solver options
-p_opts = {"expand":False}
-s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
+# p_opts = {"expand":False}
+# s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
     
 # identification_results = param_optim.ModelTraining(model,data,100,
 #                                                   initial_params=initial_params,
@@ -94,14 +101,15 @@ and the estimated parameters '''
 
 
 # Maybe plot the simulation result on test data to see how good the model performs
-x_est,y_est = model.Simulation(init_state[0],train_u[0,0:1000])
+# x_est,y_est = model.OneStepPrediction(init_state[0],train_u[0,0])
+x_est,y_est = model.Simulation(init_state[0],train_u[0])
 
 y_est = np.array(y_est) 
  
  
-plt.plot(train_y[0,0:1000],label='True output')                                        # Plot True data
+plt.plot(train_y[0],label='True output')                                       # Plot True data
 plt.plot(y_est,label='Est. output')                                            # Plot Model Output
-# plt.plot(val_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
+# plt.plot(val_y[0]-y_est,label='Simulation Error')                            # Plot Error between model and true system (its almost zero)
 plt.legend()
 plt.show()
 
