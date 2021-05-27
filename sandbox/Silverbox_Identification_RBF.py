@@ -28,10 +28,10 @@ Schroeder80mV = pkl.load(open('Benchmarks/Silverbox/Schroeder80mV.pkl','rb'))
 # scaler = MinMaxScaler(feature_range=(-1,1))
 
 # Validierungsdatensatz2 (Data_val) hat den größten Wertebereich, daher dieses Signal für Skalierung verwenden
-SNLS80mV = pd.DataFrame(data = scaler.fit_transform(SNLS80mV),
-                                  columns=SNLS80mV.columns)
-Schroeder80mV = pd.DataFrame(data = scaler.transform(Schroeder80mV),
-                                    columns=Schroeder80mV.columns)
+# SNLS80mV = pd.DataFrame(data = scaler.fit_transform(SNLS80mV),
+#                                   columns=SNLS80mV.columns)
+# Schroeder80mV = pd.DataFrame(data = scaler.transform(Schroeder80mV),
+#                                     columns=Schroeder80mV.columns)
 
 ################# Pick Training- Validation- and Test-Data ####################
 
@@ -72,7 +72,7 @@ LSS=LSS['Results']
 initial_params = {'A': LSS['A'][0][0],
                   'B': LSS['B'][0][0],
                   'C': LSS['C'][0][0],
-                  'range_u': np.array([[0,0.861],[0,0.560]]),
+                  'range_u': np.array([[-0.0861, 0.0560]]),
                   'range_x': np.array([[-0.104,0.112],[-0.103,0.107]])}
 
 p_opts = {"expand":False}
