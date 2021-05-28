@@ -112,7 +112,7 @@ class LPV_Controller_full():
 
         '''
         # Convert affine coordinates to polytopic coordinates first
-        alpha = self.PolytopicCoords_Hypercube(vertices[v])        
+        alpha = self.PolytopicCoords_Hypercube(theta)        
         
         # Calculate controller state and control input by superposition of all
         # vertex controllers
