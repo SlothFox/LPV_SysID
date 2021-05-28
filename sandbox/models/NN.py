@@ -669,13 +669,13 @@ class RehmerLPV():
                        'C_1','E_3']
         
         self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
-                           'A_1':np.random.rand(dim_x,dim_thetaA)*0.0001,
+                           'A_1':np.random.rand(dim_x,dim_thetaA)*0.01,
                            'E_1':np.random.rand(dim_thetaA,dim_x),
                            'B_0':np.random.rand(dim_x,dim_u),
-                           'B_1':np.random.rand(dim_x,dim_thetaB),
+                           'B_1':np.random.rand(dim_x,dim_thetaB)*0.01,
                            'E_2':np.random.rand(dim_thetaB,dim_u),
                            'C_0':np.random.rand(dim_y,dim_x),
-                           'C_1':np.random.rand(dim_y,dim_thetaC),
+                           'C_1':np.random.rand(dim_y,dim_thetaC)*0.01,
                            'E_3':np.random.rand(dim_thetaC,dim_x)}
         
         # Add remaining parameters in loop since they depend on depth of NNs
@@ -876,9 +876,10 @@ class RehmerLPV_outputSched():
         self.dim_thetaB = dim_thetaB
         self.NN_1_dim = NN_1_dim
         self.NN_2_dim = NN_2_dim
-        self.NN_3_dim = NN_3_dim
+
         self.NN1_act = NN1_act
         self.NN2_act = NN2_act
+        
         self.name = name
         
         self.Initialize(initial_params)
@@ -891,8 +892,10 @@ class RehmerLPV_outputSched():
         dim_y = self.dim_y   
         dim_thetaA = self.dim_thetaA
         dim_thetaB = self.dim_thetaB
+        
         NN_1_dim = self.NN_1_dim
         NN_2_dim = self.NN_2_dim
+        
         NN1_act = self.NN1_act
         NN2_act = self.NN2_act
        
