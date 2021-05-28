@@ -966,7 +966,7 @@ class RehmerLPV_outputSched():
         
         self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
                            'A_1':np.random.rand(dim_x,dim_thetaA)*0.0001,
-                           'E_1':np.random.rand(dim_thetaA,dim_x),
+                           'E_1':np.random.rand(dim_thetaA,dim_y),
                            'B_0':np.random.rand(dim_x,dim_u),
                            'B_1':np.random.rand(dim_x,dim_thetaB),
                            'E_2':np.random.rand(dim_thetaB,dim_u),
@@ -1626,7 +1626,7 @@ class LachhabLPV_outputSched():
         self.dim_y = dim_y
         self.dim_thetaA = dim_thetaA
         self.dim_thetaB = dim_thetaB
-        self.dim_thetaC = dim_thetaC
+
         self.name = name
         
         self.Initialize(initial_params)
@@ -1639,7 +1639,7 @@ class LachhabLPV_outputSched():
             dim_y = self.dim_y   
             dim_thetaA = self.dim_thetaA
             dim_thetaB = self.dim_thetaB
-            dim_thetaC = self.dim_thetaC
+
             name = self.name
             
             # Define input, state and output vector
@@ -1661,7 +1661,7 @@ class LachhabLPV_outputSched():
             # Put all Parameters in Dictionary with random initialization
             self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
                                'A_lpv':np.random.rand(dim_x,dim_thetaA),
-                               'W_A':np.random.rand(dim_thetaA,dim_x),
+                               'W_A':np.random.rand(dim_thetaA,dim_y),
                                'B_0':np.random.rand(dim_x,dim_u),
                                'B_lpv':np.random.rand(dim_x,dim_thetaB),
                                'W_B':np.random.rand(dim_thetaB,dim_u),
