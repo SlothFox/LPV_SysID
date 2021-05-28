@@ -33,16 +33,13 @@ test = test[0::50,:]
 train_u = train[0:-1,0].reshape(1,-1,1)
 train_y = train[1::,1].reshape(1,-1,1)
 
-# train_u = train[:,0].reshape(1,-1,1)
-# train_y = train[:,1].reshape(1,-1,1)
-
 val_u = val[0:-1,0].reshape(1,-1,1)
 val_y = val[1::,1].reshape(1,-1,1)
 
 test_u = test[0:-1,0].reshape(1,-1,1)
 test_y = test[1::,1].reshape(1,-1,1)
 
-init_state = np.array([[[0.2059],[-0.0968]]])
+init_state = np.zeros((1,2,1))
 
 # Arrange Training and Validation data in a dictionary with the following
 # structure. The dictionary must have these keys
@@ -58,40 +55,25 @@ LSS=LSS['Results']
 
 ''' RBF approach'''
 
-initial_params = {'A': LSS['A'][0][0],
-                  'B': LSS['B'][0][0],
-                  'C': LSS['C'][0][0],
-                  'range_u': np.array([[0,0.7]]),
-                  'range_x': np.array([[0.004,0.231],[-0.248,0.0732]])}
-
-p_opts = {"expand":False}
-s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
+initial_params = {'A_0': LSS['A'][0][0],
+                  'B_0': LSS['B'][0][0],
+                  'C_0': LSS['C'][0][0]}
 
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
 
-for dim in [1,2,3,4,5,10]:
+for dim in [1,2,3,4,5]:
     
-    model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=dim,
-                      initial_params=initial_params,name='RBF_network')    
+    model = NN.LachhabLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,dim_thetaB=dim,
+                      dim_thetaC=0,initial_params=initial_params,
+                      name='RBF_network') 
     
-    identification_results = param_optim.ModelTraining(model,data,2,
-                             initial_params=initial_params,p_opts=p_opts,
-                             s_opts=s_opts)
 
-    pkl.dump(identification_results,open('RBF_2states_theta'+str(dim)+'.pkl',
+    
+    identification_results = param_optim.ModelTraining(model,data,10,
+                             initial_params=initial_params,p_opts=None,
+                             s_opts=None)
+
+    pkl.dump(identification_results,open('Bioreactor_Lachhab_2states_theta'+str(dim)+'.pkl',
                                          'wb'))
-
-
-model.Parameters = identification_results.loc[0,'params']    
-
-x_est,y_est = model.Simulation(init_state[0],train_u[0])
-
-y_est = np.array(y_est) 
- 
-plt.plot(train_y[0],label='True output')                                       # Plot True data
-plt.plot(y_est,label='Est. output')                                            # Plot Model Output
-# plt.plot(val_y[0]-y_est,label='Simulation Error')                            # Plot Error between model and true system (its almost zero)
-plt.legend()
-plt.show()

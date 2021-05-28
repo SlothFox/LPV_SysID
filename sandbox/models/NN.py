@@ -1491,10 +1491,10 @@ class LachhabLPV():
             
             # Put all Parameters in Dictionary with random initialization
             self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
-                               'A_lpv':np.random.rand(dim_x,dim_thetaA),
+                               'A_lpv':np.random.rand(dim_x,dim_thetaA)*0.01,
                                'W_A':np.random.rand(dim_thetaA,dim_x),
                                'B_0':np.random.rand(dim_x,dim_u),
-                               'B_lpv':np.random.rand(dim_x,dim_thetaB),
+                               'B_lpv':np.random.rand(dim_x,dim_thetaB)*0.01,
                                'W_B':np.random.rand(dim_thetaB,dim_u),
                                'C_0':np.random.rand(dim_y,dim_x),
                                'C_lpv':np.random.rand(dim_y,dim_thetaC),

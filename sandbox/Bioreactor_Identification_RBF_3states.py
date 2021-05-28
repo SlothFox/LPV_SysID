@@ -33,9 +33,6 @@ test = test[0::50,:]
 train_u = train[0:-1,0].reshape(1,-1,1)
 train_y = train[1::,1].reshape(1,-1,1)
 
-# train_u = train[:,0].reshape(1,-1,1)
-# train_y = train[:,1].reshape(1,-1,1)
-
 val_u = val[0:-1,0].reshape(1,-1,1)
 val_y = val[1::,1].reshape(1,-1,1)
 
