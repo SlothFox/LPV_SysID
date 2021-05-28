@@ -72,7 +72,7 @@ p_opts = {"expand":False}
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
 
-for dim in [2]:
+for dim in [1,2,3,4,5,10]:
     
     model = NN.RBFLPV(dim_u=1,dim_x=3,dim_y=1,dim_theta=dim,
                       initial_params=initial_params,name='RBF_network')    

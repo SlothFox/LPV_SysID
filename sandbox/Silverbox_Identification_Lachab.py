@@ -71,8 +71,8 @@ initial_params = {'A_0': LSS['A'][0][0],
                   'B_0': LSS['B'][0][0],
                   'C_0': LSS['C'][0][0]}
 
-p_opts = {"expand":False}
-s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
+p_opts = None #{"expand":False}
+s_opts = None #{"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
@@ -84,11 +84,11 @@ for dim in [1,2,3,4,5]:
                           dim_thetaC=0, initial_params=initial_params,
                           name='Lachhab_LPV')    
 
-    identification_results = param_optim.ModelTraining(model,data,1,
+    identification_results = param_optim.ModelTraining(model,data,10,
                              initial_params=initial_params,p_opts=p_opts,
                              s_opts=s_opts)
 
-    pkl.dump(identification_results,open('SilverBox_Lachab_2states_theta'+str(dim)+'.pkl',
+    pkl.dump(identification_results,open('SilverBox_Lachhab_2states_theta'+str(dim)+'.pkl',
                                          'wb'))
     
     
