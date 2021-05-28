@@ -5,3 +5,10 @@
 2021-05-27 08:18:12,229 - numexpr.utils - INFO - NumExpr defaulting to 4 threads.
 2021-05-27 08:30:38,553 - numexpr.utils - INFO - NumExpr defaulting to 4 threads.
 2021-05-27 08:30:44,630 - numexpr.utils - INFO - NumExpr defaulting to 4 threads.
+2021-05-28 15:16:37,644 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
+2021-05-28 15:18:17,575 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
+2021-05-28 15:23:06,139 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
+2021-05-28 15:24:27,244 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
+2021-05-28 15:34:23,634 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
+2021-05-28 15:34:38,406 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
+2021-05-28 15:34:51,023 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
