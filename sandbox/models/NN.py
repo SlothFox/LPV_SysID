@@ -111,16 +111,16 @@ class RBFLPV():
             self.Parameters=Parameters    
             
             # Initialize if inital parameters are given
-            if 'A' and 'B' and 'C' in initial_params.keys():
-                A = initial_params['A']
-                B = initial_params['B']
-                C = initial_params['C']
-                range_x = initial_params['range_x']
-                range_u = initial_params['range_u']
-                
-                self.InitializeLocalModels(A,B,C,range_x,range_u)
-            else:
-                if initial_params is not None:
+            if initial_params is not None:
+                if 'A'  in initial_params.keys() and 'B'  in initial_params.keys() and 'C'  in initial_params.keys():
+                    A = initial_params['A']
+                    B = initial_params['B']
+                    C = initial_params['C']
+                    range_x = initial_params['range_x']
+                    range_u = initial_params['range_u']
+                    
+                    self.InitializeLocalModels(A,B,C,range_x,range_u)
+                else:
                     for param in initial_params.keys():
                         self.Parameters[param] = initial_params[param]
             
@@ -1611,7 +1611,7 @@ class LachhabLPV():
         y = cs.hcat(y).T    
         x = cs.hcat(x).T
        
-        return y
+        return x,y
 
 class LachhabLPV_outputSched():
     """
@@ -1779,7 +1779,7 @@ class LachhabLPV_outputSched():
         y = cs.hcat(y).T    
         x = cs.hcat(x).T
        
-        return y
+        return x,y
 
 
 
