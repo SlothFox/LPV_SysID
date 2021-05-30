@@ -12,3 +12,8 @@
 2021-05-28 15:34:23,634 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
 2021-05-28 15:34:38,406 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
 2021-05-28 15:34:51,023 - matplotlib.legend - WARNING - No handles with labels found to put in legend.
+2021-05-28 17:08:37,530 - numexpr.utils - INFO - NumExpr defaulting to 4 threads.
+2021-05-29 21:00:03,640 - numexpr.utils - INFO - NumExpr defaulting to 4 threads.
+2021-05-29 21:00:34,031 - numexpr.utils - INFO - NumExpr defaulting to 4 threads.
+2021-05-29 21:26:08,696 - numexpr.utils - INFO - NumExpr defaulting to 4 threads.
+2021-05-29 21:28:27,574 - numexpr.utils - INFO - NumExpr defaulting to 4 threads.

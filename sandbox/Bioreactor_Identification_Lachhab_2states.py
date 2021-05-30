@@ -65,7 +65,7 @@ starts the optimization procedure 'initializations'-times. '''
 
 for dim in [1,2,3,4,5]:
     
-    model = NN.LachhabLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,dim_thetaB=dim,
+    model = NN.LachhabLPV_outputSched(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,dim_thetaB=dim,
                       dim_thetaC=0,initial_params=initial_params,
                       name='RBF_network') 
     

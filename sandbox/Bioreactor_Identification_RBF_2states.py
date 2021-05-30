@@ -59,7 +59,7 @@ initial_params = {'A': LSS['A'][0][0],
                   'B': LSS['B'][0][0],
                   'C': LSS['C'][0][0],
                   'range_u': np.array([[0,0.7]]),
-                  'range_x': np.array([[0.004,0.231],[-0.248,0.0732]])}
+                  'range_y': np.array([[0.00,0.15]])}
 
 p_opts = {"expand":False}
 # s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
@@ -68,16 +68,16 @@ p_opts = {"expand":False}
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
 
-for dim in [1,2,3,4,5,10]:
+for dim in [1,2,3,4,5]:
     
-    model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=dim,
+    model = NN.RBFLPV_outputSched(dim_u=1,dim_x=2,dim_y=1,dim_theta=dim,
                       initial_params=initial_params,name='RBF_network')    
     
     identification_results = param_optim.ModelTraining(model,data,10,
                              initial_params=initial_params,p_opts=p_opts,
                              s_opts=None)
 
-    pkl.dump(identification_results,open('Bioreactor_RBF_2states_theta'+str(dim)+'.pkl',
+    pkl.dump(identification_results,open('Bioreactor_RBF_outSched_2states_theta'+str(dim)+'.pkl',
                                          'wb'))
 
 

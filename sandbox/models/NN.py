@@ -350,8 +350,8 @@ class RBFLPV_outputSched():
             
             # Add local model parameters
             for loc in range(0,len(A)):
-                input.extend([A[loc],B[loc],c_u[loc],c_x[loc],w_u[loc],
-                              w_x[loc]])    
+                input.extend([A[loc],B[loc],c_u[loc],c_y[loc],w_u[loc],
+                              w_y[loc]])    
                 i=str(loc)
                 input_names.extend(['A'+i,'B'+i,'c_u'+i,'c_y'+i,'w_u'+i,
                                     'w_y'+i])
@@ -361,14 +361,14 @@ class RBFLPV_outputSched():
                 # Parameters['C'+i] = np.random.rand(dim_y,dim_x)
                 # Parameters['O'+i] = np.random.rand(dim_x,1)
                 Parameters['c_u'+i] = np.random.rand(dim_u,1)
-                Parameters['c_x'+i] = np.random.rand(dim_x,1)
+                Parameters['c_y'+i] = np.random.rand(dim_y,1)
                 Parameters['w_u'+i] = np.random.rand(dim_u,1)
-                Parameters['w_x'+i] = np.random.rand(dim_x,1)
+                Parameters['w_y'+i] = np.random.rand(dim_y,1)
                 
             self.Parameters=Parameters    
             
             # Initialize if inital parameters are given
-            if 'A' and 'B' and 'C' in initial_params.keys():
+            if 'A' in initial_params.keys() and 'B' in initial_params.keys() and 'C' in initial_params.keys():
                 A = initial_params['A']
                 B = initial_params['B']
                 C = initial_params['C']

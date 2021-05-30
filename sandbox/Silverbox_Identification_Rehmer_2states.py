@@ -78,27 +78,19 @@ s_opts = None #{"max_iter": 1000, "print_level":0, 'hessian_approximation': 'lim
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
 
-for dim in [1]: #[1,2,3,4,5]:
+for dim in [1,2,3,4,5]:
     
-    # model = NN.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,dim_thetaB=0,
-    #                      dim_thetaC=0, NN_1_dim=[dim],NN_2_dim=[],
-    #                      NN_3_dim=[],NN1_act=[1],NN2_act=[],NN3_act=[], 
-    #                      initial_params=initial_params,name='Rehmer_LPV')
+    model = NN.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,dim_thetaB=0,
+                          dim_thetaC=0, NN_1_dim=[dim],NN_2_dim=[],
+                          NN_3_dim=[],NN1_act=[1],NN2_act=[],NN3_act=[], 
+                          initial_params=initial_params,name='Rehmer_LPV')
 
-    # model = NN.RehmerLPV_outputSched(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,dim_thetaB=0,
-    #                      dim_thetaC=0, NN_1_dim=[dim],NN_2_dim=[],
-    #                      NN_3_dim=[],NN1_act=[1],NN2_act=[],NN3_act=[], 
-    #                      initial_params=initial_params,name='Rehmer_LPV')
 
-    model = NN.LachhabLPV_outputSched(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=1,dim_thetaB=0,
-                          dim_thetaC=0,initial_params=initial_params,
-                          name='Lachhab_LPV')
-
-    identification_results = param_optim.ModelTraining(model,data,5,
+    identification_results = param_optim.ModelTraining(model,data,10,
                              initial_params=initial_params,p_opts=p_opts,
                              s_opts=s_opts)
 
-    # pkl.dump(identification_results,open('SilverBox_Rehmer_2states_theta'+str(dim)+'.pkl',
-    #                                      'wb'))
+    pkl.dump(identification_results,open('SilverBox_Rehmer_2states_theta'+str(dim)+'.pkl',
+                                          'wb'))
     
     
