@@ -10,6 +10,7 @@ import casadi as cs
 import matplotlib
 matplotlib.rcParams['text.usetex'] = True
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 import numpy as np
@@ -75,24 +76,38 @@ initial_params = {'A': LSS['A'][0][0],
                   'range_u': np.array([[-0.05,0.05]]),
                   'range_x': np.array([[-0.2,0.2],[-0.2,0.2]])}
 
+""" Choose best model of each approach and simulate over test data """
     
-model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=3,
+model1 = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=3,
                       initial_params=initial_params,name='RBF_network')
+res1=pkl.load(open('results_statesched/Silverbox_RBF_2states_theta3.pkl','rb'))
+model1.Parameters = res1.loc[8,'params']
+x_est, y_est1 = model1.Simulation(init_state[0],test_u[0])
+y_est1 = np.array(y_est1)
 
-# model = NN.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=1,dim_thetaB=1,
-#                       dim_thetaC=0, NN_1_dim=[5,1],NN_2_dim=[1],
-#                       NN_3_dim=[],NN1_act=[0,1],NN2_act=[0,1],NN3_act=[], 
-#                       initial_params=initial_params,name='Rehmer_LPV')
 
-res=pkl.load(open('results_statesched/Silverbox_RBF_2states_theta3.pkl','rb'))
 
-model.Parameters = res.loc[8,'params']
+model2 = NN.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=1,dim_thetaB=0,
+                      dim_thetaC=0, NN_1_dim=[1],NN_2_dim=[],
+                      NN_3_dim=[],NN1_act=[1],NN2_act=[],NN3_act=[], 
+                      initial_params=initial_params,name='Rehmer_LPV')
 
-x_est, y_est = model.Simulation(init_state[0],test_u[0])
+res2=pkl.load(open('results_statesched/Silverbox_Rehmer_2states_theta1.pkl','rb'))
+model2.Parameters = res2.loc[8,'params']
+x_est, y_est2 = model2.Simulation(init_state[0],test_u[0])
+y_est2 = np.array(y_est2)
 
-y_est = np.array(y_est)
 
-plt.figure
+
+model3 = NN.LachhabLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=3,dim_thetaB=0,
+                      dim_thetaC=0, initial_params=initial_params,
+                      name='Lachhab_LPV')
+
+res3=pkl.load(open('results_statesched/Silverbox_Lachhab_2states_theta3.pkl','rb'))
+model3.Parameters = res3.loc[9,'params']
+x_est, y_est3 = model3.Simulation(init_state[0],test_u[0])
+y_est3 = np.array(y_est3)
+
 
 ''' Plot measured Input-Output data'''
 # plt.rc(usetex = True)
@@ -102,22 +117,29 @@ plt.figure
 
 fig, axs = plt.subplots(2)
 fig.set_size_inches((9/2.54,7/2.54))
-axs[0].plot(test_u[0],label = '$u$',linewidth=1)
-axs[0].set_xticklabels({})
-axs[0].set_ylim((-0.05,0.05))
-axs[0].set_xlim((200,500))
-axs[0].set_ylabel('$u$')
 # axs[0].legend(loc='upper right',shadow=False,fancybox=False,frameon=False)
 
-axs[1].plot(test_y[0],label = '$y$',linewidth=2)
-axs[1].plot(y_est,'--',label = '$\hat{y}$',linewidth=1)
-axs[1].set_ylim((-0.35,0.35))
+axs[0].plot(test_y[0],label = '$y$',linewidth=2)
+axs[0].plot(y_est1,'--',label = '$\hat{y}$',linewidth=1,color=sns.color_palette()[2])
+axs[0].plot(y_est2,':',label = '$\hat{y}$',linewidth=1,color=sns.color_palette()[3])
+axs[0].plot(y_est3,'-.',label = '$\hat{y}$',linewidth=1,color=sns.color_palette()[1])
+axs[0].set_xticklabels({})
+axs[0].set_ylim((-0.35,0.35))
+axs[0].set_xlim((200,500))
+axs[0].set_ylabel('$y$')
+
+
+axs[1].plot(test_y[0]-y_est1,'--',label = '$e$',linewidth=1,color=sns.color_palette()[2])
+axs[1].plot(test_y[0]-y_est2,':',label = '$e$',linewidth=1,color=sns.color_palette()[3])
+axs[1].plot(test_y[0]-y_est3,'-.',label = '$e$',linewidth=1,color=sns.color_palette()[1])
+
+axs[1].set_ylim((-0.025,0.025))
 axs[1].set_xlim((200,500))
-axs[1].set_ylabel('$y$')
+axs[1].set_ylabel('$e$')
 axs[1].set_xlabel('$k$')
 # axs[1].legend(loc='upper left',shadow=False,fancybox=False,frameon=False)
 
-fig.savefig('Silverbox_test.png', bbox_inches='tight',dpi=600)
+fig.savefig('Silverbox_TestSimulation.png', bbox_inches='tight',dpi=600)
 
 # fig, axs = plt.subplots(2)
 # axs[0].plot(val_y[0],label = '$y$')
