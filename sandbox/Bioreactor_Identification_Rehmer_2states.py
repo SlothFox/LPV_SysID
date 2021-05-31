@@ -60,16 +60,18 @@ initial_params = {'A_0': LSS['A'][0][0],
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
 
-for dim in [3,4,5]:
+for dim in [1,2,3,4,5]:
     
-    model = NN.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,dim_thetaB=dim,
+    model = NN.RehmerLPV_outputSched(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,dim_thetaB=dim,
                           dim_thetaC=0, NN_1_dim=[5,dim],NN_2_dim=[dim],
-                          NN_3_dim=[],NN1_act=[0,1],NN2_act=[0,1],NN3_act=[], 
+                          NN_3_dim=[],NN1_act=[0,1],NN2_act=[0],NN3_act=[], 
                           initial_params=initial_params,name='Rehmer_LPV')
     
     identification_results = param_optim.ModelTraining(model,data,10,
                              initial_params=initial_params,p_opts=None,
                              s_opts=None)
 
-    pkl.dump(identification_results,open('Bioreactor_Rehmer_2states_theta'+str(dim)+'.pkl',
+    pkl.dump(identification_results,open('Bioreactor_Rehmer_outSched_2states_theta'+str(dim)+'.pkl',
                                           'wb'))
+    
+    
