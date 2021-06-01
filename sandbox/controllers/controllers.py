@@ -84,11 +84,11 @@ class LPV_Controller_full():
         # coordinate belongs to which vertex, PolytopicCoords_Hypercube() is 
         # called once for each vertex and checked for the '1' entry
         
-        self.PolyOrder = np.zeros(len(vertices))
+        self.PolyOrder = np.zeros(len(vertices),dtype=int)
         
         for v in range(0,len(vertices)):
             coords = self.PolytopicCoords_Hypercube(vertices[v])
-            self.PolyOrder[v] = np.where(coords==1)[0].item()
+            self.PolyOrder[v] = int(np.where(coords==1)[0].item())
           
 
     def CalculateControlInput(self,theta,y,x):
