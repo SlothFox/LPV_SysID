@@ -125,6 +125,6 @@ axs[1].set_ylabel('$e$')
 axs[1].set_xlabel('$k$')
 # axs[1].legend(loc='upper left',shadow=False,fancybox=False,frameon=False)
 
-fig.savefig('Bioreactor_TestSimulation.png', bbox_inches='tight',dpi=600)
+# fig.savefig('Bioreactor_TestSimulation.png', bbox_inches='tight',dpi=600)
     
     

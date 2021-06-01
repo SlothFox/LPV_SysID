@@ -84,6 +84,7 @@ for model in models:
         # Load identification results
         file = 'results_statesched/' + 'Bioreactor_' + model + '_2states_theta' + str(dim) + '.pkl'
         ident_results = pkl.load(open(file,'rb'))
+                
         
         # Initialize model structure
         if model == 'RBF':
@@ -113,20 +114,42 @@ for model in models:
             
             BFR_on_val_data = BFR_on_val_data.append(new_row, ignore_index=True)
 
+# add one or two RBFs manually
+# model='RBF'
+# dim = 6
+# file = 'results_statesched/' + 'Bioreactor_' + model + '_2states_theta' + str(dim) + '.pkl'
+# ident_results = pkl.load(open(file,'rb'))
+# LPV_model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=dim,
+#                       initial_params=None,name='RBF_network')  
 
+# for init in range(0,10):
+#     LPV_model.Parameters = ident_results.loc[init,'params']
+    
+#     x_est, y_est = LPV_model.Simulation(init_state[0],val_u[0])
+#     y_est = np.array(y_est)
+
+#     BFR = BestFitRate(val_y[0],y_est)
+    
+#     new_row = pd.DataFrame(data = [[BFR[0], model, init, dim]], 
+#                            columns = ['BFR','model','initialization','theta'])
+    
+#     BFR_on_val_data = BFR_on_val_data.append(new_row, ignore_index=True)
+            
+            
+            
 # dim theta for lachhab and rehmer is actually dim theta *2 :
 BFR_on_val_data.loc[np.arange(0,40,1),'theta'] = BFR_on_val_data.loc[np.arange(0,40,1),'theta']*2
 BFR_on_val_data.loc[np.arange(80,120,1),'theta'] = BFR_on_val_data.loc[np.arange(80,120,1),'theta']*2
 
 
-
+palette = sns.color_palette()[1::]
 
 fig, axs = plt.subplots() #plt.subplots(2,gridspec_kw={'height_ratios': [1, 1.5]})
 
 fig.set_size_inches((9/2.54,4/2.54))
 
 sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
-                  palette="Set1", fliersize=2,ax=axs, linewidth=1)
+                  palette=palette, fliersize=2,ax=axs, linewidth=1)
 
 # sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
 #                   palette="Set1",fliersize=2,ax=axs[1], linewidth=1)

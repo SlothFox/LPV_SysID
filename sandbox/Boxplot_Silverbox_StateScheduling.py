@@ -116,11 +116,13 @@ for model in models:
 fig, axs = plt.subplots(2,gridspec_kw={'height_ratios': [1, 1.5]})
 fig.set_size_inches((9/2.54,7/2.54))
 
-sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
-                  palette="Set1", fliersize=2,ax=axs[0], linewidth=1)
+palette = sns.color_palette()[1::]
 
 sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
-                  palette="Set1",fliersize=2,ax=axs[1], linewidth=1)
+                  palette=palette, fliersize=2,ax=axs[0], linewidth=1)
+
+sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
+                  palette=palette,fliersize=2,ax=axs[1], linewidth=1)
 
 axs[0].legend_.remove()
 axs[1].legend_.remove()
