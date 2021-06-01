@@ -168,3 +168,5 @@ for vertex = [1:4]
     VertexController{vertex} = double(theta);
     
 end
+
+save('VertexControllers','VertexController')
