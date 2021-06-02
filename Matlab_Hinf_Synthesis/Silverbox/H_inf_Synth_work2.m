@@ -36,11 +36,11 @@ r = sdpvar(1,1);
 R = sdpvar(nx,nx,'symmetric');
 S = sdpvar(nx,nx,'symmetric');
 
-LMI = [[R,eye(nx);eye(nx),S] >= 0];
+LMI = [[S,eye(nx);eye(nx),R] >= 0];
 
 VertexSystems = {'S1','S2','S3','S4'};
 
-for vertex = [1:1]
+for vertex = [1:4]
     
     system = eval(VertexSystems{vertex});
     
@@ -75,42 +75,33 @@ optimize(LMI,r,ops)
 
 %% Reconstruct controller
 
-r = double(r);
+% r = double(r);
 R = double(R);
 S = double(S);
 
 % Calculate rank of controller
 % [U,Sigma,V] = svd(eye(nx)-R*S);
 
-% Calculate Xcl by Apkarian
-[M,N] = qr(eye(nx)-R*S);
-% 
-O=[S, eye(nx);
- N, zeros(k,nx)];
-% 
-P = [eye(nx), R;
-    zeros(k,nx), M'];
-% 
-Xcl = O*pinv(P);
+
 
 % Try another way to calculate Xcl
 
-% X1 = S;
-% X2 = X1-inv(R);
-% [U,T] = schur(X2);
-% X2 = U*sqrt(T)*U';
+X1 = S;
+X2 = (X1-inv(R));
+[U,T] = schur(X2);
+X2 = U*sqrt(T)*U';
 
-% Xcl = [X1,X2;X2',eye(nx)];
+X = [X1,X2;X2',eye(nx)];
 % Solve one LMI for each vertex controller
 
 VertexController= {};
 
-for vertex = [1:1]
+for vertex = [1:4]
     
     system = eval(VertexSystems{vertex});
     
     theta = sdpvar(k+nu,k+ny,'full');
-%     r = sdpvar(1,1);
+    r = sdpvar(1,1);
     
     A  = system{1};
     B2 = system{2};
@@ -124,33 +115,26 @@ for vertex = [1:1]
     
     BB = [zeros(nx,k) B2;eye(k) zeros(k,nu)];
     CC = [zeros(k,nx), eye(k); C2, zeros(ny,k)];
-    DD12 = [zeros(ny,k), D12];
+    DD12 = [zeros(nq,k), D12];
     DD21 = [zeros(k,nw); D21];
    
     Acl = A0 + BB*theta*CC;
     Bcl = B0 + BB*theta*DD21;
     Ccl = C0 + DD12*theta*CC;
     Dcl = D11+ DD12*theta*DD21;
-
-    %    Conti Time ? : 
-%     Mcl = [Acl'*Xcl+Xcl*Acl, Xcl*Bcl,    Ccl';
-%            Bcl'*Xcl,         -r*eye(nw),   Dcl';
-%            Ccl,               Dcl,       -r*eye(ny)   ];
-
-% Try discrete time
     
-%     Mcl = [Acl'*Xcl*Acl-Xcl, Acl'*Xcl*Bcl,              Ccl';
-%            Bcl'*Xcl*Acl,     Bcl'*Xcl*Bcl-r*eye(nw),      Dcl';
-%            Ccl,              Dcl,                       -r*eye(nq)];       
+    P = [BB' zeros(k+nu,nx+k) zeros(k+nu,nw) DD12'];
+    Q = [zeros(k+ny,nx+k) CC DD21 zeros(k+ny,nq)];    
+      
 
-   Mcl = [-inv(Xcl),        Acl,               Bcl,            zeros(nx+k,ny);
-           Acl',            -Xcl,              zeros(nx+k,nw), Ccl';
-           Bcl',            zeros(nw,nx+k),   -r*eye(nw)       Dcl';
-           zeros(nq,nx+k),  Ccl,               Dcl,             -r*eye(ny)];  
+    Psi = [-inv(X),        A0,               B0,                 zeros(nx+k,ny);
+           A0',           -X,               zeros(nx+k,nw),     C0';
+           B0',           zeros(nw,nx+k),   -r*eye(nw)          D11';
+           zeros(nq,nx+k),C0,               D11,                -r*eye(ny)];  
     
-    LMI = [[Mcl] <= 0];
+    LMI = [[Psi+P'*theta*Q + Q'*theta'*P] <= 0];
 
-    optimize(LMI,[],ops)
+    optimize(LMI,r,ops)
 
     theta = double(theta);
     

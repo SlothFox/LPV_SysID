@@ -35,38 +35,27 @@ Omega = [VertexController for VertexController in Omega[0,:]]
 
 # Vertices are hyperbox put around time-varying parameters measured during simulation
 v1 = (0.51,0.61)
-v2 = (0.51,0.65)
-v3 = (0.515,0.65)
-v4 = (0.515,0.61)
 
-model.AffineStateSpaceMatrices(v1)
+LinearModel = model.AffineStateSpaceMatrices(v1)
 
-vertices = [v1,v2,v3,v4]
+A = LinearModel[0]
+B = LinearModel[1]
+C = LinearModel[2]
 
-controller = LPV_Controller_full(Omega=Omega, vertices=vertices, x_dim = 2,
-                                 y_dim = 1, u_dim = 1) 
-
-
-
-controller.PolytopicCoords_Hypercube(v2)
-
-
-
-
-
-
-
+Ac = Omega[0][0:2,0:2]
+Bc = Omega[0][0:2,[2]]
+Cc = Omega[0][[2],0:2]
+Dc = Omega[0][[2],[2]]
 
 N = 100 # length of experiment
 
 # Define reference signal as simple step at k=0 with height 0.1
 
-w = np.arange(0,0.2,0.2/N) 
+w = np.ones((N,1)) * 0.4
 
 # Arrays for system state, output, input, time-varying parameter
 x_p = []
 x_c = []
-theta = []
 u = []
 y = []
 e = []
@@ -77,20 +66,17 @@ u.append(np.zeros((1,1)) + 10E-6)       # Add something to prevent division by z
 
 for k in range(0,w.shape[0]):
     
-    x_p_new, y_new = model.OneStepPrediction(x_p[k],u[k])    
-    x_p_new,y_new = np.array(x_p_new), np.array(y_new)
+    x_p_new = A.dot(x_p[0]) + B.dot(u[0])
+    y_new = C.dot(x_p_new)
     
-    theta_new = model.EvalAffineParameters(x_p_new,u[k])    
-    theta_new = np.array(theta_new)
-    
-    # e_new = w[k] - y_new 
     e_new = y_new - w[k]
-    x_c_new, u_new = controller.CalculateControlInput(tuple(theta_new),e_new,x_c[k])
-    x_c_new,u_new = np.array(x_c_new), np.array(u_new)
+    
+    x_c_new = Ac.dot(x_c[k]) + Bc.dot(e_new)
+    u_new = Cc.dot(x_c_new) + Dc.dot(e_new)
+
     
     x_p.append(x_p_new)
     x_c.append(x_c_new)
-    theta.append(theta_new)
     u.append(u_new)
     y.append(y_new)
     e.append(e_new)
