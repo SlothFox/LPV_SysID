@@ -12,8 +12,6 @@ ops = sdpsettings('solver','mosek');
 % Load identified Vertex Systems
 load('VertexSystemsSilverbox.mat') 
 
-
-
 % Specify dimensions of problem
 nx = 2;
 nw = 1;
@@ -30,14 +28,12 @@ D21 = -eye(ny,nw);
 D22 = zeros(ny,nu);
 
 %% Solvability conditions
-
 r = sdpvar(1,1);
 
 R = sdpvar(nx,nx,'symmetric');
 S = sdpvar(nx,nx,'symmetric');
 
 LMI = [[R,eye(nx);eye(nx),S] >= 0];
-
 
 VertexSystems = {'S1','S2','S3','S4'};
 
@@ -49,7 +45,6 @@ for vertex = [1:4]
     B2 = system{2};
     C1 = system{3};
     C2 = system{3};
-    
     
     NR = null([B2',D12']);
     NS = null([C2,D21]);
@@ -68,7 +63,6 @@ for vertex = [1:4]
     NS = [NS,       zeros(3,1);
             zeros(1,2), eye(1) ];
         
-        
     LMI = [LMI,[NR'*MR*NR<=0]];
     LMI = [LMI,[NS'*MS*NS<=0]];
     
@@ -76,18 +70,14 @@ end
 
 optimize(LMI,r,ops)
 
-
-
-
 %% Reconstruct controller
 
-r = double(r);
+% r = double(r);
 R = double(R);
 S = double(S);
 
 % Calculate rank of controller
 % [U,Sigma,V] = svd(eye(nx)-R*S);
-
 
 % Calculate Xcl by Apkarian
 % [M,N] = qr(eye(nx)-R*S);
@@ -95,8 +85,8 @@ S = double(S);
 % O=[S, eye(nx);
 %  N, zeros(k,nx)];
 % 
-% P=[eye(nx), R;
-% zeros(k,nx), M'];
+% P = [eye(nx), R;
+%     zeros(k,nx), M'];
 % 
 % Xcl = O*pinv(P);
 
@@ -112,13 +102,12 @@ Xcl = [X1,X2;X2',eye(nx)];
 
 VertexController= {};
 
-
 for vertex = [1:4]
     
     system = eval(VertexSystems{vertex});
     
     theta = sdpvar(k+nu,k+ny,'full');
-%     r = sdpvar(1,1);
+    r = sdpvar(1,1);
     
     A  = system{1};
     B2 = system{2};
@@ -128,15 +117,13 @@ for vertex = [1:4]
     A0 = [A,zeros(nx,k);zeros(k,nx),zeros(k,k)];
     B0 = [B1;zeros(k,nw)];
     C0 = [C1, zeros(nq,k)];
-    D11 = D11;
+%     D11 = D11;
     
     BB = [zeros(nx,k) B2;eye(k) zeros(k,nu)];
     CC = [zeros(k,nx), eye(k); C2, zeros(ny,k)];
     DD12 = [zeros(ny,k), D12];
     DD21 = [zeros(k,nw); D21];
-    
-    
-    
+   
     Acl = A0 + BB*theta*CC;
     Bcl = B0 + BB*theta*DD21;
     Ccl = C0 + DD12*theta*CC;
@@ -153,13 +140,12 @@ for vertex = [1:4]
 %            Bcl'*Xcl*Acl,     Bcl'*Xcl*Bcl-r*eye(nw),      Dcl';
 %            Ccl,              Dcl,                       -r*eye(nq)];       
 
-       Mcl = [-inv(Xcl),        Acl,               Bcl,            zeros(nx+k,ny);
-               Acl',            -Xcl,              zeros(nx+k,nw), Ccl';
-               Bcl',            zeros(nw,nx+k),   -r*eye(nw)       Dcl';
-               zeros(nq,nx+k),  Ccl,               Dcl,             -r*eye(ny)];  
+   Mcl = [-inv(Xcl),        Acl,               Bcl,            zeros(nx+k,ny);
+           Acl',            -Xcl,              zeros(nx+k,nw), Ccl';
+           Bcl',            zeros(nw,nx+k),   -r*eye(nw)       Dcl';
+           zeros(nq,nx+k),  Ccl,               Dcl,             -r*eye(ny)];  
     
     LMI = [[Mcl] <= 0];
-
 
     optimize(LMI,[],ops)
 
@@ -168,5 +154,6 @@ for vertex = [1:4]
     VertexController{vertex} = double(theta);
     
 end
+
 
 save('VertexControllers','VertexController')

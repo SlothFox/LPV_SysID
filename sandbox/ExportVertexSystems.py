@@ -15,7 +15,7 @@ import pickle as pkl
 
 import scipy.io
 
-from models.NN import RehmerLPV
+from models.NN import RehmerLPV_old
 
 from sklearn.preprocessing import MinMaxScaler
 
@@ -63,7 +63,7 @@ data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
 
 
 
-model = RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=0,
+model = RehmerLPV_old(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=0,
                           dim_thetaC=0,fA_dim=2,fB_dim=0,fC_dim=0,
                           initial_params=None,name='name')
 
@@ -95,31 +95,25 @@ for k in range(0,test_u[0].shape[0]):
     
     
     x.append(x_new)
-    theta.append(theta_new)
+    theta.append(np.array(theta_new))
     
 
-
-
 # Get vertices from data
-# v1 = (0.51,0.61)
-# v2 = (0.51,0.65)
-# v3 = (0.515,0.65)
-# v4 = (0.515,0.61)
+v1 = (0.51,0.61)
+v2 = (0.51,0.65)
+v3 = (0.515,0.65)
+v4 = (0.515,0.61)
 
 # Get vertice systems
-# S1 = model.AffineStateSpaceMatrices(v1)
-# S2 = model.AffineStateSpaceMatrices(v2)
-# S3 = model.AffineStateSpaceMatrices(v3)
-# S4 = model.AffineStateSpaceMatrices(v4)
+S1 = model.AffineStateSpaceMatrices(v1)
+S2 = model.AffineStateSpaceMatrices(v2)
+S3 = model.AffineStateSpaceMatrices(v3)
+S4 = model.AffineStateSpaceMatrices(v4)
 
-# VertexSystems = dict(S1=S1,S2=S2,S3=S3,S4=S4)
+VertexSystems = dict(S1=S1,S2=S2,S3=S3,S4=S4)
 
-# scipy.io.savemat('VertexSystemsSilverbox.mat', VertexSystems)
-
-# LPV_Controller = LPV_Controller_full(Omega=None, vertices=(v1,v2,v3,v4))
-
-# x = np.zeros((2,1))
-# y = 
+scipy.io.savemat('../Matlab_Hinf_Synthesis/Silverbox/VertexSystemsSilverbox.mat',
+                 VertexSystems)
 
 
 

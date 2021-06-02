@@ -39,17 +39,29 @@ v2 = (0.51,0.65)
 v3 = (0.515,0.65)
 v4 = (0.515,0.61)
 
+model.AffineStateSpaceMatrices(v1)
+
 vertices = [v1,v2,v3,v4]
 
 controller = LPV_Controller_full(Omega=Omega, vertices=vertices, x_dim = 2,
                                  y_dim = 1, u_dim = 1) 
 
 
+
+controller.PolytopicCoords_Hypercube(v2)
+
+
+
+
+
+
+
+
 N = 100 # length of experiment
 
 # Define reference signal as simple step at k=0 with height 0.1
 
-w = np.ones((N,1)) * 0.1
+w = -np.ones((N,1)) * 0.4
 
 # Arrays for system state, output, input, time-varying parameter
 x_p = []
@@ -71,8 +83,8 @@ for k in range(0,w.shape[0]):
     theta_new = model.EvalAffineParameters(x_p_new,u[k])    
     theta_new = np.array(theta_new)
     
+    # e_new = w[k] - y_new 
     e_new = y_new - w[k]
-    
     x_c_new, u_new = controller.CalculateControlInput(tuple(theta_new),e_new,x_c[k])
     x_c_new,u_new = np.array(x_c_new), np.array(u_new)
     

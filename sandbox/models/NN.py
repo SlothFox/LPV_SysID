@@ -1347,7 +1347,7 @@ class RehmerLPV_old():
         B_0 = self.Parameters['B_0']
         C_0 = self.Parameters['C_0']
     
-        A_lpv = self.Parameters['A_0']
+        A_lpv = self.Parameters['A_lpv']
         B_lpv = self.Parameters['B_lpv']
         C_lpv = self.Parameters['C_lpv']  
     
