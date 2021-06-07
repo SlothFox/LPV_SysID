@@ -95,8 +95,8 @@ plt.plot(y,theta)
 
 
 # Get vertices from data
-v1 = (-0.00011606)
-v2 = (0.00)
+v1 = tuple(-0.00011606)
+v2 = tuple(0.00)
 # Get vertice systems
 S1 = model.AffineStateSpaceMatrices(np.sqrt(-v1),np.array([[0]]))
 S2 = model.AffineStateSpaceMatrices(np.sqrt(-v2),np.array([[0]]))
