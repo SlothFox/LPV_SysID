@@ -25,10 +25,6 @@ model = TestLPV(name='LPVTest')
 x0 = np.array([[0],[0]])
 u0 = np.array([[0]])
 
-model.OneStepPrediction(x0,u0)
-model.EvalAffineParameters(x0, u0)
-
-
 N = 2000
 
 test_u = APRBS(N,[-2,2],[75,100]).T
