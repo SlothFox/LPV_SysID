@@ -33,12 +33,6 @@ N = 2000
 
 test_u = APRBS(N,[-2,2],[75,100]).T
 
-# identification_results = pkl.load(open('SilverboxPhysical.pkl','rb'))
-
-# model.Parameters = identification_results.loc[0,'params']
-
-
-
 x=[]
 y=[]
 
@@ -82,18 +76,17 @@ plt.plot(y[0,:])
 plt.plot(y2[0,:])
 plt.plot(test_u)
 
-# # Get vertices from data
-# v1 = tuple(-0.00011606)
-# v2 = tuple(0.00)
-# # Get vertice systems
-# S1 = model.AffineStateSpaceMatrices(np.sqrt(-v1),np.array([[0]]))
-# S2 = model.AffineStateSpaceMatrices(np.sqrt(-v2),np.array([[0]]))
 
+# Get vertices from data
+v1 = -0.00
+v2 = -2.20091068979541
+# Get vertice systems
+A1,B1,C1 = model.AffineStateSpaceMatrices(v1)
+A2,B2,C2 = model.AffineStateSpaceMatrices(v2)
 
-# VertexSystems = dict(S1=S1,S2=S2)
-
-# scipy.io.savemat('../Matlab_Hinf_Synthesis/Silverbox/VertexSystemsSilverboxPhys.mat',
-#                  VertexSystems)
+VertexSystems = dict(A1=A1,B1=B1,C1=C1,A2=A2,B2=B2,C2=C2)
+scipy.io.savemat('../Matlab_Hinf_Synthesis/Silverbox/VertexSystemsTestLPV.mat',
+                  VertexSystems)
 
 
 
