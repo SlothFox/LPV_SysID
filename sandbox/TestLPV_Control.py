@@ -31,7 +31,7 @@ Omega = [VertexController for VertexController in Omega[0,:]]
 
 # Vertices are hyperbox put around time-varying parameters measured during simulation
 v1 = (-0.00,)
-v2 = (-2.20091068979541,)
+v2 = (-0.2,)
 
 vertices = [v1,v2]
 

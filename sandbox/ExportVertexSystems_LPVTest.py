@@ -27,7 +27,7 @@ u0 = np.array([[0]])
 
 N = 2000
 
-test_u = APRBS(N,[-2,2],[75,100]).T
+test_u = APRBS(N,[-0.5,0.5],[75,100]).T
 
 x=[]
 y=[]
@@ -75,7 +75,7 @@ plt.plot(test_u)
 
 # Get vertices from data
 v1 = -0.00
-v2 = -2.20091068979541
+v2 = -0.5
 # Get vertice systems
 A1,B1,C1 = model.AffineStateSpaceMatrices(v1)
 A2,B2,C2 = model.AffineStateSpaceMatrices(v2)
