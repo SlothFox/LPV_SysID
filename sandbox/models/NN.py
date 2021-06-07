@@ -2849,7 +2849,7 @@ class TestLPV():
             
             x_new = cs.vertcat(x_new1,x_new2)
                         
-            y_new = x_new                                               
+            y_new = x_new[0]                                               
 
             input = [x,u]
             input_names = ['x','u']
@@ -2946,7 +2946,7 @@ class TestLPV():
         
         A = np.array([[1, 0.01],[-0.5+theta,1-0.1]])
         B = np.array([[0],[1]])
-        C = np.array([[1, 0],[0,1]])
+        C = np.array([[1, 0]])
         
         
         
