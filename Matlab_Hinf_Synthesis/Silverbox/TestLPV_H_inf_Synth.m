@@ -113,7 +113,7 @@ for vertex = [1:2]
     system = eval(VertexSystems{vertex});
     
     theta = sdpvar(k+nu,k+ny,'full');
-%     r = sdpvar(1,1);
+    r = sdpvar(1,1);
     
     A  = double(system{1});
     B2 = double(system{2});
@@ -153,7 +153,7 @@ for vertex = [1:2]
     
     LMI = [[Mcl] <= 0];
 
-    optimize(LMI,[],ops)
+    optimize(LMI,r,ops)
 
     theta = double(theta);
     
