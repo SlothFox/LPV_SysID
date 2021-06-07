@@ -3,7 +3,7 @@
 import casadi as cs
 import matplotlib.pyplot as plt
 import numpy as np
-
+from optim.common import RK4
 
 class RBFLPV():
     """
@@ -753,7 +753,7 @@ class RehmerLPV():
         
         return A,B,C
 
-    def AffineParameters(self,x0,u0):
+    def EvalAffineParameters(self,x0,u0):
         '''
 
         '''
@@ -1049,7 +1049,7 @@ class RehmerLPV_outputSched():
         
         return A,B,C
 
-    def AffineParameters(self,x0,u0):
+    def EvalAffineParameters(self,x0,u0):
         '''
 
         '''
@@ -2135,63 +2135,70 @@ class SilverBoxPhysikal():
     
     """
 
-    def __init__(self,name):
+    def __init__(self,initial_params=None,name=None):
         
         self.name = name
         
         self.Initialize()
 
-    def Initialize(self):
+    def Initialize(self,initial_params=None):
             
-            # For convenience of notation
-            name = self.name
-            
-            # Define input, state and output vector
-            u = cs.MX.sym('u',1,1)
-            x = cs.MX.sym('x',2,1)
-            y = cs.MX.sym('y',1,1)
-            
-            # Define Model Parameters
-            dt = 1/610.352    #1/610.35  cs.MX.sym('dt',1,1)  #Sampling rate fixed from literature
-            d = cs.MX.sym('d',1,1)
-            a = cs.MX.sym('a',1,1)
-            b = cs.MX.sym('b',1,1)
-            m = cs.MX.sym('m',1,1)
-            
-            
-            m_init = 1.e-05*abs(np.random.rand(1,1))#1.09992821e-05
-            d_init = 2*m_init*21.25
-            a_init = d_init**2/(4*m_init)+437.091**2*m_init
-            # dt_init = np.array([[ 1/610.35]])
-            
-            # Put all Parameters in Dictionary with random initialization
-            self.Parameters = {'d':d_init,#0.01+0.001*np.random.rand(1,1),
-                               'a':a_init,#2+0.001*np.random.rand(1,1),
-                               'b':0.01*abs(np.random.rand(1,1)),
-                               'm':m_init}#0.0001+0.001*np.random.rand(1,1)}
-            
-           
+        # For convenience of notation
+        name = self.name
         
-            # continuous dynamics
-            x_new = cs.vertcat(x[1],(-(a + b*x[0]**2)*x[0] - d*x[1] + u)/m)
+        # Define input, state and output vector
+        u = cs.MX.sym('u',1,1)
+        x = cs.MX.sym('x',2,1)
+        y = cs.MX.sym('y',1,1)
+        
+        # Define Model Parameters
+        dt = 1/610.352    #1/610.35  cs.MX.sym('dt',1,1)  #Sampling rate fixed from literature
+        d = cs.MX.sym('d',1,1)
+        a = cs.MX.sym('a',1,1)
+        b = cs.MX.sym('b',1,1)
+        m = cs.MX.sym('m',1,1)
+        
+        
+        m_init = 1.e-05*abs(np.random.rand(1,1))#1.09992821e-05
+        d_init = 2*m_init*21.25
+        a_init = d_init**2/(4*m_init)+437.091**2*m_init
+        # dt_init = np.array([[ 1/610.35]])
+        
+        # Put all Parameters in Dictionary with random initialization
+        self.Parameters = {'d':d_init,#0.01+0.001*np.random.rand(1,1),
+                           'a':a_init,#2+0.001*np.random.rand(1,1),
+                           'b':0.01*abs(np.random.rand(1,1)),
+                           'm':m_init}#0.0001+0.001*np.random.rand(1,1)}
+        
+       
+    
+        # continuous dynamics
+        x_new = cs.vertcat(x[1],(-(a + b*x[0]**2)*x[0] - d*x[1] + u)/m)
+        
+        input = [x,u,d,a,b,m]
+        input_names = ['x','u','d','a','b','m']
+        
+        output = [x_new]
+        output_names = ['x_new']  
+        
+        
+        f_cont = cs.Function(name,input,output,
+                             input_names,output_names)  
+        
+        x1 = RK4(f_cont,input,dt)
+        
+        C = np.array([[1,0]])
+        y1 = cs.mtimes(C,x1)
+        
+        self.Function = cs.Function(name, input, [x1,y1],
+                                    input_names,['x1','y1'])
+
+        # Calculate affine parameters
+        theta = -(x[0]**2)
+        self.AffineParameters = cs.Function('AffineParameters',input,
+                                            [theta],input_names,['theta'])
             
-            input = [x,u,d,a,b,m]
-            input_names = ['x','u','d','a','b','m']
-            
-            output = [x_new]
-            output_names = ['x_new']  
-            
-            
-            f_cont = cs.Function(name,input,output,
-                                 input_names,output_names)  
-            
-            x1 = RK4(f_cont,input,dt)
-            y1 = x1[0]
-            
-            self.Function = cs.Function(name, input, [x1,y1],
-                                        input_names,['x1','y1'])
-            
-            return None
+        return None
    
     def OneStepPrediction(self,x0,u0,params=None):
         '''
@@ -2249,8 +2256,59 @@ class SilverBoxPhysikal():
         # y = y[0::10]
        
         return y
-    
 
+    def EvalAffineParameters(self,x0,u0):
+        '''
+        Returns the affine Parameters of the LPV model
+        '''
+        
+        params = self.Parameters
+        
+        params_new = []
+            
+        for name in self.AffineParameters.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        theta = self.AffineParameters(x0,u0,*params_new) 
+
+        return theta   
+
+    
+    def AffineStateSpaceMatrices(self,x0,u0,params=None):
+        
+        # A = self.Function.jacobian('x1','x')
+        # B = self.Function.jacobian('x1','u')
+        # C = self.Function.jacobian('x1','u')
+
+        J = self.Function.jacobian()
+        # B = self.Function.jacobian()
+        # C = self.Function.jacobian()        
+
+        if params==None:
+            params = self.Parameters
+        
+        params_new = []
+            
+        for name in  self.Function.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        # Must be provided to jacobian, value completely arbitrary
+        x_out = np.array([[0],[0]])
+        y_out = np.array([[0]])
+        
+        J = J(x0,u0,*params_new,x_out,y_out)
+        A = np.array(J[0:2,0:2])
+        B = np.array(J[0:2,2])
+        C = np.array([[1, 0]])
+        
+        
+        return A,B,C
 
 
 

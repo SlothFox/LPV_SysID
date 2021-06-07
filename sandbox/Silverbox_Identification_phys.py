@@ -10,9 +10,10 @@ import pickle as pkl
 
 from scipy.io import loadmat
 
-import Modellklassen as Model
-from OptimizationTools import *
-from miscellaneous import *
+from models import NN
+from optim import param_optim
+
+# from optim import *
 
 from sklearn.preprocessing import MinMaxScaler
 
@@ -88,7 +89,9 @@ data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
 
 
 
-model = Model.SilverBoxPhysikal(name='PhysikalSilverboxModel')
+model = NN.SilverBoxPhysikal(name='PhysikalSilverboxModel')
+
+# 
 # model.Parameters['m'] = np.array([[0.00001]])
 # model.Parameters['d'] = np.array([[0.0001]])
 # model.Parameters['a'] = np.array([[2.1]])
@@ -99,10 +102,10 @@ model = Model.SilverBoxPhysikal(name='PhysikalSilverboxModel')
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = ModelTraining(model,data,50)
+# identification_results = param_optim.ModelTraining(model,data,1)
 
 # identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
-
+identification_results = pkl.load(open('SilverboxPhysical.pkl','rb'))
 ''' The output is a pandas dataframe which contains the results for each of
 the 10 initializations, specifically the loss on the validation data
 and the estimated parameters ''' 
@@ -112,6 +115,13 @@ and the estimated parameters '''
 # and its 'only' a linear model which we identify)
 
 model.Parameters = identification_results.loc[0,'params']
+
+
+
+
+A,B,C = model.AffineStateSpaceMatrices(np.array([[0],[0]]),np.array([[0]]))
+
+
 
 
 # test_u[0] = 10*np.ones((1022,1))
@@ -129,16 +139,16 @@ plt.legend()
 plt.show()
 
 
-y_est = model.Simulation(init_state[0],train_u[0])
+# y_est = model.Simulation(init_state[0],train_u[0])
 
-y_est = np.array(y_est) 
+# y_est = np.array(y_est) 
 
-# plt.plot(test_u[0],label='input') 
-plt.plot(train_y[0],label='True output')                                        # Plot True data
-plt.plot(y_est,label='Est. output')                                            # Plot Model Output
-plt.plot(train_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
-plt.legend()
-plt.show()
+# # plt.plot(test_u[0],label='input') 
+# plt.plot(train_y[0],label='True output')                                        # Plot True data
+# plt.plot(y_est,label='Est. output')                                            # Plot Model Output
+# plt.plot(train_y[0]-y_est,label='Simulation Error')                             # Plot Error between model and true system (its almost zero)
+# plt.legend()
+# plt.show()
 
 # plt.figure()
 # plt.plot(thetaA[:,0],label='Theta_A1')    
