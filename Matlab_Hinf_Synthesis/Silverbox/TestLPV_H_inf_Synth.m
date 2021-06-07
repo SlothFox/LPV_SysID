@@ -115,10 +115,10 @@ for vertex = [1:2]
     theta = sdpvar(k+nu,k+ny,'full');
 %     r = sdpvar(1,1);
     
-    A  = system{1};
-    B2 = system{2};
-    C1 = system{3};
-    C2 = system{3};
+    A  = double(system{1});
+    B2 = double(system{2});
+    C1 = double(system{3});
+    C2 = double(system{3});
 
     A0 = [A,zeros(nx,k);zeros(k,nx),zeros(k,k)];
     B0 = [B1;zeros(k,nw)];
