@@ -1612,6 +1612,8 @@ class LachhabLPV():
         x = cs.hcat(x).T
        
         return x,y
+    
+    
 
 class LachhabLPV_outputSched():
     """
@@ -2595,6 +2597,7 @@ def logistic(x):
     return y
 
 class GRU():
+    
     """
     Implementation of a Gated Recurrent Unit with a Feedforward Neural Network
     as output
@@ -2800,3 +2803,158 @@ class GRU():
         x = cs.hcat(x).T
         
         return x[-1]
+
+
+
+
+
+
+class TestLPV():
+    """
+
+    """
+
+    def __init__(self,initial_params=None,name=None):
+        
+        self.dim_u = 1
+        self.dim_x = 2
+        self.name = name
+        
+        self.Initialize(initial_params)
+
+    def Initialize(self,initial_params):
+            
+            # For convenience of notation
+            dim_u = self.dim_u
+            dim_x = self.dim_x 
+            name = self.name
+            
+            # Define input, state and output vector
+            u = cs.MX.sym('u',dim_u,1)
+            x = cs.MX.sym('x',dim_x,1)
+            
+  
+            # Put all Parameters in Dictionary with random initialization
+            self.Parameters = {}
+        
+            
+            # Initialize if inital parameters are given
+            if initial_params is not None:
+                for param in initial_params.keys():
+                    self.Parameters[param] = initial_params[param]
+            
+            # Define Model Equations
+            x_new1 = x[0]             + 0.01*x[1]
+            x_new2 = x[1] + (-0.5 - (x[0]**2) ) * x[0]        - 0.1 * x[1] + u
+            
+            x_new = cs.vertcat(x_new1,x_new2)
+                        
+            y_new = x_new                                               
+
+            input = [x,u]
+            input_names = ['x','u']
+            
+            output = [x_new,y_new]
+            output_names = ['x_new','y_new']  
+            
+            self.Function = cs.Function(name, input, output, input_names,output_names)
+
+
+            theta = -(x[0]**2)
+
+            self.AffineParameters = cs.Function('AffineParameters',input,
+                                                [theta],input_names,['theta'])
+            
+            return None
+
+    def EvalAffineParameters(self,x0,u0):
+        '''
+        Returns the affine Parameters of the LPV model
+        '''
+        
+        params = self.Parameters
+        
+        params_new = []
+            
+        for name in self.AffineParameters.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        theta = self.AffineParameters(x0,u0,*params_new) 
+
+        return theta    
+
+    def OneStepPrediction(self,x0,u0,params=None):
+        '''
+        Estimates the next state and output from current state and input
+        x0: Casadi MX, current state
+        u0: Casadi MX, current input
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+        
+        if params==None:
+            params = self.Parameters
+        
+        params_new = []
+            
+        for name in  self.Function.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        x1,y1 = self.Function(x0,u0,*params_new)     
+                              
+        return x1,y1
+   
+    def Simulation(self,x0,u,params=None):
+        '''
+        A iterative application of the OneStepPrediction in order to perform a
+        simulation for a whole input trajectory
+        x0: Casadi MX, inital state a begin of simulation
+        u: Casadi MX,  input trajectory
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+
+        x = []
+        y = []
+
+        # initial states
+        x.append(x0)
+                      
+        # Simulate Model
+        for k in range(u.shape[0]):
+            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
+            x.append(x_new)
+            y.append(y_new)
+        
+
+        # Concatenate list to casadiMX
+        y = cs.hcat(y).T    
+        x = cs.hcat(x).T
+       
+        return x,y
+
+
+    def AffineStateSpaceMatrices(self,theta):
+        
+        A = np.array([[1, 0.01],[-0.5+theta,1-0.1]])
+        B = np.array([[0],[1]])
+        C = np.array([[1, 0],[0,1]])
+        
+        
+        
+        return A,B,C
+
+
+
+
+
+
+
