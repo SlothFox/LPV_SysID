@@ -2845,7 +2845,7 @@ class TestLPV():
             
             # Define Model Equations
             x_new1 = x[0]             + 0.01*x[1]
-            x_new2 = x[1] + (-0.5 - (x[0]**2) ) * x[0]        - 0.1 * x[1] + u
+            x_new2 = x[1] + (-0.5 - (0.1*x[0]**2) ) * x[0]        - 0.1 * x[1] + u
             
             x_new = cs.vertcat(x_new1,x_new2)
                         
@@ -2860,7 +2860,7 @@ class TestLPV():
             self.Function = cs.Function(name, input, output, input_names,output_names)
 
 
-            theta = -(x[0]**2)
+            theta = -(0.1*x[0]**2)
 
             self.AffineParameters = cs.Function('AffineParameters',input,
                                                 [theta],input_names,['theta'])
