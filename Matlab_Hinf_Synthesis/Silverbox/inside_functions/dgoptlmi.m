@@ -1,50 +1,38 @@
-% Plant defined according to https://de.mathworks.com/help/robust/ref/lti.hinfsyn.html#mw_3e327dc9-7ae1-4f2b-b670-9e271011dd8e
+% [gopt,X1,X2,Y1,Y2] = dgoptlmi(P,r,gmin,tol,options)
+%
+% Computes the optimal H_infinity performance GOPT for the
+% discrete-time plant P(z)  using the LMI-based characterization
+% of suboptimality.
+%
+% NOT MEANT TO BE CALLED BY THE USER.
+%
+% On output:
+%  GOPT       best H_infinity performance in the interval [GMIN,GMAX]
+%  X1,X2,..   X = X2/X1  and  Y = Y2/Y1  are solutions of the
+%             two H-infinity Riccati inequalities for gamma = GOPT.
+%             Equivalently,  R = X1  and  S = Y1  are solutions
+%             of the characteristic LMIs since  X2=Y2=GOPT*eye.
+%
+%
+% See also  DHINFLMI, DKCEN.
 
-clear
-clc
+% Author: P. Gahinet  10/93
+% Copyright 1995-2004 The MathWorks, Inc.
 
-% Load identified Vertex Systems
-load('VertexSystemsTestLPV.mat') 
-% load('VertexController_TestLPV.mat')  
+%  Reference:
+%  Gahinet and Apkarian , "A Linear Matrix Inequality Approach to
+%  H_infinity Control," Int. J. Robust and Nonlinear Contr., July 1994
+%
 
-S1 = {double(A1),double(B1),double(C1)};
-
-
-% Define dimensions of plant
-nx = 2;
-nw = 1;
-ny = 1;
-nu = 1;
-nq = 1;
-
-% In this control problem, certain matrices are fixed
-A_1 = S1{1};
-B1  = zeros(nx,nw);
-B2_1 = S1{2};
-C1_1 = S1{3};
-D11 = -eye(nq,nw);
-D12 = zeros(nq,nu);
-C2_1 = S1{3};
-D21 = -eye(ny,nw);
-D22 = zeros(ny,nu);
+function [gopt,x1,x2,y1,y2]=dgoptlmi(P,r,gmin,tol,options)
 
 
-
-P = ltisys(A_1, [B1,B2_1],[C1_1;C2_1],[D11,D12;D21,D22]);
-
-[g,K,x1,x2,y1,y2] = dhinflmi(P,[1,1]);
-
-clsys = slft(K,P);
-splot(clsys,'st')
-
-save('VertexController_TestLPV_dhinflmi','K')
-
-%% inside dhinflmi
-r = [1,1];
-options=[0 0 0 0];
-tol=1e-2; 
-gmin=0; 
 ubo=1; lbo=1;   % default = specified bounds
+
+if nargin < 4,
+  error('usage:  [gopt,x1,x2,y1,y2] = dgoptlmi(P,r,gmin,tol)');
+end
+
 
 % tolerances
 macheps=mach_eps;
@@ -53,6 +41,7 @@ toleig=macheps^(2/3);
 
 
 % retrieve plant data
+
 [a,b1,b2,c1,c2,d11,d12,d21,d22]=hinfpar(P,r);
 na=size(a,1); [p1,m1]=size(d11); [p2,m2]=size(d22);
 if ~m1, error('D11 is empty according to the dimensions R of D22'); end
@@ -92,7 +81,7 @@ NS=[NS,zeros(na+m1,p1);zeros(p1,cns) eye(p1)];
 % LMI setup
 
 setlmis([]);
-R=lmivar(1,[na 1]);       % R  Matrix variable Type 1, one diagonal block, na x na, fully symmetric 
+R=lmivar(1,[na 1]);       % R
 S=lmivar(1,[na 1]);       % S
 gm=lmivar(1,[1 1]);       % gamma
 
@@ -141,8 +130,6 @@ else
   x2=gopt*eye(na);
   y2=gopt*eye(na);
 end
-
-
 
 
 

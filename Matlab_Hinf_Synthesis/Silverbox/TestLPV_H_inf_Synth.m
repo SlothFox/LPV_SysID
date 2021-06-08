@@ -1,5 +1,5 @@
-clear
-clc
+% clear
+% clc
 
 % Add YALMIP to path
 addpath(genpath('YALMIP-master'))  
@@ -26,11 +26,15 @@ nu = 1;
 nq = 1;
 k = 2;
 
+% Choose weights
+We = 1;
+
+
 % In this control problem, certain matrices are fixed
 B1  = zeros(nx,nw);
-D11 = -eye(nq,nw);
+D11 = eye(nq,nw);
 D12 = zeros(nq,nu);
-D21 = -eye(ny,nw);
+D21 = eye(ny,nw);
 D22 = zeros(ny,nu);
 
 %% Solvability conditions
@@ -43,14 +47,15 @@ LMI = [[R,eye(nx);eye(nx),S] >= 0];
 
 VertexSystems = {'S1','S2'};
 
-for vertex = [1:2]
+for vertex = (1:1)
     
     system = eval(VertexSystems{vertex});
     
     A  = double(system{1});
     B2 = double(system{2});
-    C1 = double(system{3});
-    C2 = double(system{3});
+    C1 = -double(system{3});
+    C2 = -double(system{3});
+    
     
     NR = null([B2',D12']);
     NS = null([C2,D21]);
@@ -79,18 +84,18 @@ optimize(LMI,r,ops)
 %% Reconstruct controller
 
 r = double(r);
-R = double(R);
-S = double(S);
+R = double(R);%x2/x1;%double(R);
+S = double(S);%y2/x1;%;
 
 % Calculate rank of controller
 % [U,Sigma,V] = svd(eye(nx)-R*S);
 
 % Calculate Xcl by Apkarian
 % [M,N] = qr(eye(nx)-R*S);
-% % 
+% 
 % O=[S, eye(nx);
 %  N, zeros(k,nx)];
-% % 
+% 
 % P = [eye(nx), R;
 %     zeros(k,nx), M'];
 % % 
@@ -108,22 +113,27 @@ Xcl = [X1,X2;X2',eye(nx)];
 
 VertexController= {};
 
-for vertex = [1:2]
+for vertex = (1:1)
     
     system = eval(VertexSystems{vertex});
     
     theta = sdpvar(k+nu,k+ny,'full');
-    r = sdpvar(1,1);
+%     r = sdpvar(1,1);
     
     A  = double(system{1});
     B2 = double(system{2});
-    C1 = double(system{3});
-    C2 = double(system{3});
+    C1 = -double(system{3});
+    C2 = -double(system{3});
+    
+    % Weight error
+    C1 = C1;
+    D11 = D11;
+    D12 = D12;
 
     A0 = [A,zeros(nx,k);zeros(k,nx),zeros(k,k)];
     B0 = [B1;zeros(k,nw)];
     C0 = [C1, zeros(nq,k)];
-%     D11 = D11;
+
     
     BB = [zeros(nx,k) B2;eye(k) zeros(k,nu)];
     CC = [zeros(k,nx), eye(k); C2, zeros(ny,k)];
@@ -153,7 +163,7 @@ for vertex = [1:2]
     
     LMI = [[Mcl] <= 0];
 
-    optimize(LMI,r,ops)
+    optimize(LMI,[],ops)
 
     theta = double(theta);
     
