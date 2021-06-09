@@ -44,3 +44,4 @@ P = ltisys(A_1,B2_1,C2_1,D22);
 Pcl = slft(P,k);
 
 splot(Pcl,'st')
+
