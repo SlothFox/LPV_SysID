@@ -70,7 +70,7 @@ for vertex = 1:length(VertexSystems)
     
 end
 
-optimize(LMI,r+R(1,1)*1e-08+R(2,2)*1e-08+S(1,1)*1e-08+S(2,2)*1e-08,ops)
+optimize(LMI,r+trace(R)*1e-08+trace(S)*1e-08,ops)
 
 %% Reconstruct Controller from R and S
 
