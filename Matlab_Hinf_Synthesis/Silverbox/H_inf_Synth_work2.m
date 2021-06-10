@@ -2,7 +2,7 @@ clear
 clc
 
 % Add YALMIP to path
-addpath(genpath('YALMIP-master'))  
+addpath(genpath('..\YALMIP-master'))  
 % Linux:
 % addpath '\mosek-linux\9.2\toolbox\r2015a'
 

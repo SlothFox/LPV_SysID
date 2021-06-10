@@ -1,6 +1,16 @@
+%% Now figure how to apply filter in a simple way
 clear
 clc
 % close all
+
+% Add YALMIP to path
+addpath(genpath('..\YALMIP-master'))  
+% Linux:
+% addpath '\mosek-linux\9.2\toolbox\r2015a'
+
+% Windows
+addpath 'C:\Program Files\Mosek\9.2\toolbox\R2015a'
+ops = sdpsettings('solver','mosek');
 
 ts = 0.001;
 
@@ -27,8 +37,10 @@ P1.y = {'e','y'};
 
 % Filter is a first order filter 
 
-W1 = tf([10],[10 ,1]);
+W1 = tf([1],[10 ,1]);
 W1_ss = ss(W1);
+
+
 W1_ss.u = {'e'};
 W1_ss.y = {'e_w'};
 
@@ -37,12 +49,16 @@ Paug = connect(P1,W1_ss,{'w','u'},{'e_w','y'});
 
 % Fix cheap control problem
 Paug.D(1,2)=0.01;
+
 Paug = c2d(Paug,ts);
+VertexController = dgshinf({Paug},1,1,ops);
 
-opts = hinfsynOptions('Method','LMI','Display','on');
-[K2,CL2,gamma2,info2] = hinfsyn(Paug,1,1,opts);
+C = VertexController{1};
+C = ss(C(1:2,1:2),C(1:2,3),C(3,1:2),C(3,3),ts);
+C.u = {'y'};
+C.y = {'u'};
+
+CL = connect(Paug,C,{'w'},{'e_w'});
 
 figure;
-bodeplot(CL2)
-figure;
-stepplot(CL2)
+stepplot(CL)
