@@ -1030,7 +1030,7 @@ class RehmerLPV_outputSched():
         B_0 = self.Parameters['B_0']
         C_0 = self.Parameters['C_0']
     
-        A_lpv = self.Parameters['A_0']
+        A_lpv = self.Parameters['A_lpv']
         B_lpv = self.Parameters['B_lpv']
         C_lpv = self.Parameters['C_lpv']  
     
@@ -1329,9 +1329,9 @@ class RehmerLPV_old():
             
             
             # Calculate affine parameters
-            theta_A = fA * cs.tanh(cs.mtimes(W_A,x))/cs.mtimes(W_A,x)
-            theta_B = fB * cs.tanh(cs.mtimes(W_B,u))/cs.mtimes(W_B,u)
-            theta_C = fC * cs.tanh(cs.mtimes(W_C,x))/cs.mtimes(W_C,x)
+            theta_A = fA * cs.tanh(cs.mtimes(W_A,x))/(cs.mtimes(W_A,x)+1e-6)
+            theta_B = fB * cs.tanh(cs.mtimes(W_B,u))/(cs.mtimes(W_B,u)+1e-6)
+            theta_C = fC * cs.tanh(cs.mtimes(W_C,x))/(cs.mtimes(W_C,x)+1e-6)
             
             theta = cs.vertcat(theta_A,theta_B,theta_C)   
             
@@ -1526,18 +1526,26 @@ class LachhabLPV():
             self.Function = cs.Function(name, input, output, input_names,output_names)
 
             # Calculate affine parameters
-            # theta_A = XXX
-            # theta_B = XXX
-            # theta_C = XXX
+            theta_A = cs.tanh(cs.mtimes(W_A,x)/(cs.mtimes(W_A,x))+1-06)
+            theta_B = cs.tanh(cs.mtimes(W_B,u)/(cs.mtimes(W_B,u))+1-06)
+            theta_C = cs.tanh(cs.mtimes(W_C,x)/(cs.mtimes(W_C,x))+1-06)
             
-            # theta = cs.vertcat(theta_A,theta_B,theta_C)   
+            theta = cs.vertcat(theta_A,theta_B,theta_C)   
             
-            # self.AffineParameters = cs.Function('AffineParameters',input,
-            #                                     [theta],input_names,['theta'])
+            self.AffineParameters = cs.Function('AffineParameters',input,
+                                                [theta],input_names,['theta'])
 
 
             
             return None
+
+    def ReturnMatrices(self,theta):
+        
+        # 
+        # 
+        # 
+        
+        return [A,B,C]
 
     def AffineParameters(self,x0,u0):
         '''
