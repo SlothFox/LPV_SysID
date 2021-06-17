@@ -1704,7 +1704,7 @@ class LachhabLPV_outputSched():
             self.Function = cs.Function(name, input, output, input_names,output_names)
 
             # Calculate affine parameters
-            # theta_A = XXX
+            theta_A = cs.tanh(cs.mtimes(W_A,y))/cs.mtimes(W_A,y)
             # theta_B = XXX
             # theta_C = XXX
             
