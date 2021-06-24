@@ -59,11 +59,12 @@ for vertex = 1:length(VertexSystems)
          B1'*S*A,     -r*eye(nw)+B1'*S*B1,   D11';
          C1,          D11,                   -r*eye(nq)];
  
-    NR = [NR,           zeros(3,1);
-          zeros(1,2),   eye(1) ];
+    NR = [NR,                                       zeros(size(NR,1),size(MR,2)-size(NR,2) );
+          zeros(size(MR,1)-size(NR,1),size(NR,2)),  eye(size(MR,1)-size(NR,1),size(MR,2)-size(NR,2))];
+
     
-    NS = [NS,       zeros(3,1);
-            zeros(1,2), eye(1) ];
+    NS = [NS,                                       zeros(size(NS,1),size(MS,2)-size(NS,2) );
+          zeros(size(MS,1)-size(NS,1),size(NS,2)),  eye(size(MS,1)-size(NS,1),size(MS,2)-size(NS,2))];
         
     LMI = [LMI,[NR'*MR*NR<=0]];
     LMI = [LMI,[NS'*MS*NS<=0]];
