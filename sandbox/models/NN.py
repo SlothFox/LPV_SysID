@@ -4,7 +4,8 @@ import casadi as cs
 import matplotlib.pyplot as plt
 import numpy as np
 from optim.common import RK4
-
+from .activations import *
+from .layers import NN_layer
 class RBFLPV():
     """
     Quasi-LPV model structure for system identification. Uses local linear models
@@ -527,6 +528,358 @@ class RBFLPV_outputSched():
         return x,y
 
 
+class RehmerLPV_v2():
+    """
+    Quasi-LPV model structure for system identification. Uses a structured
+    RNN with "deep" gates that can be transformed into an affine quasi LPV
+    representation. Scheduling variables are the input and the state.
+    """
+
+    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA=0,dim_thetaB=0,dim_thetaC=0,
+                 NN_1_dim=[],NN_2_dim=[],NN_3_dim=[],NN1_act=[],NN2_act=[],
+                 NN3_act=[], initial_params=None):
+        '''
+        Initializes the model structure by Rehmer et al. 2021.
+        dim_u: int, dimension of the input vector
+        dim_x: int, dimension of the state vector
+        dim_y: int, dimension of the output vector
+        dim_thetaA: int, dimension of the affine parameter associated with the 
+        system matrix
+        dim_thetaB: int, dimension of the affine parameter associated with the 
+        input matrix
+        dim_thetaC: int, dimension of the affine parameter associated with the 
+        output matrix
+        NN_1_dim: list, each entry is an integer specifying the number of neurons 
+        in the hidden layers of the NN associated with the system matrix
+        NN_2_dim: list, each entry is an integer specifying the number of neurons 
+        in the hidden layers of the NN associated with the input matrix      
+        NN_3_dim: list, each entry is an integer specifying the number of neurons 
+        in the hidden layers of the NN associated with the system matrix     
+        
+        activation: list, each entry is an integer, that specifies the
+        activation function used in the layers of the NNs
+                    0 --> tanh()
+                    1 --> logistic()
+                    2 --> linear()
+        initial_params: dict, dictionary specifying the inital parameter values
+        name: str, specifies name of the model
+        '''
+        
+        self.dim_u = dim_u
+        self.dim_x = dim_x
+        self.dim_y = dim_y
+        self.dim_thetaA = dim_thetaA
+        self.dim_thetaB = dim_thetaB
+        self.dim_thetaC = dim_thetaC
+        self.dim = dim_thetaA+dim_thetaB+dim_thetaC
+        self.NN_1_dim = NN_1_dim
+        self.NN_2_dim = NN_2_dim
+        self.NN_3_dim = NN_3_dim
+        self.NN1_act = NN1_act
+        self.NN2_act = NN2_act
+        self.NN3_act = NN3_act
+        self.name = 'RehmerLPV_v2'
+        
+        self.Initialize(initial_params)
+
+    def Initialize(self,initial_params=None):
+            
+        # For convenience of notation
+        dim_u = self.dim_u
+        dim_x = self.dim_x 
+        dim_y = self.dim_y   
+        dim_thetaA = self.dim_thetaA
+        dim_thetaB = self.dim_thetaB
+        dim_thetaC = self.dim_thetaC
+        NN_1_dim = self.NN_1_dim
+        NN_2_dim = self.NN_2_dim
+        NN_3_dim = self.NN_3_dim    
+        NN1_act = self.NN1_act
+        NN2_act = self.NN2_act
+        NN3_act = self.NN3_act
+       
+        name = self.name
+        
+        # Define input, state and output vector
+        u = cs.MX.sym('u',dim_u,1)
+        x = cs.MX.sym('x',dim_x,1)
+        
+        # Define Model Parameters for the linear part
+        A_0 = cs.MX.sym('A_0',dim_x,dim_x)
+        B_0 = cs.MX.sym('B_0',dim_x,dim_u)
+        C_0 = cs.MX.sym('C_0',dim_y,dim_x)
+        
+        # Define Model Parameters for the time varying part by Lachhab
+        A_1 = cs.MX.sym('A_1',dim_x,dim_thetaA)
+        E_1 = cs.MX.sym('E_1',dim_thetaA,dim_x)
+  
+        B_1 = cs.MX.sym('B_1',dim_x,dim_thetaB)
+        E_2 = cs.MX.sym('E_2',dim_thetaB,dim_u)
+
+        C_1 = cs.MX.sym('C_1',dim_y,dim_thetaC)
+        E_3 = cs.MX.sym('E_3',dim_thetaC,dim_x)            
+        
+        # Define Parameters for the multiplicative Neural Networks by Rehmer
+        NN1 = []
+        NN2 = []
+        NN3 = []
+        
+        # NN_1_dim.append(dim_thetaA)
+        for NN, NN_name, NN_dim in zip([NN1,NN2,NN3],['NN1','NN2','NN3'],
+                                       [NN_1_dim,NN_2_dim,NN_3_dim]):
+            
+            for l in range(0,len(NN_dim)):
+            
+                if l == 0:
+                    params = [cs.MX.sym(NN_name+'_Wx'+str(l),NN_dim[l],dim_x),
+                              cs.MX.sym(NN_name+'_Wu'+str(l),NN_dim[l],dim_u),
+                              cs.MX.sym(NN_name+'_b'+str(l),NN_dim[l],1)]
+                else:
+                    params = [cs.MX.sym(NN_name+'_W'+str(l),NN_dim[l],NN_dim[l-1]),
+                              cs.MX.sym(NN_name+'_b'+str(l),NN_dim[l],1)]
+                
+                NN.append(params)
+        
+        # Save Neural Networks for further use
+        self.NN1 = NN1
+        self.NN2 = NN2
+        self.NN3 = NN3
+        
+        # Define Model Equations
+       
+        # Calculate the activations of the NNs by looping over each NN and
+        # each layer
+        NN_out = [[0],[0],[0]]
+        
+        for out,NN,NN_act in zip(NN_out,[NN1,NN2,NN3],[NN1_act,NN2_act,NN3_act]):
+
+            for l in range(0,len(NN)):
+
+                if l == 0:
+                    out.append(NN_layer(cs.vertcat(x,u),cs.horzcat(NN[l][0],
+                                       NN[l][1]),NN[l][2],NN_act[l]))
+                else:
+                    out.append(NN_layer(out[-1],NN[l][0],NN[l][1],NN_act[l]))
+
+
+        # State and output equation
+        x_new = cs.mtimes(A_0,x) + cs.mtimes(B_0,u) + cs.mtimes(A_1, 
+                NN_out[0][-1]*cs.tanh(cs.mtimes(E_1,x))) + cs.mtimes(B_1, 
+                NN_out[1][-1]*cs.tanh(cs.mtimes(E_2,u)))
+        y_new = cs.mtimes(C_0,x_new) + cs.mtimes(C_1, 
+                NN_out[2][-1]*cs.tanh(cs.mtimes(E_3,x_new)))
+        
+        
+        # Define inputs and outputs for casadi function
+        input = [x,u,A_0,A_1,E_1,B_0,B_1,E_2,C_0,C_1,E_3]
+        input_names = ['x','u','A_0','A_1','E_1','B_0','B_1','E_2','C_0',
+                       'C_1','E_3']
+        
+       
+        # Add remaining parameters in loop since they depend on depth of NNs
+        for NN_name, NN in zip(['NN1','NN2','NN3'],[NN1,NN2,NN3]):
+            
+            for l in range(0,len(NN)):
+            
+                input.extend(NN[l])
+                i=str(l)
+                
+                if l==0:
+                    input_names.extend([NN_name+'_Wx'+i,
+                                        NN_name+'_Wu'+i,
+                                        NN_name+'_b'+i])
+              
+                else:
+                    input_names.extend([NN_name+'_W'+i,
+                                        NN_name+'_b'+i])
+        
+       
+        output = [x_new,y_new]
+        output_names = ['x_new','y_new']
+        
+        self.Function = cs.Function(name, input, output, input_names,
+                                    output_names)
+       
+        # Calculate affine parameters
+        theta_A = NN_out[0][-1] * cs.tanh(cs.mtimes(E_1,x))/cs.mtimes(E_1,x)
+        theta_B = NN_out[1][-1] * cs.tanh(cs.mtimes(E_2,u))/cs.mtimes(E_2,u)
+        theta_C = NN_out[2][-1] * cs.tanh(cs.mtimes(E_3,x))/cs.mtimes(E_3,x)
+        
+        theta = cs.vertcat(theta_A,theta_B,theta_C)   
+        
+        self.AffineParameters = cs.Function('AffineParameters',input,
+                                            [theta],input_names,['theta'])
+        
+        
+        self.ParameterInitialization(initial_params)
+        
+        return None
+    
+    def ParameterInitialization(self,initial_params=None):
+        
+        # For convenience of notation
+        dim_u = self.dim_u
+        dim_x = self.dim_x 
+        dim_y = self.dim_y   
+        dim_thetaA = self.dim_thetaA
+        dim_thetaB = self.dim_thetaB
+        dim_thetaC = self.dim_thetaC
+        NN_1_dim = self.NN_1_dim
+        NN_2_dim = self.NN_2_dim
+        NN_3_dim = self.NN_3_dim    
+        NN1_act = self.NN1_act
+        NN2_act = self.NN2_act
+        NN3_act = self.NN3_act
+       
+        name = self.name   
+        
+        NN1 = self.NN1
+        NN2 = self.NN2
+        NN3 = self.NN3
+        
+        
+        self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
+                   'A_1':np.random.rand(dim_x,dim_thetaA)*0.01,
+                   'E_1':np.random.rand(dim_thetaA,dim_x),
+                   'B_0':np.random.rand(dim_x,dim_u),
+                   'B_1':np.random.rand(dim_x,dim_thetaB)*0.01,
+                   'E_2':np.random.rand(dim_thetaB,dim_u),
+                   'C_0':np.random.rand(dim_y,dim_x),
+                   'C_1':np.random.rand(dim_y,dim_thetaC)*0.01,
+                   'E_3':np.random.rand(dim_thetaC,dim_x)}
+        
+        # Add remaining parameters in loop since they depend on depth of NNs
+        
+        for NN_name, NN in zip(['NN1','NN2','NN3'],[NN1,NN2,NN3]):
+            
+            for l in range(0,len(NN)):
+
+                i=str(l)
+                
+                if l==0:
+                   
+                    self.Parameters[NN_name+'_Wx'+i] = np.random.rand(*NN[l][0].shape)
+                    self.Parameters[NN_name+'_Wu'+i] = np.random.rand(*NN[l][1].shape)
+                    self.Parameters[NN_name+'_b'+i] = np.random.rand(*NN[l][2].shape)
+                    
+                else:
+                    
+                    self.Parameters[NN_name+'_W'+i] = np.random.rand(*NN[l][0].shape)
+                    self.Parameters[NN_name+'_b'+i] = np.random.rand(*NN[l][1].shape)            
+        
+        # Initialize if specific inital parameters are given
+        if initial_params is not None:
+            for param in initial_params.keys():
+                self.Parameters[param] = initial_params[param]
+    
+        
+    def AffineStateSpaceMatrices(self,theta):
+        
+        A_0 = self.Parameters['A_0']
+        B_0 = self.Parameters['B_0']
+        C_0 = self.Parameters['C_0']
+    
+        A_lpv = self.Parameters['A_0']
+        B_lpv = self.Parameters['B_lpv']
+        C_lpv = self.Parameters['C_lpv']  
+    
+        W_A = self.Parameters['W_A']
+        W_B = self.Parameters['W_B']
+        W_C = self.Parameters['W_C']      
+    
+        theta_A = theta[0:self.dim_thetaA]
+        theta_B = theta[self.dim_thetaA:self.dim_thetaA+self.dim_thetaB]
+        theta_C = theta[self.dim_thetaA+self.dim_thetaB:self.dim_thetaA+
+                        self.dim_thetaB+self.dim_thetaC]
+        
+        A = A_0 + np.linalg.multi_dot([A_lpv,np.diag(theta_A),W_A])
+        B = B_0 + np.linalg.multi_dot([B_lpv,np.diag(theta_B),W_B])
+        C = C_0 + np.linalg.multi_dot([C_lpv,np.diag(theta_C),W_C]) 
+        
+        return A,B,C
+
+    def EvalAffineParameters(self,x0,u0):
+        '''
+
+        '''
+        
+        params = self.Parameters
+        
+        params_new = []
+            
+        for name in self.AffineParameters.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        theta = self.AffineParameters(x0,u0,*params_new)
+
+        return theta
+
+    def OneStepPrediction(self,x0,u0,params=None):
+        '''
+        Estimates the next state and output from current state and input
+        x0: Casadi MX, current state
+        u0: Casadi MX, current input
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+        
+        if params==None:
+            params = self.Parameters
+        
+        params_new = []
+            
+        for name in  self.Function.name_in():
+            try:
+                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
+            except:
+                continue
+        
+        x1,y1 = self.Function(x0,u0,*params_new) 
+
+        return x1,y1    
+
+
+    def Simulation(self,x0,u,params=None):
+        '''
+        A iterative application of the OneStepPrediction in order to perform a
+        simulation for a whole input trajectory
+        x0: Casadi MX, inital state a begin of simulation
+        u: Casadi MX,  input trajectory
+        params: A dictionary of opti variables, if the parameters of the model
+                should be optimized, if None, then the current parameters of
+                the model are used
+        '''
+        x = []
+        y = []  
+        theta = []
+
+        # initial states
+        x.append(x0)        
+        
+        # Simulate Model
+        for k in range(u.shape[0]):
+            x_new,y_new = \
+                self.OneStepPrediction(x[k],u[[k],:],params)
+            
+            # theta.append(t)
+            x.append(x_new)
+            y.append(y_new)
+        
+        # Concatenate list to casadiMX
+        y = cs.hcat(y).T    
+        x = cs.hcat(x).T   
+        # theta = cs.hcat(theta).T
+        
+        return x,y
+    
+    
+    
+
+
 class RehmerLPV():
     """
     Quasi-LPV model structure for system identification. Uses a structured
@@ -703,11 +1056,13 @@ class RehmerLPV():
                     self.Parameters[NN_name+'_W'+i] = np.random.rand(*NN[l][0].shape)
                     self.Parameters[NN_name+'_b'+i] = np.random.rand(*NN[l][1].shape)            
         
-        # Initialize if inital parameters are given
+        # Initialize if specific inital parameters are given
         if initial_params is not None:
             for param in initial_params.keys():
                 self.Parameters[param] = initial_params[param]
+        
                 
+        
         output = [x_new,y_new]
         output_names = ['x_new','y_new']
         
@@ -830,6 +1185,8 @@ class RehmerLPV():
         # theta = cs.hcat(theta).T
         
         return x,y
+
+
 
 class RehmerLPV_outputSched():
     """
@@ -1126,43 +1483,6 @@ class RehmerLPV_outputSched():
         # theta = cs.hcat(theta).T
         
         return x,y
-
-
-
-def NN_layer(input,weights,bias,nonlinearity):
-    '''
-    
-
-    Parameters
-    ----------
-    input : TYPE
-        DESCRIPTION.
-    weights : TYPE
-        DESCRIPTION.
-    bias : TYPE
-        DESCRIPTION.
-    nonlinearity : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    y : TYPE
-        DESCRIPTION.
-
-    '''
-    
-    if nonlinearity == 0:
-        nonlin = cs.tanh
-    elif nonlinearity == 1:
-        nonlin = logistic
-    elif nonlinearity == 2:
-        nonlin  = identity
-            
-    net = cs.mtimes(weights,input) + bias
-
-    return nonlin(net)
-
-
 
 class RehmerLPV_old():
 
@@ -1526,9 +1846,9 @@ class LachhabLPV():
             self.Function = cs.Function(name, input, output, input_names,output_names)
 
             # Calculate affine parameters
-            theta_A = cs.tanh(cs.mtimes(W_A,x)/(cs.mtimes(W_A,x))+1-06)
-            theta_B = cs.tanh(cs.mtimes(W_B,u)/(cs.mtimes(W_B,u))+1-06)
-            theta_C = cs.tanh(cs.mtimes(W_C,x)/(cs.mtimes(W_C,x))+1-06)
+            theta_A = cs.tanh(cs.mtimes(W_A,x)/(cs.mtimes(W_A,x)))
+            theta_B = cs.tanh(cs.mtimes(W_B,u)/(cs.mtimes(W_B,u)))
+            theta_C = cs.tanh(cs.mtimes(W_C,x)/(cs.mtimes(W_C,x)))
             
             theta = cs.vertcat(theta_A,theta_B,theta_C)   
             
@@ -1994,24 +2314,6 @@ class MLP():
         x = cs.vcat(x) 
        
         return x
-
-def RBF(x,c,w):
-    d = x-c    
-    e = - cs.mtimes(cs.mtimes(d.T,cs.diag(w)**2),d)
-    y = cs.exp(e)
-    
-    return y
-
-def logistic(x):
-    
-    y = 0.5 + 0.5 * cs.tanh(0.5*x)
-
-    return y
-
-
-def identity(x):
-    return x
-
 
 class GRU():
     """
@@ -2595,14 +2897,6 @@ class MLP():
         x = cs.hcat(x).T 
        
         return x
-
-
-    
-def logistic(x):
-    
-    y = 0.5 + 0.5 * cs.tanh(0.5*x)
-
-    return y
 
 class GRU():
     
