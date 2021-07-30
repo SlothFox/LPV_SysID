@@ -6,6 +6,8 @@ import numpy as np
 from optim.common import RK4
 from .activations import *
 from .layers import NN_layer
+from .initializations import XavierInitialization
+
 class RBFLPV():
     """
     Quasi-LPV model structure for system identification. Uses local linear models
@@ -537,7 +539,7 @@ class RehmerLPV_v2():
 
     def __init__(self,dim_u,dim_x,dim_y,dim_thetaA=0,dim_thetaB=0,dim_thetaC=0,
                  NN_1_dim=[],NN_2_dim=[],NN_3_dim=[],NN1_act=[],NN2_act=[],
-                 NN3_act=[], initial_params=None):
+                 NN3_act=[], initial_params=None,init_proc='random'):
         '''
         Initializes the model structure by Rehmer et al. 2021.
         dim_u: int, dimension of the input vector
@@ -578,11 +580,15 @@ class RehmerLPV_v2():
         self.NN1_act = NN1_act
         self.NN2_act = NN2_act
         self.NN3_act = NN3_act
+        
+        self.InitialParameters = initial_params
+        self.InitializationProcedure = init_proc
+        
         self.name = 'RehmerLPV_v2'
         
-        self.Initialize(initial_params)
+        self.Initialize()
 
-    def Initialize(self,initial_params=None):
+    def Initialize(self):
             
         # For convenience of notation
         dim_u = self.dim_u
@@ -710,12 +716,12 @@ class RehmerLPV_v2():
         self.AffineParameters = cs.Function('AffineParameters',input,
                                             [theta],input_names,['theta'])
         
-        
-        self.ParameterInitialization(initial_params)
+        # Initialize symbolic variables with numeric values
+        self.ParameterInitialization()
         
         return None
     
-    def ParameterInitialization(self,initial_params=None):
+    def ParameterInitialization(self):
         
         # For convenience of notation
         dim_u = self.dim_u
@@ -737,16 +743,22 @@ class RehmerLPV_v2():
         NN2 = self.NN2
         NN3 = self.NN3
         
+        # Initialization procedure
+        if self.InitializationProcedure == 'random':
+            initialization = np.random.rand
+        elif self.InitializationProcedure == 'xavier':
+            initialization = XavierInitialization
         
+        # Define all parameters in a dictionary and initialize them 
         self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
-                   'A_1':np.random.rand(dim_x,dim_thetaA)*0.01,
-                   'E_1':np.random.rand(dim_thetaA,dim_x),
-                   'B_0':np.random.rand(dim_x,dim_u),
-                   'B_1':np.random.rand(dim_x,dim_thetaB)*0.01,
-                   'E_2':np.random.rand(dim_thetaB,dim_u),
-                   'C_0':np.random.rand(dim_y,dim_x),
-                   'C_1':np.random.rand(dim_y,dim_thetaC)*0.01,
-                   'E_3':np.random.rand(dim_thetaC,dim_x)}
+                   'A_1':initialization(dim_x,dim_thetaA),
+                   'E_1':initialization(dim_thetaA,dim_x),
+                   'B_0':initialization(dim_x,dim_u),
+                   'B_1':initialization(dim_x,dim_thetaB)*0.01,
+                   'E_2':initialization(dim_thetaB,dim_u),
+                   'C_0':initialization(dim_y,dim_x),
+                   'C_1':initialization(dim_y,dim_thetaC)*0.01,
+                   'E_3':initialization(dim_thetaC,dim_x)}
         
         # Add remaining parameters in loop since they depend on depth of NNs
         
@@ -758,19 +770,20 @@ class RehmerLPV_v2():
                 
                 if l==0:
                    
-                    self.Parameters[NN_name+'_Wx'+i] = np.random.rand(*NN[l][0].shape)
-                    self.Parameters[NN_name+'_Wu'+i] = np.random.rand(*NN[l][1].shape)
-                    self.Parameters[NN_name+'_b'+i] = np.random.rand(*NN[l][2].shape)
+                    self.Parameters[NN_name+'_Wx'+i] = initialization(*NN[l][0].shape)
+                    self.Parameters[NN_name+'_Wu'+i] = initialization(*NN[l][1].shape)
+                    self.Parameters[NN_name+'_b'+i] = initialization(*NN[l][2].shape)
                     
                 else:
                     
-                    self.Parameters[NN_name+'_W'+i] = np.random.rand(*NN[l][0].shape)
-                    self.Parameters[NN_name+'_b'+i] = np.random.rand(*NN[l][1].shape)            
+                    self.Parameters[NN_name+'_W'+i] = initialization(*NN[l][0].shape)
+                    self.Parameters[NN_name+'_b'+i] = initialization(*NN[l][1].shape)            
+        
         
         # Initialize if specific inital parameters are given
-        if initial_params is not None:
-            for param in initial_params.keys():
-                self.Parameters[param] = initial_params[param]
+        if self.InitialParameters is not None:
+            for param in self.InitialParameters.keys():
+                self.Parameters[param] = self.InitialParameters[param]
     
         
     def AffineStateSpaceMatrices(self,theta):
