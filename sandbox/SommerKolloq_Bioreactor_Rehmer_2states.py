@@ -60,10 +60,14 @@ initial_params = {'A_0': LSS['A'][0][0],
 starts the optimization procedure 'initializations'-times. '''
 
 
-model = NN.RehmerLPV_v2(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=2,
-                      dim_thetaC=0, NN_1_dim=[5,2],NN_2_dim=[5,2],
-                      NN_3_dim=[],NN1_act=[0,1],NN2_act=[0,1],NN3_act=[], 
-                      initial_params=initial_params,init_proc='xavier')
+# model = NN.RehmerLPV_v2(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=2,
+#                       dim_thetaC=0, NN_1_dim=[5,2],NN_2_dim=[5,2],
+#                       NN_3_dim=[],NN1_act=[0,1],NN2_act=[0,1],NN3_act=[], 
+#                       initial_params=initial_params,init_proc='xavier')
+
+
+model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=2,NN_dim=[5,3,1],NN_act=[0,0,1],
+                 initial_params=None,init_proc='xavier')
 
 """
 s_opts = None #{"max_iter": 10, "print_level":0, "hessian_approximation":'limited-memory'} 
