@@ -85,26 +85,6 @@ def CreateOptimVariables(opti, RefTrajectoryParams):
         
         opti_vars[param] = opti.variable(dim0,dim1)
     
-    # Create one parameter dictionary for each phase
-    # opti_vars['RefParamsInject'] = {}
-    # opti_vars['RefParamsPress'] = {}
-    # opti_vars['RefParamsCool'] = {}
-
-    # for key in opti_vars.keys():
-        
-    #     param_dict = getattr(process_model,key)
-        
-    #     if param_dict is not None:
-        
-    #         for param in param_dict.keys():
-                
-    #             dim0 = param_dict[param].shape[0]
-    #             dim1 = param_dict[param].shape[1]
-                
-    #             opti_vars[key][param] = opti.variable(dim0,dim1)
-    #     else:
-    #         opti_vars[key] = None
-  
     return opti_vars
 
 def ModelTraining(model,data,initializations = 10, initial_params=None, 
@@ -118,7 +98,7 @@ def ModelTraining(model,data,initializations = 10, initial_params=None,
         # in first run use initial model parameters (useful for online 
         # training when only time for one initialization) 
         if i > 0:
-            model.Initialize(initial_params)
+            model.ParameterInitialization()
         
         # Estimate Parameters on training data
         new_params = ModelParameterEstimation(model,data,p_opts,s_opts)

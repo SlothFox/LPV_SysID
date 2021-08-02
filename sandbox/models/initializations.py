@@ -32,39 +32,39 @@ import numpy as np
 #     else:
 #         bx = None
 #     return Wx,bx
+def RandomInitialization(dimensions,bias=False):
+    
+    return np.random.rand(*dimensions)
 
-def XavierInitialization(*dimensions):
+
+def XavierInitialization(dimensions,bias=False):
     '''
     Routine for Xavier initialization
 
     Parameters
     ----------
-    W : numpy-array
-        n x n-1 vatrix with weights mapping from layer l-1 with n-1 neurons to layer l
-        with n neurons.
-    b : numpy-array
-        n x 1 vector containing biases of l-th layer with n neurons.
-    n : int
-        Number of neurons in previous layer, i.e. layer l-1.
+    dimensions: tuple
+        description
+    bias : boolean
+        description
 
     Returns
     -------
-    Wx: numpy-array
+    W: numpy-array
         initialized weights
-    bx: numpy-array
+    b: numpy-array
         initialized biases
     '''    
     
     if 0 in dimensions:
         return np.array([])
     
-    elif len(dimensions) == 1:
-        return np.zeros((dimensions[0],1))
+    if bias == True:
+        b = np.zeros((dimensions[0],1))
+        return b
     
-    elif len(dimensions) == 2:
-        if dimensions[1] == 1:
-            return np.zeros((dimensions[0],1))
-        else:
-            lim = np.sqrt(3)/np.sqrt(dimensions[1])
-            return np.random.uniform(low=-lim, high=lim, size=dimensions)
+    else:
+        lim = np.sqrt(3)/np.sqrt(dimensions[1])
+        W = np.random.uniform(low=-lim, high=lim, size=dimensions)
+        return W
     
