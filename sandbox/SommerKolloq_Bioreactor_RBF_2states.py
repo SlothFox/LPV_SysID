@@ -61,14 +61,14 @@ initial_params = {'A': LSS['A'][0][0],
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
 
-# s_opts = {"max_iter": 1000, "print_level":0} #"hessian_approximation":'limited-memory'} 
+s_opts = {'hessian_approximation': 'limited-memory'}
 
 counter = 0
 
-for dim in [1]:
+for dim in [1,2]:
     
-    NN_dim = [[5,dim]] #[[5,dim],[5,5,dim],[5,5,5,dim]]
-    NN_act = [[0,1]] #[[0,1],[0,0,1],[0,0,0,1]]
+    NN_dim = [[5,dim],[5,5,dim],[5,5,5,dim]]
+    NN_act = [[0,1],[0,0,1],[0,0,0,1]]
     
     for d,a in zip(NN_dim,NN_act):
     
@@ -76,9 +76,9 @@ for dim in [1]:
                               NN_act=a, initial_params=initial_params,
                               init_proc='xavier')
         
-        identification_results = param_optim.ModelTraining(model,data,1,
+        identification_results = param_optim.ModelTraining(model,data,10,
                                  initial_params=initial_params,p_opts=None,
-                                 s_opts=None)
+                                 s_opts=s_opts)
         
         identification_results = identification_results.assign(depth=len(d))
         

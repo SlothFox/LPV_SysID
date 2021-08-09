@@ -79,7 +79,7 @@ def CreateOptimVariables(opti, RefTrajectoryParams):
     opti_vars = {}
     
     for param in RefTrajectoryParams.keys():
-        
+        print(param)
         dim0 = RefTrajectoryParams[param].shape[0]
         dim1 = RefTrajectoryParams[param].shape[1]
         

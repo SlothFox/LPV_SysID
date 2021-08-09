@@ -100,6 +100,7 @@ class RBFLPV(LPV_RNN):
         self.dim_x = dim_x
         self.dim_y = dim_y
         self.dim_theta = dim_theta
+        self.dim = dim_theta
         self.NN_dim = NN_dim
         self.NN_act = NN_act
         
@@ -354,10 +355,10 @@ class RBFLPV(LPV_RNN):
                 self.Parameters['A'+i] = A
                 self.Parameters['B'+i] = B
                 self.Parameters['C'+i] = C
-                self.Parameters['c_u'+i] = range_u[:,[0]] + \
-                    (range_u[:,[1]]-range_u[:,[0]]) * np.random.uniform(size=(self.dim_u,1))
-                self.Parameters['c_x'+i] = range_x[:,[0]] + \
-                    (range_x[:,[1]]-range_x[:,[0]]) * np.random.uniform(size=(self.dim_x,1))
+                # self.Parameters['c_u'+i] = range_u[:,[0]] + \
+                #     (range_u[:,[1]]-range_u[:,[0]]) * np.random.uniform(size=(self.dim_u,1))
+                # self.Parameters['c_x'+i] = range_x[:,[0]] + \
+                #     (range_x[:,[1]]-range_x[:,[0]]) * np.random.uniform(size=(self.dim_x,1))
        
         return None
         
@@ -409,60 +410,7 @@ class RBFLPV(LPV_RNN):
 
         return theta   
     
-    
-    # def OneStepPrediction(self,x0,u0,params=None):
-    #     '''
-    #     Estimates the next state and output from current state and input
-    #     x0: Casadi MX, current state
-    #     u0: Casadi MX, current input
-    #     params: A dictionary of opti variables, if the parameters of the model
-    #             should be optimized, if None, then the current parameters of
-    #             the model are used
-    #     '''
-        
-    #     if params==None:
-    #         params = self.Parameters
-        
-    #     params_new = []
-            
-    #     for name in  self.Function.name_in():
-    #         try:
-    #             params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-    #         except:
-    #             continue
-        
-    #     x1,y1 = self.Function(x0,u0,*params_new)     
-                              
-    #     return x1,y1
-   
-    # def Simulation(self,x0,u,params=None):
-    #     '''
-    #     A iterative application of the OneStepPrediction in order to perform a
-    #     simulation for a whole input trajectory
-    #     x0: Casadi MX, inital state a begin of simulation
-    #     u: Casadi MX,  input trajectory
-    #     params: A dictionary of opti variables, if the parameters of the model
-    #             should be optimized, if None, then the current parameters of
-    #             the model are used
-    #     '''
 
-    #     x = []
-    #     y = []
-
-    #     # initial states
-    #     x.append(x0)
-                      
-    #     # Simulate Model
-    #     for k in range(u.shape[0]):
-    #         x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
-    #         x.append(x_new)
-    #         y.append(y_new)
-        
-    #     # Concatenate list to casadiMX
-    #     y = cs.hcat(y).T    
-    #     x = cs.hcat(x).T
-       
-    #     return x,y
 
 class RBFLPV_outputSched(LPV_RNN):
     """
@@ -479,6 +427,7 @@ class RBFLPV_outputSched(LPV_RNN):
         self.dim_x = dim_x
         self.dim_y = dim_y
         self.dim_theta = dim_theta
+        self.dim = dim_theta
         self.NN_dim = NN_dim
         self.NN_act = NN_act
         
@@ -708,21 +657,20 @@ class RBFLPV_outputSched(LPV_RNN):
         op_range: array, expected operating range over which to distribute 
         the weighting functions
         '''
-        
-        # Create Dictionary to give to the Initialize function
-        initial_params = {'C':C}
+
+        self.Parameters['C'] = C
         
         for loc in range(0,self.dim_theta):
             
                 i = str(loc)
-                initial_params['A'+i] = A
-                initial_params['B'+i] = B
+                self.Parameters['A'+i] = A
+                self.Parameters['B'+i] = B
+                
                 # initial_params['C'+i] = C
-                initial_params['c_u'+i] = range_u[:,[0]] + \
-                    (range_u[:,[1]]-range_u[:,[0]]) * np.random.uniform(size=(self.dim_u,1))
-                initial_params['c_y'+i] = range_y[:,[0]] + \
-                    (range_y[:,[1]]-range_y[:,[0]]) * np.random.uniform(size=(self.dim_y,1))
-        self.Initialize(initial_params)
+                # initial_params['c_u'+i] = range_u[:,[0]] + \
+                #     (range_u[:,[1]]-range_u[:,[0]]) * np.random.uniform(size=(self.dim_u,1))
+                # initial_params['c_y'+i] = range_y[:,[0]] + \
+                #     (range_y[:,[1]]-range_y[:,[0]]) * np.random.uniform(size=(self.dim_y,1))
         
         return None
         
@@ -775,61 +723,6 @@ class RBFLPV_outputSched(LPV_RNN):
         return theta   
     
     
-    # def OneStepPrediction(self,x0,u0,params=None):
-    #     '''
-    #     Estimates the next state and output from current state and input
-    #     x0: Casadi MX, current state
-    #     u0: Casadi MX, current input
-    #     params: A dictionary of opti variables, if the parameters of the model
-    #             should be optimized, if None, then the current parameters of
-    #             the model are used
-    #     '''
-        
-    #     if params==None:
-    #         params = self.Parameters
-        
-    #     params_new = []
-            
-    #     for name in  self.Function.name_in():
-    #         try:
-    #             params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-    #         except:
-    #             continue
-        
-    #     x1,y1 = self.Function(x0,u0,*params_new)     
-                              
-    #     return x1,y1
-   
-    # def Simulation(self,x0,u,params=None):
-    #     '''
-    #     A iterative application of the OneStepPrediction in order to perform a
-    #     simulation for a whole input trajectory
-    #     x0: Casadi MX, inital state a begin of simulation
-    #     u: Casadi MX,  input trajectory
-    #     params: A dictionary of opti variables, if the parameters of the model
-    #             should be optimized, if None, then the current parameters of
-    #             the model are used
-    #     '''
-
-    #     x = []
-    #     y = []
-
-    #     # initial states
-    #     x.append(x0)
-                      
-    #     # Simulate Model
-    #     for k in range(u.shape[0]):
-    #         x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
-    #         x.append(x_new)
-    #         y.append(y_new)
-        
-    #     # Concatenate list to casadiMX
-    #     y = cs.hcat(y).T    
-    #     x = cs.hcat(x).T
-       
-    #     return x,y
-
-
 class RehmerLPV(LPV_RNN):
     """
     Quasi-LPV model structure for system identification. Uses a structured

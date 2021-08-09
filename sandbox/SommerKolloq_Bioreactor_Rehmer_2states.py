@@ -59,25 +59,12 @@ initial_params = {'A0': LSS['A'][0][0],
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
 
-
-# model = NN.RehmerLPV_v2(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=2,
-#                       dim_thetaC=0, NN_1_dim=[5,2],NN_2_dim=[5,2],
-#                       NN_3_dim=[],NN1_act=[0,1],NN2_act=[0,1],NN3_act=[], 
-#                       initial_params=initial_params,init_proc='xavier')
-
-
-# model = NN.RBFLPV_outputSched(dim_u=1,dim_x=2,dim_y=1,dim_theta=2,NN_dim=[5,3,1],NN_act=[0,0,1],
-#                   initial_params=initial_params,init_proc='xavier')
-
-
-s_opts = {"max_iter": 1000, "print_level":0} #"hessian_approximation":'limited-memory'} 
-
 counter = 0
 
-for dim in [1]:
+for dim in [1,2]:
     
-    NN_dim = [[5,dim]] #[[5,dim],[5,5,dim],[5,5,5,dim]]
-    NN_act = [[0,1]] #[[0,1],[0,0,1],[0,0,0,1]]
+    NN_dim = [[5,dim],[5,5,dim],[5,5,5,dim]]
+    NN_act = [[0,1],[0,0,1],[0,0,0,1]]
     
     for d,a in zip(NN_dim,NN_act):
     
@@ -88,7 +75,7 @@ for dim in [1]:
         
         identification_results = param_optim.ModelTraining(model,data,1,
                                  initial_params=initial_params,p_opts=None,
-                                 s_opts=s_opts)
+                                 s_opts=None)
         
         identification_results = identification_results.assign(depth=len(d))
         

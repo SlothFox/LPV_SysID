@@ -57,7 +57,7 @@ def XavierInitialization(dimensions,bias=False):
     '''    
     
     if 0 in dimensions:
-        return np.array([])
+        return np.array([]).reshape(dimensions)
     
     if bias == True:
         b = np.zeros((dimensions[0],1))
