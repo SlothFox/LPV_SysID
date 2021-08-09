@@ -2,7 +2,7 @@ clear
 clc
 
 % Add YALMIP to path
-addpath(genpath('YALMIP-master'))  
+addpath(genpath('..\YALMIP-master'))  
 % Linux:
 % addpath '\mosek-linux\9.2\toolbox\r2015a'
 
@@ -13,7 +13,9 @@ ops = sdpsettings('solver','mosek');
 % ops = []
 
 % Load identified Vertex Systems
-load('VertexSystemsSilverbox.mat') 
+load('VertexSystemsTestLPV.mat') 
+
+S1 = {A1,B1,C1};
 
 % Specify dimensions of problem
 nx = 2;
@@ -40,14 +42,14 @@ LMI = [[S,eye(nx);eye(nx),R] >= 0];
 
 VertexSystems = {'S1','S2','S3','S4'};
 
-for vertex = [1:4]
+for vertex = [1:1]
     
     system = eval(VertexSystems{vertex});
     
-    A  = system{1};
-    B2 = system{2};
-    C1 = system{3};
-    C2 = system{3};
+    A  = double(system{1});
+    B2 = double(system{2});
+    C1 = double(system{3});
+    C2 = double(system{3});
     
     NR = null([B2',D12']);
     NS = null([C2,D21]);
@@ -75,7 +77,7 @@ optimize(LMI,r,ops)
 
 %% Reconstruct controller
 
-% r = double(r);
+r = double(r);
 R = double(R);
 S = double(S);
 
@@ -96,17 +98,17 @@ X = [X1,X2;X2',eye(nx)];
 
 VertexController= {};
 
-for vertex = [1:4]
+for vertex = [1:1]
     
     system = eval(VertexSystems{vertex});
     
     theta = sdpvar(k+nu,k+ny,'full');
-    r = sdpvar(1,1);
+%     r = sdpvar(1,1);
     
-    A  = system{1};
-    B2 = system{2};
-    C1 = system{3};
-    C2 = system{3};
+    A  = double(system{1});
+    B2 = double(system{2});
+    C1 = double(system{3});
+    C2 = double(system{3});
 
     A0 = [A,zeros(nx,k);zeros(k,nx),zeros(k,k)];
     B0 = [B1;zeros(k,nw)];
@@ -134,7 +136,7 @@ for vertex = [1:4]
     
     LMI = [[Psi+P'*theta*Q + Q'*theta'*P] <= 0];
 
-    optimize(LMI,r,ops)
+    optimize(LMI,[],ops)
 
     theta = double(theta);
     
@@ -143,4 +145,4 @@ for vertex = [1:4]
 end
 
 
-save('VertexControllers','VertexController')
+save('VertexController_TestLPV','VertexController')

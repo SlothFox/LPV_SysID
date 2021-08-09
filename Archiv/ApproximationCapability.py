@@ -15,12 +15,12 @@ def logistic(x):
 
     return y
 
-u = np.linspace(-1,1)
-y = u**2
+u = np.linspace(-2,2)
+y = -2*u
 
 dim_x = 1
 dim_thetaA = 1
-fA_dim = 10
+fA_dim = 2
 
 
 # Create Instance of the Optimization Problem
@@ -61,14 +61,14 @@ e = 0
 for i in range(0,u.shape[0]):
      
     # e = e + cs.sumsqr(y[i] - f(u[i],A_0,A_lpv,W_A,W_fA_x,b_fA_h,W_fA,b_fA))
-    e = e + cs.sumsqr(y[i] - f_theta(u[i],A_0,A_lpv,W_A,W_fA_x,b_fA_h,W_fA,b_fA))
+    e = e + cs.sumsqr(y[i] - f(u[i],A_0,A_lpv,W_A,W_fA_x,b_fA_h,W_fA,b_fA))
     
 opti.minimize(e)
     
 # Create Solver
 opti.solver("ipopt")
 
-opti.set_initial(A_0,np.random.normal(0,3,(dim_x,dim_x)))
+opti.set_initial(A_0,np.random.normal(0,0.1,(dim_x,dim_x)))
 opti.set_initial(A_lpv,np.random.normal(0,3,(dim_x,dim_thetaA)))
 opti.set_initial(W_A,np.random.normal(0,3,(dim_thetaA,dim_x)))
 opti.set_initial(W_fA_x,np.random.normal(0,3,(fA_dim,dim_x)))
@@ -99,13 +99,13 @@ except:
 y_est = []
 theta_est = []
 
-u_test = np.linspace(-5000,5000,10000)
+# u_test = np.linspace(-5,5,1000)
 
 
-for i in range(0,u_test.shape[0]):
+for i in range(0,u.shape[0]):
 
-    y_est.append(f(u_test[i],A_0,A_lpv,W_A,W_fA_x,b_fA_h,W_fA,b_fA))
-    theta_est.append(f_theta(u_test[i],A_0,A_lpv,W_A,W_fA_x,b_fA_h,W_fA,b_fA))
+    y_est.append(f(u[i],A_0,A_lpv,W_A,W_fA_x,b_fA_h,W_fA,b_fA))
+    theta_est.append(f_theta(u[i],A_0,A_lpv,W_A,W_fA_x,b_fA_h,W_fA,b_fA))
 
 y_est = np.array(y_est)
 theta_est = np.array(theta_est)
@@ -113,9 +113,10 @@ theta_est = np.array(theta_est)
 
 plt.figure()
 plt.plot(u,y)
-# plt.plot(u_test,y_est)
+plt.plot(u,y_est)
+plt.plot(u,theta_est)
 
-plt.plot(u_test,theta_est)
+# plt.plot(u,theta_est)
 
 
 # plt.close('all')

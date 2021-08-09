@@ -20,6 +20,7 @@ import pickle as pkl
 
 from .DiscreteBoundedPSO import DiscreteBoundedPSO
 from .common import OptimValues_to_dict
+from .common import BestFitRate 
 
 # Import sphere function as objective function
 #from pyswarms.utils.functions.single_obj import sphere as f
@@ -84,29 +85,10 @@ def CreateOptimVariables(opti, RefTrajectoryParams):
         
         opti_vars[param] = opti.variable(dim0,dim1)
     
-    # Create one parameter dictionary for each phase
-    # opti_vars['RefParamsInject'] = {}
-    # opti_vars['RefParamsPress'] = {}
-    # opti_vars['RefParamsCool'] = {}
-
-    # for key in opti_vars.keys():
-        
-    #     param_dict = getattr(process_model,key)
-        
-    #     if param_dict is not None:
-        
-    #         for param in param_dict.keys():
-                
-    #             dim0 = param_dict[param].shape[0]
-    #             dim1 = param_dict[param].shape[1]
-                
-    #             opti_vars[key][param] = opti.variable(dim0,dim1)
-    #     else:
-    #         opti_vars[key] = None
-  
     return opti_vars
 
-def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=False, p_opts=None, s_opts=None):
+def ModelTraining(model,data,initializations = 10, initial_params=None, 
+                  BFR=False, p_opts=None, s_opts=None):
     
    
     results = [] 
@@ -116,7 +98,7 @@ def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=Fals
         # in first run use initial model parameters (useful for online 
         # training when only time for one initialization) 
         if i > 0:
-            model.Initialize(initial_params)
+            model.ParameterInitialization()
         
         # Estimate Parameters on training data
         new_params = ModelParameterEstimation(model,data,p_opts,s_opts)
@@ -130,7 +112,7 @@ def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=Fals
         init_state_val = data['init_state_val']
 
         # Evaluate estimated model on validation data        
-        e = 0
+        e_val = 0
         
         for j in range(0,u_val.shape[0]):   
             # Simulate Model
@@ -139,16 +121,33 @@ def ModelTraining(model,data,initializations = 10, initial_params=None, BFR=Fals
             if isinstance(pred, tuple):
                 pred = pred[1]
             
-            e = e + cs.sumsqr(y_ref_val[j,:,:] - pred)
+            e_val = e_val + cs.sumsqr(y_ref_val[j,:,:] - pred)
         
         # Calculate mean error over all validation batches
-        e = e / u_val.shape[0]
-        e = np.array(e).reshape((1,))
+        e_val = e_val / u_val.shape[0]
+        e_val = np.array(e_val).reshape((1,))
+        
+        
+        # Evaluate estimated model on test data
+        
+        u_test = data['u_test']
+        y_ref_test = data['y_test']
+        init_state_test = data['init_state_test']
+            
+        pred = model.Simulation(init_state_test[0],u_test[0])
+        
+        if isinstance(pred, tuple):
+            pred = pred[1]
+        
+        y_est = np.array(pred)
+        
+        BFR = BestFitRate(y_ref_test[0],y_est)
         
         # save parameters and performance in list
-        results.append([e,new_params])
-    
-    results = pd.DataFrame(data = results, columns = ['loss','params'])
+        results.append([e_val,BFR,model.name,model.dim,i,new_params])
+   
+    results = pd.DataFrame(data = results, columns = ['loss_val','BFR_test',
+                        'model','dim_theta','initialization','params'])
     
     return results 
 

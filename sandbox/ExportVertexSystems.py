@@ -72,37 +72,33 @@ identification_results = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Si
 model.Parameters = identification_results.loc[0,'params']
 
 
-x_est, y_est = model.Simulation([0,0],test_u[0])
-
-y_est = np.array(y_est)
-
-plt.plot(y_est,label='Estimation')
-plt.plot(test_y[0], label='TrueOutput')
-plt.plot(test_y[0]-y_est, label='error')
-plt.legend()
 
 x=[]
 y=[]
+theta = []
 
 x.append(np.zeros((2,1)))
 
-theta = []
-
 for k in range(0,test_u[0].shape[0]):
     
-    x_new, y_est = model.OneStepPrediction([0,0],test_u[0,k,:])    
-    theta_new = model.EvalAffineParameters(x[-1],test_u[0,k,:])    
+    x_new, y_new = model.OneStepPrediction(x[k],test_u[0,k,:])    
+    theta_new = model.EvalAffineParameters(x[k],test_u[0,k,:])    
     
     
     x.append(x_new)
     theta.append(np.array(theta_new))
-    
+    y.append(y_new)
+
+
+theta = np.hstack(theta)
+
+plt.scatter(theta[0,1:2],theta[1,1:2])
 
 # Get vertices from data
-v1 = (0.51,0.61)
-v2 = (0.51,0.65)
-v3 = (0.515,0.65)
-v4 = (0.515,0.61)
+v1 = (0.5107,0.6095)
+v2 = (0.5107,0.6482)
+v3 = (0.51508,0.6095)
+v4 = (0.51508,0.6482)
 
 # Get vertice systems
 S1 = model.AffineStateSpaceMatrices(v1)

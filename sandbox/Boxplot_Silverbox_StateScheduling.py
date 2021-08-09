@@ -22,16 +22,6 @@ import models.NN as NN
 from optim import param_optim
 
 
-def BestFitRate(y_target,y_est):
-    BFR = 1-sum((y_target-y_est)**2) / sum((y_target-np.mean(y_target))**2) 
-    
-    BFR = BFR*100
-    
-    if BFR<0:
-        BFR = np.array([0])
-        
-    return BFR
-
 
 ''' Data Preprocessing '''
 
