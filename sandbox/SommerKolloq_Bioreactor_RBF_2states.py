@@ -51,26 +51,17 @@ LSS=loadmat("./Benchmarks/Bioreactor/Bioreactor_LSS")
 LSS=LSS['Results']
 
 
-initial_params = {'A0': LSS['A'][0][0],
-                  'B0': LSS['B'][0][0],
-                  'C0': LSS['C'][0][0]}
+initial_params = {'A': LSS['A'][0][0],
+                  'B': LSS['B'][0][0],
+                  'C': LSS['C'][0][0],
+                  'range_u': np.array([[0,0.7]]),
+                  'range_x': np.array([[-0.1,0.1],[-0.1,0.1]])}
 
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
 
-
-# model = NN.RehmerLPV_v2(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=2,
-#                       dim_thetaC=0, NN_1_dim=[5,2],NN_2_dim=[5,2],
-#                       NN_3_dim=[],NN1_act=[0,1],NN2_act=[0,1],NN3_act=[], 
-#                       initial_params=initial_params,init_proc='xavier')
-
-
-# model = NN.RBFLPV_outputSched(dim_u=1,dim_x=2,dim_y=1,dim_theta=2,NN_dim=[5,3,1],NN_act=[0,0,1],
-#                   initial_params=initial_params,init_proc='xavier')
-
-
-s_opts = {"max_iter": 1000, "print_level":0} #"hessian_approximation":'limited-memory'} 
+# s_opts = {"max_iter": 1000, "print_level":0} #"hessian_approximation":'limited-memory'} 
 
 counter = 0
 
@@ -81,19 +72,18 @@ for dim in [1]:
     
     for d,a in zip(NN_dim,NN_act):
     
-        model = NN.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,dim_thetaB=dim,
-                              dim_thetaC=0, NN_1_dim=d,NN_2_dim=d,
-                              NN_3_dim=[],NN1_act=a,NN2_act=a,NN3_act=[], 
-                              initial_params=initial_params,init_proc='xavier')
+        model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=2, NN_dim=d,
+                              NN_act=a, initial_params=initial_params,
+                              init_proc='xavier')
         
         identification_results = param_optim.ModelTraining(model,data,1,
                                  initial_params=initial_params,p_opts=None,
-                                 s_opts=s_opts)
+                                 s_opts=None)
         
         identification_results = identification_results.assign(depth=len(d))
         
         
-        pkl.dump(identification_results,open('Bioreactor_Rehmer_stateSched_2states_'+str(counter)+'.pkl',
+        pkl.dump(identification_results,open('Bioreactor_RBF_stateSched_2states_'+str(counter)+'.pkl',
                                               'wb'))
         
         counter = counter + 1

@@ -287,34 +287,34 @@ class RBFLPV(LPV_RNN):
     
             i=str(loc)
             
-            Parameters['A'+i] = initialization(dim_x,dim_x)
-            Parameters['B'+i] = initialization(dim_x,dim_u)
-            Parameters['C'+i] = initialization(dim_y,dim_x)
+            Parameters['A'+i] = initialization((dim_x,dim_x))
+            Parameters['B'+i] = initialization((dim_x,dim_u))
+            Parameters['C'+i] = initialization((dim_y,dim_x))
 
 
             if len(NN)==0:
-                Parameters['c_u'+i] = initialization(dim_u,1)
-                Parameters['c_x'+i] = initialization(dim_x,1)
-                Parameters['w_u'+i] = initialization(dim_u,1)
-                Parameters['w_x'+i] = initialization(dim_x,1)
+                Parameters['c_u'+i] = initialization((dim_u,1))
+                Parameters['c_x'+i] = initialization((dim_x,1))
+                Parameters['w_u'+i] = initialization((dim_u,1))
+                Parameters['w_x'+i] = initialization((dim_x,1))
             
             else:
                 
-                Parameters['c_h'+i] = initialization(NN_dim[-1],1)
-                Parameters['w_h'+i] = initialization(NN_dim[-1],1)
+                Parameters['c_h'+i] = initialization((NN_dim[-1],1))
+                Parameters['w_h'+i] = initialization((NN_dim[-1],1))
             
         for l in range(0,len(NN)):
  
             if l==0:
                
-                Parameters['NN_Wx'+str(l)] = initialization(*NN[l][0].shape)
-                Parameters['NN_Wu'+str(l)] = initialization(*NN[l][1].shape)
-                Parameters['NN_b'+str(l)] = initialization(*NN[l][2].shape)
+                Parameters['NN_Wx'+str(l)] = initialization(NN[l][0].shape)
+                Parameters['NN_Wu'+str(l)] = initialization(NN[l][1].shape)
+                Parameters['NN_b'+str(l)] = initialization(NN[l][2].shape)
                 
             else:
                 
-                Parameters['NN_W'+str(l)] = initialization(*NN[l][0].shape)
-                Parameters['NN_b'+str(l)] = initialization(*NN[l][1].shape)   
+                Parameters['NN_W'+str(l)] = initialization(NN[l][0].shape)
+                Parameters['NN_b'+str(l)] = initialization(NN[l][1].shape)   
 
 
         self.Parameters=Parameters    
@@ -346,25 +346,19 @@ class RBFLPV(LPV_RNN):
         the weighting functions
         '''
         
-        # Create Dictionary to give to the Initialize function
-        initial_params = {}
-        
         # Distribute centers of RBFs uniformly over given range
-        initial_params['c_u0'] =np.array([[0.35]])
-        initial_params['c_x0'] =np.array([[0.1],[0.1]])
         
         for loc in range(0,self.dim_theta):
             
                 i = str(loc)
-                initial_params['A'+i] = A
-                initial_params['B'+i] = B
-                initial_params['C'+i] = C
-                initial_params['c_u'+i] = range_u[:,[0]] + \
+                self.Parameters['A'+i] = A
+                self.Parameters['B'+i] = B
+                self.Parameters['C'+i] = C
+                self.Parameters['c_u'+i] = range_u[:,[0]] + \
                     (range_u[:,[1]]-range_u[:,[0]]) * np.random.uniform(size=(self.dim_u,1))
-                initial_params['c_x'+i] = range_x[:,[0]] + \
+                self.Parameters['c_x'+i] = range_x[:,[0]] + \
                     (range_x[:,[1]]-range_x[:,[0]]) * np.random.uniform(size=(self.dim_x,1))
-        self.Initialize(initial_params)
-        
+       
         return None
         
     
@@ -656,33 +650,33 @@ class RBFLPV_outputSched(LPV_RNN):
     
             i=str(loc)
             
-            Parameters['A'+i] = initialization(dim_x,dim_x)
-            Parameters['B'+i] = initialization(dim_x,dim_u)
+            Parameters['A'+i] = initialization((dim_x,dim_x))
+            Parameters['B'+i] = initialization((dim_x,dim_u))
 
 
             if len(NN)==0:
-                Parameters['c_u'+i] = initialization(dim_u,1)
-                Parameters['c_y'+i] = initialization(dim_y,1)
-                Parameters['w_u'+i] = initialization(dim_u,1)
-                Parameters['w_y'+i] = initialization(dim_y,1)
+                Parameters['c_u'+i] = initialization((dim_u,1))
+                Parameters['c_y'+i] = initialization((dim_y,1))
+                Parameters['w_u'+i] = initialization((dim_u,1))
+                Parameters['w_y'+i] = initialization((dim_y,1))
             
             else:
                 
-                Parameters['c_h'+i] = initialization(NN_dim[-1],1)
-                Parameters['w_h'+i] = initialization(NN_dim[-1],1)
+                Parameters['c_h'+i] = initialization((NN_dim[-1],1))
+                Parameters['w_h'+i] = initialization((NN_dim[-1],1))
             
         for l in range(0,len(NN)):
  
             if l==0:
                
-                Parameters['NN_Wy'+str(l)] = initialization(*NN[l][0].shape)
-                Parameters['NN_Wu'+str(l)] = initialization(*NN[l][1].shape)
-                Parameters['NN_b'+str(l)] = initialization(*NN[l][2].shape)
+                Parameters['NN_Wy'+str(l)] = initialization(NN[l][0].shape)
+                Parameters['NN_Wu'+str(l)] = initialization(NN[l][1].shape)
+                Parameters['NN_b'+str(l)] = initialization(NN[l][2].shape)
                 
             else:
                 
-                Parameters['NN_W'+str(l)] = initialization(*NN[l][0].shape)
-                Parameters['NN_b'+str(l)] = initialization(*NN[l][1].shape)   
+                Parameters['NN_W'+str(l)] = initialization(NN[l][0].shape)
+                Parameters['NN_b'+str(l)] = initialization(NN[l][1].shape)   
 
 
         self.Parameters=Parameters            
