@@ -6,7 +6,7 @@ import numpy as np
 from optim.common import RK4
 from .activations import *
 from .layers import NN_layer, Eval_FeedForward_NN
-from .initializations import XavierInitialization, RandomInitialization
+from .initializations import XavierInitialization, RandomInitialization, HeInitialization
 
 class LPV_RNN():
     '''
@@ -280,6 +280,8 @@ class RBFLPV(LPV_RNN):
             initialization = np.random.rand
         elif self.InitializationProcedure == 'xavier':
             initialization = XavierInitialization
+        elif self.InitializationProcedure == 'he':
+            initialization = HeInitialization        
         
         Parameters = {}
         
@@ -589,7 +591,9 @@ class RBFLPV_outputSched(LPV_RNN):
             initialization = np.random.rand
         elif self.InitializationProcedure == 'xavier':
             initialization = XavierInitialization
-            
+        elif self.InitializationProcedure == 'he':
+            initialization = HeInitialization    
+              
         Parameters = {}
         
         Parameters['C'] = initialization(dim_y,dim_x)
@@ -934,6 +938,8 @@ class RehmerLPV(LPV_RNN):
             initialization = RandomInitialization
         elif self.InitializationProcedure == 'xavier':
             initialization = XavierInitialization
+        elif self.InitializationProcedure == 'he':
+            initialization = HeInitialization      
         
         # Define all parameters in a dictionary and initialize them 
         self.Parameters = {'A_0':initialization((dim_x,dim_x)),
@@ -1280,6 +1286,8 @@ class RehmerLPV_outputSched(LPV_RNN):
             initialization = np.random.rand
         elif self.InitializationProcedure == 'xavier':
             initialization = XavierInitialization
+        elif self.InitializationProcedure == 'he':
+            initialization = HeInitialization      
         
         # Define all parameters in a dictionary and initialize them 
         self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),

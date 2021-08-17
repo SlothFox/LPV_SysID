@@ -38,13 +38,13 @@ def NN_layer(input,weights,bias,nonlinearity):
         DESCRIPTION.
 
     '''
-    
+
     if nonlinearity == 0:
+        nonlin = identity    
+    if nonlinearity == 1:
         nonlin = cs.tanh
-    elif nonlinearity == 1:
-        nonlin = logistic
     elif nonlinearity == 2:
-        nonlin  = identity
+        nonlin = logistic
     elif nonlinearity == 3:
         nonlin  = ReLu
             

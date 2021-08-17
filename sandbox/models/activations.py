@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import casadi as cs
+import numpy as np
 
 
 def logistic(x):
@@ -10,10 +11,14 @@ def logistic(x):
 
 def ReLu(x):
     
-    y = np.hstack((np.zeros(x.shape),x))
+    y = cs.horzcat(np.zeros(x.shape),x)
     
-    y = y.max(axis=1).reshape((-1,1))
-    
+    y_relu = []
+    #
+    for row in range(0,y.shape[0]):
+        y_relu.append(cs.mmax(y[row]))
+        
+    y = cs.vcat(y_relu)    
     return y
 
 
