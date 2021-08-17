@@ -11,14 +11,17 @@ def logistic(x):
 
 def ReLu(x):
     
-    y = cs.horzcat(np.zeros(x.shape),x)
+    # y = cs.horzcat(np.zeros(x.shape),x)
     
-    y_relu = []
-    #
-    for row in range(0,y.shape[0]):
-        y_relu.append(cs.mmax(y[row]))
+    # y_relu = []
+    # #
+    # for row in range(0,y.shape[0]):
+    #     y_relu.append(cs.mmax(y[row,:]))
         
-    y = cs.vcat(y_relu)    
+    # y = cs.vcat(y_relu)  
+    
+    y = (cs.fabs(x)+x)/2
+    
     return y
 
 
