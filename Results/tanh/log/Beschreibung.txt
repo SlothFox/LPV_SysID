@@ -1,0 +1,1 @@
+Alle Modelle haben in verdeckten Schichten tanh-Aktivierungsfunktionen und in Ausgabeschicht logistische Aktivierungsfunktion
