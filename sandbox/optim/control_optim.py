@@ -209,7 +209,7 @@ def SingleStageOptimization(model,ref,N):
     # Create Instance of the Optimization Problem
     opti = cs.Opti()
     
-    # Create decision variables for states
+    # Create decision variables for inputs
     U = opti.variable(N,1)
         
     # Initial quality 

@@ -2162,7 +2162,7 @@ class LinearSSM():
         y = cs.hcat(y).T    
         x = cs.hcat(x).T
        
-        return y
+        return x,y
 
 
 class MLP():
@@ -2671,7 +2671,7 @@ class LinearSSM():
         y = cs.hcat(y).T    
         x = cs.hcat(x).T
        
-        return y
+        return x,y
 
 
 class MLP():

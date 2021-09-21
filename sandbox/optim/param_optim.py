@@ -397,3 +397,87 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None):
     values = OptimValues_to_dict(params_opti,sol)
     
     return values
+
+def EstimateNonlinearStateSequence(model,data,lam):
+    """
+    
+
+    Parameters
+    ----------
+    model : TYPE
+        DESCRIPTION.
+    data : TYPE
+        DESCRIPTION.
+    lam : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    
+    u = data['u_train'][0]          # [0] because only first batch is used
+    y_ref = data['y_train'][0]
+    init_state = data['init_state_train'][0]
+    
+    N = u.shape[0]
+    num_states = init_state.shape[1]
+    # Simulate LSS
+    x_lin, y_lin = model.Simulation(init_state,u)
+    
+    # Create Instance of the Optimization Problem
+    opti = cs.Opti()
+    
+    # Take linear model (Linear SS)
+    # Estimate nonlinear state sequence recursively
+    
+    # Initialize array for estimated state sequence
+    # x_LS = np.zeros(())
+
+    # Create decision variables for states
+    x_LS = opti.variable(N+1,num_states)
+    
+    e = 0
+    
+    # x_new,y_new = model.OneStepPrediction(x_LS[0],u[[0],:])
+    
+    # e = e + cs.sumsqr(y_ref[0,:] - cs.mtimes(model.Parameters['C'],x_LS[0]))
+    
+    for k in range(0,N):
+
+        x_new, _ = model.OneStepPrediction(x_LS[k],u[[k],:])
+        
+        e = e + cs.sumsqr(y_ref[k,:] - cs.mtimes(model.Parameters['C'],x_LS[k])) \
+            + lam * cs.sumsqr(x_lin[k+1] - x_new)
+    
+    e = e + e + cs.sumsqr(y_ref[N,:] - cs.mtimes(model.Parameters['C'],x_LS[N]))   
+    
+    
+    
+    
+    
+    # e = e + cs.sumsqr(y_ref[0,:] - cs.mtimes(model.Parameters['C'],x_LS[0]))
+    
+    # for k in range(1,N):
+
+    #     x_new,y_new = model.OneStepPrediction(x_LS[k],u[[k],:])
+        
+    #     e = e + cs.sumsqr(y_ref[k,:] - y_new) + lam * cs.sumsqr(x_lin[k+1]-x_new)
+    
+    # e = e + e + cs.sumsqr(y_ref[N,:] - cs.mtimes(model.Parameters['C'],x_LS[N]))
+    
+    opti.minimize(e)    
+    opti.solver("ipopt")
+    
+    try: 
+        sol = opti.solve()
+    except:
+        sol = opti.debug
+            
+      
+    x_LS = np.array(sol.value(x_LS)).reshape(N+1,num_states)
+    
+
+    
+    return x_LS
