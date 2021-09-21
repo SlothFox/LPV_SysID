@@ -1,0 +1,1 @@
+Alle Modelle haben in verdeckten Schichten ReLu-Aktivierungsfunktionen und in Ausgabeschicht lineare Aktivierungsfunktion

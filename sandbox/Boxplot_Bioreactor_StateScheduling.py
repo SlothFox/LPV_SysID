@@ -89,12 +89,12 @@ for model in models:
         # Initialize model structure
         if model == 'RBF':
             LPV_model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=dim,
-                      initial_params=None,name='RBF_network')  
+                      initial_params=None,init_proc='xavier')  
         elif model == 'Rehmer':
             LPV_model = NN.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,dim_thetaB=dim,
                           dim_thetaC=0, NN_1_dim=[5,dim],NN_2_dim=[dim],
-                          NN_3_dim=[],NN1_act=[0,1],NN2_act=[0,1],NN3_act=[], 
-                          initial_params={},name='Rehmer_LPV')
+                          NN_3_dim=[],NN1_act=[1,2],NN2_act=[1,2],NN3_act=[], 
+                          initial_params={})
         elif model == 'Lachhab':
             LPV_model = NN.LachhabLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,
                                       dim_thetaB=dim, dim_thetaC=0,

@@ -64,7 +64,7 @@ counter = 0
 for dim in [1,2]:
     
     NN_dim = [[5,dim],[5,5,dim],[5,5,5,dim]]
-    NN_act = [[0,1],[0,0,1],[0,0,0,1]]
+    NN_act = [[3,0],[3,3,0],[3,3,3,0]]
     
     for d,a in zip(NN_dim,NN_act):
     
@@ -73,7 +73,7 @@ for dim in [1,2]:
                               NN_3_dim=[],NN1_act=a,NN2_act=a,NN3_act=[], 
                               initial_params=initial_params,init_proc='xavier')
         
-        identification_results = param_optim.ModelTraining(model,data,1,
+        identification_results = param_optim.ModelTraining(model,data,10,
                                  initial_params=initial_params,p_opts=None,
                                  s_opts=None)
         

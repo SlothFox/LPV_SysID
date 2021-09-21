@@ -67,4 +67,34 @@ def XavierInitialization(dimensions,bias=False):
         lim = np.sqrt(3)/np.sqrt(dimensions[1])
         W = np.random.uniform(low=-lim, high=lim, size=dimensions)
         return W
+
+def HeInitialization(dimensions,bias=False):
+    '''
+    Routine for He initialization
+
+    Parameters
+    ----------
+    dimensions: tuple
+        description
+    bias : boolean
+        description
+
+    Returns
+    -------
+    W: numpy-array
+        initialized weights
+    b: numpy-array
+        initialized biases
+    '''    
     
+    if 0 in dimensions:
+        return np.array([]).reshape(dimensions)
+    
+    if bias == True:
+        b = np.zeros((dimensions[0],1))
+        return b
+    
+    else:
+        var = 2/dimensions[1]
+        W = np.random.normal(loc=0, scale=np.sqrt(var), size=dimensions)
+        return W
