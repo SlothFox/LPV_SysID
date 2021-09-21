@@ -20,7 +20,8 @@ import pickle as pkl
 
 from .DiscreteBoundedPSO import DiscreteBoundedPSO
 from .common import OptimValues_to_dict
-from .common import BestFitRate 
+from .common import BestFitRate
+from models.NN import LinearSSM
 
 # Import sphere function as objective function
 #from pyswarms.utils.functions.single_obj import sphere as f
@@ -404,22 +405,40 @@ def EstimateNonlinearStateSequence(model,data,lam):
 
     Parameters
     ----------
-    model : TYPE
-        DESCRIPTION.
-    data : TYPE
-        DESCRIPTION.
-    lam : TYPE
-        DESCRIPTION.
+    model : LinearSSM
+        Linear state space model.
+    data : dict
+        dictionary containing input and output data as numpy arrays with keys
+        'u_train' and 'y_train'
+    lam : float
+        trade-off parameter between fit to data and linear model fit, needs to
+        be positive
 
     Returns
     -------
-    None.
+    x_LS: array-like
+        numpy-array containing the estimated nonlinear state sequence
 
     """
     
     u = data['u_train'][0]          # [0] because only first batch is used
     y_ref = data['y_train'][0]
     init_state = data['init_state_train'][0]
+    
+    if not isinstance(model,LinearSSM):
+        print('Models needs to be',LinearSSM)
+              
+        return None
+    
+    elif u.shape[0]+1 != y_ref.shape[0]:
+        print('Length of output signal needs to be lenght of input signal + 1!\n\
+              [u_0, u_1, ... , u_N] \n\
+              [y_0, y_1, ... , y_N, y_N+1]')
+              
+        return None
+    
+    elif lam>=0:
+        print('lam needs to be greater than zero')
     
     N = u.shape[0]
     num_states = init_state.shape[1]

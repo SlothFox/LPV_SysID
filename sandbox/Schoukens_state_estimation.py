@@ -75,7 +75,7 @@ x_est,y_est = model.Simulation(init_state[0], u[0])
 
 x_LS_0 = param_optim.EstimateNonlinearStateSequence(model,data,0)
 
-x_LS_1000 = param_optim.EstimateNonlinearStateSequence(model,data,1000)
+x_LS_1000 = param_optim.EstimateNonlinearStateSequence(model,data,100000)
 
 plt.figure()
 plt.plot(np.array(x[0]))
