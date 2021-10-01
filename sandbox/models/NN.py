@@ -61,12 +61,13 @@ class LPV_RNN():
         
         params_new = []
             
-        for name in self.Function.name_in():
+        for name in self.Function.name_in()[2::]:
+ 
             try:
                 params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
             except:
-                continue
-
+                params_new.append(self.Parameters[name])  
+            
         x1,y1 = self.Function(x0,u0,*params_new)     
                               
         return x1,y1
@@ -144,7 +145,7 @@ class RBFLPV(LPV_RNN):
         
         self.Initialize()
 
-    def Initialize(self,initial_params=None):
+    def Initialize(self):
             
         # For convenience of notation
         dim_u = self.dim_u
@@ -473,7 +474,7 @@ class RBFLPV_outputSched(LPV_RNN):
         
         self.Initialize()
 
-    def Initialize(self,initial_params=None):
+    def Initialize(self):
             
         # For convenience of notation
         dim_u = self.dim_u
@@ -1754,17 +1755,20 @@ class LachhabLPV_outputSched():
             return None
 
 
-class LinearSSM():
+class LinearSSM(LPV_RNN):
     """
     
     """
 
-    def __init__(self,dim_u,dim_x,dim_y,name):
+    def __init__(self,dim_u,dim_x,dim_y,initial_params=None, init_proc='random'):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
         self.dim_y = dim_y
-        self.name = name
+        self.name = 'LinearSSM'
+        
+        self.InitialParameters = initial_params
+        self.InitializationProcedure = init_proc
         
         self.Initialize(initial_params)
 
@@ -2149,7 +2153,7 @@ class Rehmer_NN_LPV(LPV_RNN):
     def __init__(self,dim_u,dim_x,dim_y,dim_thetaA=0,dim_thetaB=0,dim_thetaC=0,
                  NN_A_dim=[],NN_B_dim=[],NN_C_dim=[],
                  NN_A_act=[],NN_B_act=[], NN_C_act=[], initial_params=None,
-                 init_proc='random'):
+                 frozen_params = None, init_proc='random'):
         '''
         Initializes the model structure by Rehmer et al. 2021.
         dim_u: int, dimension of the input vector
@@ -2194,6 +2198,7 @@ class Rehmer_NN_LPV(LPV_RNN):
         self.NN_C_act = NN_C_act
         
         self.InitialParameters = initial_params
+        self.FrozenParameters = frozen_params
         self.InitializationProcedure = init_proc
         
         self.name = 'Rehmer_NN_LPV'
@@ -2294,7 +2299,7 @@ class Rehmer_NN_LPV(LPV_RNN):
         
         A_nl = sum(NN_mult[0:dim_thetaA])
         B_nl = sum(NN_mult[dim_thetaA:dim_thetaA+dim_thetaB])
-        C_nl = sum(NN_mult[-dim_thetaC::])
+        C_nl = sum(NN_mult[dim_thetaA+dim_thetaB::])
         
         # State and output equation
         x_new = cs.mtimes(A+A_nl,x) + cs.mtimes(B+B_nl,u)

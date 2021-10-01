@@ -43,8 +43,8 @@ init_state = np.zeros((1,2,1))
 
 # Arrange Training and Validation data in a dictionary with the following
 # structure. The dictionary must have these keys
-data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
-        'u_val':val_u, 'y_val':val_y,'init_state_val': init_state}
+data = {'u_train':train_u[:,0:200,:], 'y_train':train_y[:,0:200,:],'init_state_train': init_state,
+        'u_val':val_u[:,0:200,:], 'y_val':val_y[:,0:200,:],'init_state_val': init_state}
 
 
 ''' Identification '''
@@ -52,30 +52,78 @@ data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
 LSS=loadmat("./Benchmarks/Bioreactor/Bioreactor_LSS")
 LSS=LSS['Results']
 
-
-''' RBF approach'''
-
-initial_params = {'A': LSS['A'][0][0],
+SubspaceModel = NN.LinearSSM(dim_u=1,dim_x=2,dim_y=1)
+SubspaceModel.Parameters = {'A': LSS['A'][0][0],
                   'B': LSS['B'][0][0],
-                  'C': LSS['C'][0][0],
-                  'range_u': np.array([[0,0.7]]),
-                  'range_x': np.array([[-0.1,0.1],[-0.1,0.1]])}
+                  'C': LSS['C'][0][0]}
 
-p_opts = {"expand":False}
-# s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
+C = LSS['C'][0][0]
 
 
-''' Call the Function ModelTraining, which takes the model and the data and 
-starts the optimization procedure 'initializations'-times. '''
-model = NN.Rehmer_NN_LPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=1,dim_thetaB=1,
-                          dim_thetaC=2, NN_A_dim=[[5,1],[2,1]],NN_B_dim=[[3,1]],
-                          NN_C_dim=[[3,1],[1,1]], NN_A_act=[[0,0],[0,0]],
-                          NN_B_act=[[0,0]], NN_C_act=[[0,0],[0,0]],
-                          initial_params=None,init_proc='random')
-# 
-x,y = model.Simulation(np.array([[0],[0]]),train_u[0])
+x_est,y_est = SubspaceModel.Simulation(init_state[0], train_u[0])
 
 
 
+# x_LS contains estimates for x0,...,xN
+x_LS = param_optim.EstimateNonlinearStateSequence(SubspaceModel,data,10E6)
+
+data['x_train'] = x_LS.reshape(1,-1,2)[:,0:200,:]
 
 
+'''
+Now data is arranged as
+
+u0,x0,y1
+...
+uN,xN,yN+1
+
+'''
+
+# Pick a nonlinear model
+model = NN.Rehmer_NN_LPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=1,
+                         NN_A_dim=[[5,1]],NN_A_act=[[1,0]])
+
+model.Parameters['A'] = LSS['A'][0][0]
+model.Parameters['B'] = LSS['B'][0][0]
+model.Parameters['C'] = LSS['C'][0][0]
+
+model.FrozenParameters = ['A','B','C']
+
+
+new_params = param_optim.ModelParameterEstimation(model,data)
+
+for p in new_params.keys():
+    model.Parameters[p] = new_params[p]
+
+
+
+x_LS = data['x_train'][0]
+u = train_u[0][0:200]
+x_est = []
+y_est = []
+
+
+# initial states
+x_est.append(init_state[0])
+              
+# Simulate Model
+for k in range(u.shape[0]):
+    x_new,y_new = model.OneStepPrediction(x_LS[k],u[[k],:])
+    x_est.append(x_new)
+    y_est.append(y_new)
+
+# Concatenate list to casadiMX
+y_est = cs.hcat(y_est).T    
+x_est = cs.hcat(x_est).T
+
+
+x_est = np.array(x_est)
+y_est = np.array(y_est)
+
+plt.close('all')
+
+plt.figure()
+plt.plot(train_y[0,0:200,:])
+plt.plot(y_est[0:200,:])
+
+x_sim,y_sim = model.Simulation(init_state[0], train_u[0])

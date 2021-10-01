@@ -38,23 +38,6 @@ from models.NN import LinearSSM
 # from miscellaneous import *
 
 
-# def SimulateModel(model,x,u,params=None):
-#     # Casadi Function needs list of parameters as input
-#     if params==None:
-#         params = model.Parameters
-    
-#     params_new = []
-        
-#     for name in  model.Function.name_in():
-#         try:
-#             params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-#         except:
-#             continue
-    
-#     x_new = model.Function(x,u,*params_new)     
-                          
-#     return x_new
-
 def ControlInput(ref_trajectories,opti_vars,k):
     """
     Übersetzt durch Maschinenparameter parametrierte
@@ -70,18 +53,18 @@ def ControlInput(ref_trajectories,opti_vars,k):
 
     return control   
     
-def CreateOptimVariables(opti, RefTrajectoryParams):
+def CreateOptimVariables(opti, Parameters):
     """
-    Defines all parameters, which parameterize reference trajectories, as
-    opti variables and puts them in a large dictionary
+    Defines all parameters, which are part of the optimization problem, as 
+    opti variables with appropriate dimensions
     """
     
     # Create empty dictionary
     opti_vars = {}
     
-    for param in RefTrajectoryParams.keys():
-        dim0 = RefTrajectoryParams[param].shape[0]
-        dim1 = RefTrajectoryParams[param].shape[1]
+    for param in Parameters.keys():
+        dim0 = Parameters[param].shape[0]
+        dim1 = Parameters[param].shape[1]
         
         opti_vars[param] = opti.variable(dim0,dim1)
     
@@ -352,36 +335,70 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None):
     y_ref = data['y_train']
     init_state = data['init_state_train']
     
+    try:
+        x_ref = data['x_train']
+    except:
+        x_ref = None
+        
     # Create Instance of the Optimization Problem
     opti = cs.Opti()
     
-    params_opti = CreateOptimVariables(opti, model.Parameters)
+    # Create dictionary of all non-frozen parameters to create Opti Variables of 
+    OptiParameters = model.Parameters.copy()
+    
+    for frozen_param in model.FrozenParameters:
+        OptiParameters.pop(frozen_param)
+        
+    
+    params_opti = CreateOptimVariables(opti, OptiParameters)
     
     e = 0
     
-    # Loop over all experiments/batches
-    for i in range(0,u.shape[0]):   
-           
-        # Simulate Model
-        pred = model.Simulation(init_state[i],u[i],params_opti)
+    ''' Depending on whether a reference trajectory for the hidden state is
+    provided or not, the model is either trained in parallel (recurrent) or 
+    series-parallel configuration'''
+    
+    # Training in parallel configuration 
+    if x_ref is None:
         
-        if isinstance(pred, tuple):
-            pred = pred[1]
-        
-        e = e + cs.sumsqr(y_ref[i,:,:] - pred)
+        # Loop over all batches 
+        for i in range(0,u.shape[0]):   
+               
+            # Simulate Model
+            pred = model.Simulation(init_state[i],u[i],params_opti)
+            
+            if isinstance(pred, tuple):
+                pred = pred[1]
+            
+            # Calculate simulation error
+            e = e + cs.sumsqr(y_ref[i,:,:] - pred)
+            
+            
+    # Training in series parallel configuration        
+    else:
+        # Loop over all batches 
+        for i in range(0,u.shape[0]):  
+            
+            # One-Step prediction
+            for k in range(u[i,:,:].shape[0]-1):  
+                # print(k)
+                x_new,y_new = model.OneStepPrediction(x_ref[i,k,:],u[i,k,:],
+                                                      params_opti)
+                
+                # Calculate one step prediction error
+                e = e + cs.sumsqr(y_ref[i,:,:]-y_new) + \
+                    cs.sumsqr(x_ref[i,k+1,:]-x_new) 
     
     opti.minimize(e)
-    
-    # Create Solver
-    
+        
     # Solver options
     if p_opts is None:
         p_opts = {"expand":False}
     if s_opts is None:
-        s_opts = {"max_iter": 1000, "print_level":0}
-    
+        s_opts = {"max_iter": 1000, "print_level":1}
+
+    # Create Solver
     opti.solver("ipopt",p_opts, s_opts)
-    
     
     # Set initial values of Opti Variables as current Model Parameters
     for key in params_opti:
@@ -424,25 +441,42 @@ def EstimateNonlinearStateSequence(model,data,lam):
     y_ref = data['y_train'][0]
     init_state = data['init_state_train'][0]
     
-    if not isinstance(model,LinearSSM):
-        print('Models needs to be',LinearSSM)
-              
-        return None
+    '''
+    Measurement data is arranged as
+    u0,y1
+    u1,y2
+    ...
     
-    elif u.shape[0]+1 != y_ref.shape[0]:
-        print('Length of output signal needs to be lenght of input signal + 1!\n\
-              [u_0, u_1, ... , u_N] \n\
-              [y_0, y_1, ... , y_N, y_N+1]')
-              
-        return None
+    '''
     
-    elif lam>=0:
-        print('lam needs to be greater than zero')
+    # if not isinstance(model,LinearSSM):
+    #     print('Models needs to be',LinearSSM)
+              
+        # return None
+    
+    # elif u.shape[0]+1 != y_ref.shape[0]:
+    #     print('Length of output signal needs to be lenght of input signal + 1!\n\
+    #           [u_0, u_1, ... , u_N] \n\
+    #           [y_0, y_1, ... , y_N, y_N+1]')
+              
+        # return None
+    
+    # elif lam>=0:
+    #     print('lam needs to be greater than zero')
     
     N = u.shape[0]
-    num_states = init_state.shape[1]
+    num_states = init_state.shape[0]
+    
     # Simulate LSS
     x_lin, y_lin = model.Simulation(init_state,u)
+
+    '''
+    Simulation data is arranged as
+    x0,y1
+    x1,y2
+    ...
+    
+    '''
     
     # Create Instance of the Optimization Problem
     opti = cs.Opti()
@@ -454,37 +488,28 @@ def EstimateNonlinearStateSequence(model,data,lam):
     # x_LS = np.zeros(())
 
     # Create decision variables for states
-    x_LS = opti.variable(N+1,num_states)
+    x_LS = opti.variable(N,num_states) # x1,...,xN-1
     
     e = 0
     
-    # x_new,y_new = model.OneStepPrediction(x_LS[0],u[[0],:])
-    
-    # e = e + cs.sumsqr(y_ref[0,:] - cs.mtimes(model.Parameters['C'],x_LS[0]))
-    
-    for k in range(0,N):
 
-        x_new, _ = model.OneStepPrediction(x_LS[k],u[[k],:])
+    for k in range(1,N):
+        '''
+        Since y0 is not part of recorded data, optimization starts with x1!
         
-        e = e + cs.sumsqr(y_ref[k,:] - cs.mtimes(model.Parameters['C'],x_LS[k])) \
-            + lam * cs.sumsqr(x_lin[k+1] - x_new)
-    
-    e = e + e + cs.sumsqr(y_ref[N,:] - cs.mtimes(model.Parameters['C'],x_LS[N]))   
-    
-    
-    
-    
-    
-    # e = e + cs.sumsqr(y_ref[0,:] - cs.mtimes(model.Parameters['C'],x_LS[0]))
-    
-    # for k in range(1,N):
+        x2 = Model(x1,u1)
+        y1 = C*x1
+        
+        e = e + (yref1 - y1)^2 + lam * (xlin2 - x2)^2
+        '''
 
-    #     x_new,y_new = model.OneStepPrediction(x_LS[k],u[[k],:])
+        x2,_ = model.OneStepPrediction(x_LS[[k],:],u[[k],:])
         
-    #     e = e + cs.sumsqr(y_ref[k,:] - y_new) + lam * cs.sumsqr(x_lin[k+1]-x_new)
-    
-    # e = e + e + cs.sumsqr(y_ref[N,:] - cs.mtimes(model.Parameters['C'],x_LS[N]))
-    
+        y1 = cs.mtimes(model.Parameters['C'],x_LS[[k],:].T)
+        
+        e = e + cs.sumsqr(y_ref[[k-1],:] - y1)  + \
+            + lam * cs.sumsqr(x_lin[[k+1],:].T - x2)   
+            
     opti.minimize(e)    
     opti.solver("ipopt")
     
@@ -494,8 +519,10 @@ def EstimateNonlinearStateSequence(model,data,lam):
         sol = opti.debug
             
       
-    x_LS = np.array(sol.value(x_LS)).reshape(N+1,num_states)
-    
-
+    x_LS = np.array(sol.value(x_LS)).reshape(N,num_states)
+    # print(x_LS.shape)
+    # x0 was not part of optimization (loop starts at 1!) and is replaced with
+    # initial state
+    x_LS[0,:] = init_state.reshape(1,num_states)
     
     return x_LS
