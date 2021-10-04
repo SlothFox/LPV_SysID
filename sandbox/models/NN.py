@@ -13,6 +13,39 @@ class LPV_RNN():
     Parent class for all Recurrent Neural Network LPV-Models
     '''
 
+    def ParameterInitialization(self):
+        '''
+        Routine for parameter initialization. Takes input_names from the Casadi-
+        Function defining the model equations self.Function and defines a 
+        dictionary with input_names as keys. According to the initialization
+        procedure defined in self.InitializationProcedure each key contains 
+        a numpy array of appropriate shape
+
+        Returns
+        -------
+        None.
+
+        '''
+                
+        # Initialization procedure
+        if self.InitializationProcedure == 'random':
+            initialization = RandomInitialization
+        elif self.InitializationProcedure == 'xavier':
+            initialization = XavierInitialization
+        elif self.InitializationProcedure == 'he':
+            initialization = HeInitialization      
+        
+        # Define all parameters in a dictionary and initialize them 
+        self.Parameters = {}
+        for p_name in self.Function.name_in()[2::]:
+            self.Parameters[p_name] = initialization(self.Function.size_in(p_name))
+
+        # Initialize with specific inital parameters if given
+        if self.InitialParameters is not None:
+            for param in self.InitialParameters.keys():
+                if param in self.Parameters.keys():
+                    self.Parameters[param] = self.InitialParameters[param]
+
     def OneStepPrediction(self,x0,u0,params=None):
         '''
         Estimates the next state and output from current state and input
@@ -28,12 +61,13 @@ class LPV_RNN():
         
         params_new = []
             
-        for name in  self.Function.name_in():
+        for name in self.Function.name_in()[2::]:
+ 
             try:
                 params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
             except:
-                continue
-        
+                params_new.append(self.Parameters[name])  
+            
         x1,y1 = self.Function(x0,u0,*params_new)     
                               
         return x1,y1
@@ -111,7 +145,7 @@ class RBFLPV(LPV_RNN):
         
         self.Initialize()
 
-    def Initialize(self,initial_params=None):
+    def Initialize(self):
             
         # For convenience of notation
         dim_u = self.dim_u
@@ -265,77 +299,77 @@ class RBFLPV(LPV_RNN):
         
         return None
         
-    def ParameterInitialization(self):
+    # def ParameterInitialization(self):
         
-        dim_u = self.dim_u
-        dim_x = self.dim_x
-        dim_y = self.dim_y
-        dim_theta = self.dim_theta
-        NN_dim = self.NN_dim
-        NN_act = self.NN_act
-        NN = self.NN
+    #     dim_u = self.dim_u
+    #     dim_x = self.dim_x
+    #     dim_y = self.dim_y
+    #     dim_theta = self.dim_theta
+    #     NN_dim = self.NN_dim
+    #     NN_act = self.NN_act
+    #     NN = self.NN
         
-        # Initialization procedure
-        if self.InitializationProcedure == 'random':
-            initialization = np.random.rand
-        elif self.InitializationProcedure == 'xavier':
-            initialization = XavierInitialization
-        elif self.InitializationProcedure == 'he':
-            initialization = HeInitialization        
+    #     # Initialization procedure
+    #     if self.InitializationProcedure == 'random':
+    #         initialization = np.random.rand
+    #     elif self.InitializationProcedure == 'xavier':
+    #         initialization = XavierInitialization
+    #     elif self.InitializationProcedure == 'he':
+    #         initialization = HeInitialization        
         
-        Parameters = {}
+    #     Parameters = {}
         
-        # Add local model parameters
-        for loc in range(dim_theta):
+    #     # Add local model parameters
+    #     for loc in range(dim_theta):
     
-            i=str(loc)
+    #         i=str(loc)
             
-            Parameters['A'+i] = initialization((dim_x,dim_x))
-            Parameters['B'+i] = initialization((dim_x,dim_u))
-            Parameters['C'+i] = initialization((dim_y,dim_x))
+    #         Parameters['A'+i] = initialization((dim_x,dim_x))
+    #         Parameters['B'+i] = initialization((dim_x,dim_u))
+    #         Parameters['C'+i] = initialization((dim_y,dim_x))
 
 
-            if len(NN)==0:
-                Parameters['c_u'+i] = initialization((dim_u,1))
-                Parameters['c_x'+i] = initialization((dim_x,1))
-                Parameters['w_u'+i] = initialization((dim_u,1))
-                Parameters['w_x'+i] = initialization((dim_x,1))
+    #         if len(NN)==0:
+    #             Parameters['c_u'+i] = initialization((dim_u,1))
+    #             Parameters['c_x'+i] = initialization((dim_x,1))
+    #             Parameters['w_u'+i] = initialization((dim_u,1))
+    #             Parameters['w_x'+i] = initialization((dim_x,1))
             
-            else:
+    #         else:
                 
-                Parameters['c_h'+i] = initialization((NN_dim[-1],1))
-                Parameters['w_h'+i] = initialization((NN_dim[-1],1))
+    #             Parameters['c_h'+i] = initialization((NN_dim[-1],1))
+    #             Parameters['w_h'+i] = initialization((NN_dim[-1],1))
             
-        for l in range(0,len(NN)):
+    #     for l in range(0,len(NN)):
  
-            if l==0:
+    #         if l==0:
                
-                Parameters['NN_Wx'+str(l)] = initialization(NN[l][0].shape)
-                Parameters['NN_Wu'+str(l)] = initialization(NN[l][1].shape)
-                Parameters['NN_b'+str(l)] = initialization(NN[l][2].shape)
+    #             Parameters['NN_Wx'+str(l)] = initialization(NN[l][0].shape)
+    #             Parameters['NN_Wu'+str(l)] = initialization(NN[l][1].shape)
+    #             Parameters['NN_b'+str(l)] = initialization(NN[l][2].shape)
                 
-            else:
+    #         else:
                 
-                Parameters['NN_W'+str(l)] = initialization(NN[l][0].shape)
-                Parameters['NN_b'+str(l)] = initialization(NN[l][1].shape)   
+    #             Parameters['NN_W'+str(l)] = initialization(NN[l][0].shape)
+    #             Parameters['NN_b'+str(l)] = initialization(NN[l][1].shape)   
 
 
-        self.Parameters=Parameters    
+    #     self.Parameters=Parameters    
         
-        # Initialize if inital parameters are given
-        if self.InitialParameters is not None:
-            if 'A'  in self.InitialParameters.keys() and 'B'  in self.InitialParameters.keys() and 'C'  in self.InitialParameters.keys():
-                A = self.InitialParameters['A']
-                B = self.InitialParameters['B']
-                C = self.InitialParameters['C']
-                range_x = self.InitialParameters['range_x']
-                range_u = self.InitialParameters['range_u']
+    #     # Initialize if inital parameters are given
+    #     if self.InitialParameters is not None:
+    #         if 'A'  in self.InitialParameters.keys() and 'B'  in self.InitialParameters.keys() and 'C'  in self.InitialParameters.keys():
+    #             A = self.InitialParameters['A']
+    #             B = self.InitialParameters['B']
+    #             C = self.InitialParameters['C']
+    #             range_x = self.InitialParameters['range_x']
+    #             range_u = self.InitialParameters['range_u']
                 
-                self.InitializeLocalModels(A,B,C,range_x,range_u)
-            else:
-                for param in self.InitialParameters.keys():
-                    if param in self.Parameters.keys():
-                        self.Parameters[param] = self.InitialParameters[param]      
+    #             self.InitializeLocalModels(A,B,C,range_x,range_u)
+    #         else:
+    #             for param in self.InitialParameters.keys():
+    #                 if param in self.Parameters.keys():
+    #                     self.Parameters[param] = self.InitialParameters[param]      
                 
                 
     def InitializeLocalModels(self,A,B,C,range_x=None,range_u=None):
@@ -440,7 +474,7 @@ class RBFLPV_outputSched(LPV_RNN):
         
         self.Initialize()
 
-    def Initialize(self,initial_params=None):
+    def Initialize(self):
             
         # For convenience of notation
         dim_u = self.dim_u
@@ -576,80 +610,80 @@ class RBFLPV_outputSched(LPV_RNN):
         return None        
 
 
-    def ParameterInitialization(self):        
+    # def ParameterInitialization(self):        
 
-        dim_u = self.dim_u
-        dim_x = self.dim_x
-        dim_y = self.dim_y
-        dim_theta = self.dim_theta
-        NN_dim = self.NN_dim
-        NN_act = self.NN_act
-        NN = self.NN
+    #     dim_u = self.dim_u
+    #     dim_x = self.dim_x
+    #     dim_y = self.dim_y
+    #     dim_theta = self.dim_theta
+    #     NN_dim = self.NN_dim
+    #     NN_act = self.NN_act
+    #     NN = self.NN
         
-        # Initialization procedure
-        if self.InitializationProcedure == 'random':
-            initialization = np.random.rand
-        elif self.InitializationProcedure == 'xavier':
-            initialization = XavierInitialization
-        elif self.InitializationProcedure == 'he':
-            initialization = HeInitialization    
+    #     # Initialization procedure
+    #     if self.InitializationProcedure == 'random':
+    #         initialization = np.random.rand
+    #     elif self.InitializationProcedure == 'xavier':
+    #         initialization = XavierInitialization
+    #     elif self.InitializationProcedure == 'he':
+    #         initialization = HeInitialization    
               
-        Parameters = {}
+    #     Parameters = {}
         
-        Parameters['C'] = initialization(dim_y,dim_x)
+    #     Parameters['C'] = initialization(dim_y,dim_x)
         
-        # Add local model parameters
-        for loc in range(0,dim_theta):
+    #     # Add local model parameters
+    #     for loc in range(0,dim_theta):
     
-            i=str(loc)
+    #         i=str(loc)
             
-            Parameters['A'+i] = initialization((dim_x,dim_x))
-            Parameters['B'+i] = initialization((dim_x,dim_u))
+    #         Parameters['A'+i] = initialization((dim_x,dim_x))
+    #         Parameters['B'+i] = initialization((dim_x,dim_u))
 
 
-            if len(NN)==0:
-                Parameters['c_u'+i] = initialization((dim_u,1))
-                Parameters['c_y'+i] = initialization((dim_y,1))
-                Parameters['w_u'+i] = initialization((dim_u,1))
-                Parameters['w_y'+i] = initialization((dim_y,1))
+    #         if len(NN)==0:
+    #             Parameters['c_u'+i] = initialization((dim_u,1))
+    #             Parameters['c_y'+i] = initialization((dim_y,1))
+    #             Parameters['w_u'+i] = initialization((dim_u,1))
+    #             Parameters['w_y'+i] = initialization((dim_y,1))
             
-            else:
+    #         else:
                 
-                Parameters['c_h'+i] = initialization((NN_dim[-1],1))
-                Parameters['w_h'+i] = initialization((NN_dim[-1],1))
+    #             Parameters['c_h'+i] = initialization((NN_dim[-1],1))
+    #             Parameters['w_h'+i] = initialization((NN_dim[-1],1))
             
-        for l in range(0,len(NN)):
+    #     for l in range(0,len(NN)):
  
-            if l==0:
+    #         if l==0:
                
-                Parameters['NN_Wy'+str(l)] = initialization(NN[l][0].shape)
-                Parameters['NN_Wu'+str(l)] = initialization(NN[l][1].shape)
-                Parameters['NN_b'+str(l)] = initialization(NN[l][2].shape)
+    #             Parameters['NN_Wy'+str(l)] = initialization(NN[l][0].shape)
+    #             Parameters['NN_Wu'+str(l)] = initialization(NN[l][1].shape)
+    #             Parameters['NN_b'+str(l)] = initialization(NN[l][2].shape)
                 
-            else:
+    #         else:
                 
-                Parameters['NN_W'+str(l)] = initialization(NN[l][0].shape)
-                Parameters['NN_b'+str(l)] = initialization(NN[l][1].shape)   
+    #             Parameters['NN_W'+str(l)] = initialization(NN[l][0].shape)
+    #             Parameters['NN_b'+str(l)] = initialization(NN[l][1].shape)   
 
 
-        self.Parameters=Parameters            
+    #     self.Parameters=Parameters            
         
-        # Initialize if inital parameters are given
-        if 'A' in self.InitialParameters.keys() and 'B' in self.InitialParameters.keys() and 'C' in self.InitialParameters.keys():
-            A = self.InitialParameters['A']
-            B = self.InitialParameters['B']
-            C = self.InitialParameters['C']
-            range_y = self.InitialParameters['range_y']
-            range_u = self.InitialParameters['range_u']
+    #     # Initialize if inital parameters are given
+    #     if 'A' in self.InitialParameters.keys() and 'B' in self.InitialParameters.keys() and 'C' in self.InitialParameters.keys():
+    #         A = self.InitialParameters['A']
+    #         B = self.InitialParameters['B']
+    #         C = self.InitialParameters['C']
+    #         range_y = self.InitialParameters['range_y']
+    #         range_u = self.InitialParameters['range_u']
             
-            self.InitializeLocalModels(A,B,C,range_y,range_u)
-        else:
-            if initial_params is not None:
-                for param in initial_params.keys():
-                    if param in self.Parameters.keys():
-                        self.Parameters[param] = self.InitialParameters[param]
+    #         self.InitializeLocalModels(A,B,C,range_y,range_u)
+    #     else:
+    #         if initial_params is not None:
+    #             for param in initial_params.keys():
+    #                 if param in self.Parameters.keys():
+    #                     self.Parameters[param] = self.InitialParameters[param]
 
-        return None
+    #     return None
     
     def InitializeLocalModels(self,A,B,C,range_y=None,range_u=None):
         '''
@@ -707,25 +741,6 @@ class RBFLPV_outputSched(LPV_RNN):
         
         return None #A,B,C
 
-    def AffineParameters(self,x0,u0):
-        '''
-
-        '''
-        
-        params = self.Parameters
-        
-        params_new = []
-            
-        for name in self.AffineParameters.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        theta = self.AffineParameters(x0,u0,*params_new) 
-
-        return theta   
-    
     
 class RehmerLPV(LPV_RNN):
     """
@@ -911,71 +926,71 @@ class RehmerLPV(LPV_RNN):
         
         return None
     
-    def ParameterInitialization(self):
+    # def ParameterInitialization(self):
         
-        # For convenience of notation
-        dim_u = self.dim_u
-        dim_x = self.dim_x 
-        dim_y = self.dim_y   
-        dim_thetaA = self.dim_thetaA
-        dim_thetaB = self.dim_thetaB
-        dim_thetaC = self.dim_thetaC
-        NN_1_dim = self.NN_1_dim
-        NN_2_dim = self.NN_2_dim
-        NN_3_dim = self.NN_3_dim    
-        NN1_act = self.NN1_act
-        NN2_act = self.NN2_act
-        NN3_act = self.NN3_act
+    #     # For convenience of notation
+    #     dim_u = self.dim_u
+    #     dim_x = self.dim_x 
+    #     dim_y = self.dim_y   
+    #     dim_thetaA = self.dim_thetaA
+    #     dim_thetaB = self.dim_thetaB
+    #     dim_thetaC = self.dim_thetaC
+    #     NN_1_dim = self.NN_1_dim
+    #     NN_2_dim = self.NN_2_dim
+    #     NN_3_dim = self.NN_3_dim    
+    #     NN1_act = self.NN1_act
+    #     NN2_act = self.NN2_act
+    #     NN3_act = self.NN3_act
        
-        name = self.name   
+    #     name = self.name   
         
-        NN1 = self.NN1
-        NN2 = self.NN2
-        NN3 = self.NN3
+    #     NN1 = self.NN1
+    #     NN2 = self.NN2
+    #     NN3 = self.NN3
         
-        # Initialization procedure
-        if self.InitializationProcedure == 'random':
-            initialization = RandomInitialization
-        elif self.InitializationProcedure == 'xavier':
-            initialization = XavierInitialization
-        elif self.InitializationProcedure == 'he':
-            initialization = HeInitialization      
+    #     # Initialization procedure
+    #     if self.InitializationProcedure == 'random':
+    #         initialization = RandomInitialization
+    #     elif self.InitializationProcedure == 'xavier':
+    #         initialization = XavierInitialization
+    #     elif self.InitializationProcedure == 'he':
+    #         initialization = HeInitialization      
         
-        # Define all parameters in a dictionary and initialize them 
-        self.Parameters = {'A_0':initialization((dim_x,dim_x)),
-                   'A_1':initialization((dim_x,dim_thetaA)),
-                   'E_1':initialization((dim_thetaA,dim_x)),
-                   'B_0':initialization((dim_x,dim_u)),
-                   'B_1':initialization((dim_x,dim_thetaB))*0.01,
-                   'E_2':initialization((dim_thetaB,dim_u)),
-                   'C_0':initialization((dim_y,dim_x)),
-                   'C_1':initialization((dim_y,dim_thetaC))*0.01,
-                   'E_3':initialization((dim_thetaC,dim_x))}
+    #     # Define all parameters in a dictionary and initialize them 
+    #     self.Parameters = {'A_0':initialization((dim_x,dim_x)),
+    #                'A_1':initialization((dim_x,dim_thetaA)),
+    #                'E_1':initialization((dim_thetaA,dim_x)),
+    #                'B_0':initialization((dim_x,dim_u)),
+    #                'B_1':initialization((dim_x,dim_thetaB))*0.01,
+    #                'E_2':initialization((dim_thetaB,dim_u)),
+    #                'C_0':initialization((dim_y,dim_x)),
+    #                'C_1':initialization((dim_y,dim_thetaC))*0.01,
+    #                'E_3':initialization((dim_thetaC,dim_x))}
         
-        # Add remaining parameters in loop since they depend on depth of NNs
+    #     # Add remaining parameters in loop since they depend on depth of NNs
         
-        for NN_name, NN in zip(['NN1','NN2','NN3'],[NN1,NN2,NN3]):
+    #     for NN_name, NN in zip(['NN1','NN2','NN3'],[NN1,NN2,NN3]):
             
-            for l in range(0,len(NN)):
+    #         for l in range(0,len(NN)):
 
-                i=str(l)
+    #             i=str(l)
                 
-                if l==0:                   
-                    self.Parameters[NN_name+'_Wx'+i] = initialization(NN[l][0].shape)
-                    self.Parameters[NN_name+'_Wu'+i] = initialization(NN[l][1].shape)
-                    self.Parameters[NN_name+'_b'+i] = initialization(NN[l][2].shape,True)
+    #             if l==0:                   
+    #                 self.Parameters[NN_name+'_Wx'+i] = initialization(NN[l][0].shape)
+    #                 self.Parameters[NN_name+'_Wu'+i] = initialization(NN[l][1].shape)
+    #                 self.Parameters[NN_name+'_b'+i] = initialization(NN[l][2].shape,True)
                     
-                else:
+    #             else:
                     
-                    self.Parameters[NN_name+'_W'+i] = initialization(NN[l][0].shape)
-                    self.Parameters[NN_name+'_b'+i] = initialization(NN[l][1].shape,True)            
+    #                 self.Parameters[NN_name+'_W'+i] = initialization(NN[l][0].shape)
+    #                 self.Parameters[NN_name+'_b'+i] = initialization(NN[l][1].shape,True)            
         
         
-        # Initialize if specific inital parameters are given
-        if self.InitialParameters is not None:
-            for param in self.InitialParameters.keys():
-                if param in self.Parameters.keys():
-                    self.Parameters[param] = self.InitialParameters[param]
+    #     # Initialize if specific inital parameters are given
+    #     if self.InitialParameters is not None:
+    #         for param in self.InitialParameters.keys():
+    #             if param in self.Parameters.keys():
+    #                 self.Parameters[param] = self.InitialParameters[param]
     
         
     def AffineStateSpaceMatrices(self,theta):
@@ -1002,89 +1017,6 @@ class RehmerLPV(LPV_RNN):
         C = C_0 + np.linalg.multi_dot([C_lpv,np.diag(theta_C),W_C]) 
         
         return A,B,C
-
-    def EvalAffineParameters(self,x0,u0):
-        '''
-
-        '''
-        
-        params = self.Parameters
-        
-        params_new = []
-            
-        for name in self.AffineParameters.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        theta = self.AffineParameters(x0,u0,*params_new)
-
-        return theta
-
-    # def OneStepPrediction(self,x0,u0,params=None):
-    #     '''
-    #     Estimates the next state and output from current state and input
-    #     x0: Casadi MX, current state
-    #     u0: Casadi MX, current input
-    #     params: A dictionary of opti variables, if the parameters of the model
-    #             should be optimized, if None, then the current parameters of
-    #             the model are used
-    #     '''
-        
-    #     if params==None:
-    #         params = self.Parameters
-        
-    #     params_new = []
-            
-    #     for name in  self.Function.name_in():
-    #         try:
-    #             params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-    #         except:
-    #             continue
-        
-    #     x1,y1 = self.Function(x0,u0,*params_new) 
-
-    #     return x1,y1    
-
-
-    # def Simulation(self,x0,u,params=None):
-    #     '''
-    #     A iterative application of the OneStepPrediction in order to perform a
-    #     simulation for a whole input trajectory
-    #     x0: Casadi MX, inital state a begin of simulation
-    #     u: Casadi MX,  input trajectory
-    #     params: A dictionary of opti variables, if the parameters of the model
-    #             should be optimized, if None, then the current parameters of
-    #             the model are used
-    #     '''
-    #     x = []
-    #     y = []  
-    #     theta = []
-
-    #     # initial states
-    #     x.append(x0)        
-        
-    #     # Simulate Model
-    #     for k in range(u.shape[0]):
-    #         x_new,y_new = \
-    #             self.OneStepPrediction(x[k],u[[k],:],params)
-            
-    #         # theta.append(t)
-    #         x.append(x_new)
-    #         y.append(y_new)
-        
-    #     # Concatenate list to casadiMX
-    #     y = cs.hcat(y).T    
-    #     x = cs.hcat(x).T   
-    #     # theta = cs.hcat(theta).T
-        
-    #     return x,y
-    
-    
-    
-
-
 
 class RehmerLPV_outputSched(LPV_RNN):
     """
@@ -1260,69 +1192,69 @@ class RehmerLPV_outputSched(LPV_RNN):
         
         return None
 
-    def ParameterInitialization(self):
+    # def ParameterInitialization(self):
         
-        # For convenience of notation
-        dim_u = self.dim_u
-        dim_x = self.dim_x 
-        dim_y = self.dim_y   
-        dim_thetaA = self.dim_thetaA
-        dim_thetaB = self.dim_thetaB
-        dim_thetaC = self.dim_thetaC
-        NN_1_dim = self.NN_1_dim
-        NN_2_dim = self.NN_2_dim
-        NN_3_dim = self.NN_3_dim    
-        NN1_act = self.NN1_act
-        NN2_act = self.NN2_act
-        NN3_act = self.NN3_act
+    #     # For convenience of notation
+    #     dim_u = self.dim_u
+    #     dim_x = self.dim_x 
+    #     dim_y = self.dim_y   
+    #     dim_thetaA = self.dim_thetaA
+    #     dim_thetaB = self.dim_thetaB
+    #     dim_thetaC = self.dim_thetaC
+    #     NN_1_dim = self.NN_1_dim
+    #     NN_2_dim = self.NN_2_dim
+    #     NN_3_dim = self.NN_3_dim    
+    #     NN1_act = self.NN1_act
+    #     NN2_act = self.NN2_act
+    #     NN3_act = self.NN3_act
        
-        name = self.name   
+    #     name = self.name   
         
-        NN1 = self.NN1
-        NN2 = self.NN2
+    #     NN1 = self.NN1
+    #     NN2 = self.NN2
         
-        # Initialization procedure
-        if self.InitializationProcedure == 'random':
-            initialization = np.random.rand
-        elif self.InitializationProcedure == 'xavier':
-            initialization = XavierInitialization
-        elif self.InitializationProcedure == 'he':
-            initialization = HeInitialization      
+    #     # Initialization procedure
+    #     if self.InitializationProcedure == 'random':
+    #         initialization = np.random.rand
+    #     elif self.InitializationProcedure == 'xavier':
+    #         initialization = XavierInitialization
+    #     elif self.InitializationProcedure == 'he':
+    #         initialization = HeInitialization      
         
-        # Define all parameters in a dictionary and initialize them 
-        self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
-                   'A_1':initialization(dim_x,dim_thetaA)*0.01,
-                   'E_1':initialization(dim_thetaA,dim_x),
-                   'B_0':initialization(dim_x,dim_u),
-                   'B_1':initialization(dim_x,dim_thetaB)*0.01,
-                   'E_2':initialization(dim_thetaB,dim_u),
-                   'C_0':initialization(dim_y,dim_x)}
+    #     # Define all parameters in a dictionary and initialize them 
+    #     self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
+    #                'A_1':initialization(dim_x,dim_thetaA)*0.01,
+    #                'E_1':initialization(dim_thetaA,dim_x),
+    #                'B_0':initialization(dim_x,dim_u),
+    #                'B_1':initialization(dim_x,dim_thetaB)*0.01,
+    #                'E_2':initialization(dim_thetaB,dim_u),
+    #                'C_0':initialization(dim_y,dim_x)}
         
-        # Add remaining parameters in loop since they depend on depth of NNs
+    #     # Add remaining parameters in loop since they depend on depth of NNs
         
-        for NN_name, NN in zip(['NN1','NN2'],[NN1,NN2]):
+    #     for NN_name, NN in zip(['NN1','NN2'],[NN1,NN2]):
             
-            for l in range(0,len(NN)):
+    #         for l in range(0,len(NN)):
 
-                i=str(l)
+    #             i=str(l)
                 
-                if l==0:
+    #             if l==0:
                    
-                    self.Parameters[NN_name+'_Wy'+i] = initialization(*NN[l][0].shape)
-                    self.Parameters[NN_name+'_Wu'+i] = initialization(*NN[l][1].shape)
-                    self.Parameters[NN_name+'_b'+i] = initialization(*NN[l][2].shape)
+    #                 self.Parameters[NN_name+'_Wy'+i] = initialization(*NN[l][0].shape)
+    #                 self.Parameters[NN_name+'_Wu'+i] = initialization(*NN[l][1].shape)
+    #                 self.Parameters[NN_name+'_b'+i] = initialization(*NN[l][2].shape)
                     
-                else:
+    #             else:
                     
-                    self.Parameters[NN_name+'_W'+i] = initialization(*NN[l][0].shape)
-                    self.Parameters[NN_name+'_b'+i] = initialization(*NN[l][1].shape)            
+    #                 self.Parameters[NN_name+'_W'+i] = initialization(*NN[l][0].shape)
+    #                 self.Parameters[NN_name+'_b'+i] = initialization(*NN[l][1].shape)            
         
         
-        # Initialize if specific inital parameters are given
-        if self.InitialParameters is not None:
-            for param in self.InitialParameters.keys():
-                if param in self.Parameters.keys():
-                    self.Parameters[param] = self.InitialParameters[param]
+    #     # Initialize if specific inital parameters are given
+    #     if self.InitialParameters is not None:
+    #         for param in self.InitialParameters.keys():
+    #             if param in self.Parameters.keys():
+    #                 self.Parameters[param] = self.InitialParameters[param]
 
 
 
@@ -1352,83 +1284,6 @@ class RehmerLPV_outputSched(LPV_RNN):
         
         return A,B,C
 
-    # def EvalAffineParameters(self,x0,u0):
-    #     '''
-
-    #     '''
-        
-    #     params = self.Parameters
-        
-    #     params_new = []
-            
-    #     for name in self.AffineParameters.name_in():
-    #         try:
-    #             params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-    #         except:
-    #             continue
-        
-    #     theta = self.AffineParameters(x0,u0,*params_new)
-
-    #     return theta
-
-    # def OneStepPrediction(self,x0,u0,params=None):
-    #     '''
-    #     Estimates the next state and output from current state and input
-    #     x0: Casadi MX, current state
-    #     u0: Casadi MX, current input
-    #     params: A dictionary of opti variables, if the parameters of the model
-    #             should be optimized, if None, then the current parameters of
-    #             the model are used
-    #     '''
-        
-    #     if params==None:
-    #         params = self.Parameters
-        
-    #     params_new = []
-            
-    #     for name in  self.Function.name_in():
-    #         try:
-    #             params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-    #         except:
-    #             continue
-        
-    #     x1,y1 = self.Function(x0,u0,*params_new) 
-
-    #     return x1,y1    
-
-
-    # def Simulation(self,x0,u,params=None):
-    #     '''
-    #     A iterative application of the OneStepPrediction in order to perform a
-    #     simulation for a whole input trajectory
-    #     x0: Casadi MX, inital state a begin of simulation
-    #     u: Casadi MX,  input trajectory
-    #     params: A dictionary of opti variables, if the parameters of the model
-    #             should be optimized, if None, then the current parameters of
-    #             the model are used
-    #     '''
-    #     x = []
-    #     y = []  
-    #     theta = []
-
-    #     # initial states
-    #     x.append(x0)        
-        
-    #     # Simulate Model
-    #     for k in range(u.shape[0]):
-    #         x_new,y_new = \
-    #             self.OneStepPrediction(x[k],u[[k],:],params)
-            
-    #         # theta.append(t)
-    #         x.append(x_new)
-    #         y.append(y_new)
-        
-    #     # Concatenate list to casadiMX
-    #     y = cs.hcat(y).T    
-    #     x = cs.hcat(x).T   
-    #     # theta = cs.hcat(theta).T
-        
-        return x,y
 
 class RehmerLPV_old():
 
@@ -1805,90 +1660,6 @@ class LachhabLPV():
             
             return None
 
-    def ReturnMatrices(self,theta):
-        
-        # 
-        # 
-        # 
-        
-        return [A,B,C]
-
-    def AffineParameters(self,x0,u0):
-        '''
-        Returns the affine Parameters of the LPV model
-        '''
-        
-        params = self.Parameters
-        
-        params_new = []
-            
-        for name in self.AffineParameters.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        theta = self.AffineParameters(x0,u0,*params_new) 
-
-        return theta    
-
-    def OneStepPrediction(self,x0,u0,params=None):
-        '''
-        Estimates the next state and output from current state and input
-        x0: Casadi MX, current state
-        u0: Casadi MX, current input
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-        
-        if params==None:
-            params = self.Parameters
-        
-        params_new = []
-            
-        for name in  self.Function.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        x1,y1 = self.Function(x0,u0,*params_new)     
-                              
-        return x1,y1
-   
-    def Simulation(self,x0,u,params=None):
-        '''
-        A iterative application of the OneStepPrediction in order to perform a
-        simulation for a whole input trajectory
-        x0: Casadi MX, inital state a begin of simulation
-        u: Casadi MX,  input trajectory
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-
-        x = []
-        y = []
-
-        # initial states
-        x.append(x0)
-                      
-        # Simulate Model
-        for k in range(u.shape[0]):
-            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
-            x.append(x_new)
-            y.append(y_new)
-        
-
-        # Concatenate list to casadiMX
-        y = cs.hcat(y).T    
-        x = cs.hcat(x).T
-       
-        return x,y
-    
-    
-
 class LachhabLPV_outputSched():
     """
     Quasi-LPV model structure for system identification. Uses a structured
@@ -1983,96 +1754,21 @@ class LachhabLPV_outputSched():
             
             return None
 
-    def AffineParameters(self,x0,u0):
-        '''
-        Returns the affine Parameters of the LPV model
-        '''
-        
-        params = self.Parameters
-        
-        params_new = []
-            
-        for name in self.AffineParameters.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        theta = self.AffineParameters(x0,u0,*params_new) 
 
-        return theta    
-
-    def OneStepPrediction(self,x0,u0,params=None):
-        '''
-        Estimates the next state and output from current state and input
-        x0: Casadi MX, current state
-        u0: Casadi MX, current input
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-        
-        if params==None:
-            params = self.Parameters
-        
-        params_new = []
-            
-        for name in  self.Function.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        x1,y1 = self.Function(x0,u0,*params_new)     
-                              
-        return x1,y1
-   
-    def Simulation(self,x0,u,params=None):
-        '''
-        A iterative application of the OneStepPrediction in order to perform a
-        simulation for a whole input trajectory
-        x0: Casadi MX, inital state a begin of simulation
-        u: Casadi MX,  input trajectory
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-
-        x = []
-        y = []
-
-        # initial states
-        x.append(x0)
-                      
-        # Simulate Model
-        for k in range(u.shape[0]):
-            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
-            x.append(x_new)
-            y.append(y_new)
-        
-
-        # Concatenate list to casadiMX
-        y = cs.hcat(y).T    
-        x = cs.hcat(x).T
-       
-        return x,y
-
-
-
-
-
-
-class LinearSSM():
+class LinearSSM(LPV_RNN):
     """
     
     """
 
-    def __init__(self,dim_u,dim_x,dim_y,name):
+    def __init__(self,dim_u,dim_x,dim_y,initial_params=None, init_proc='random'):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
         self.dim_y = dim_y
-        self.name = name
+        self.name = 'LinearSSM'
+        
+        self.InitialParameters = initial_params
+        self.InitializationProcedure = init_proc
         
         self.Initialize(initial_params)
 
@@ -2117,149 +1813,6 @@ class LinearSSM():
             
             return None
    
-    def OneStepPrediction(self,x0,u0,params=None):
-        '''
-        Estimates the next state and output from current state and input
-        x0: Casadi MX, current state
-        u0: Casadi MX, current input
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-        
-        if params==None:
-            params = self.Parameters
-        
-        params_new = []
-            
-        for name in  self.Function.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        x1,y1 = self.Function(x0,u0,*params_new)     
-                              
-        return x1,y1
-   
-    def Simulation(self,x0,u,params=None):
-        '''
-        A iterative application of the OneStepPrediction in order to perform a
-        simulation for a whole input trajectory
-        x0: Casadi MX, inital state a begin of simulation
-        u: Casadi MX,  input trajectory
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-
-        x = []
-        y = []
-
-        # initial states
-        x.append(x0)
-                      
-        # Simulate Model
-        for k in range(u.shape[0]):
-            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
-            x.append(x_new)
-            y.append(y_new)
-        
-
-        # Concatenate list to casadiMX
-        y = cs.hcat(y).T    
-        x = cs.hcat(x).T
-       
-        return y
-
-
-class MLP():
-    """
-    
-    """
-
-    def __init__(self,dim_u,dim_x,dim_hidden,name):
-        
-        self.dim_u = dim_u
-        self.dim_hidden = dim_hidden
-        self.dim_x = dim_x
-        self.name = name
-        
-        self.Initialize()
-
-    def Initialize(self):
-                
-            dim_u = self.dim_u
-            dim_hidden = self.dim_hidden
-            dim_x = self.dim_x 
-            name = self.name
-        
-            u = cs.MX.sym('u',dim_u,1)
-            x = cs.MX.sym('x',dim_x,1)
-            
-            # Parameters
-            W_h = cs.MX.sym('W_h',dim_hidden,dim_u+dim_x)
-            b_h = cs.MX.sym('b_h',dim_hidden,1)
-            
-            W_o = cs.MX.sym('W_out',dim_x,dim_hidden)
-            b_o = cs.MX.sym('b_out',dim_x,1)
-            
-            # Put all Parameters in Dictionary with random initialization
-            self.Parameters = {'W_h':np.random.rand(W_h.shape[0],W_h.shape[1]),
-                               'b_h':np.random.rand(b_h.shape[0],b_h.shape[1]),
-                               'W_o':np.random.rand(W_o.shape[0],W_o.shape[1]),
-                               'b_o':np.random.rand(b_o.shape[0],b_o.shape[1])}
-        
-            # self.Input = {'u':np.random.rand(u.shape)}
-            
-            # Equations
-            h =  cs.tanh(cs.mtimes(W_h,cs.vertcat(u,x))+b_h)
-            x_new = cs.mtimes(W_o,h)+b_o
-            
-            
-            input = [x,u,W_h,b_h,W_o,b_o]
-            input_names = ['x','u','W_h','b_h','W_o','b_o']
-            
-            output = [x_new]
-            output_names = ['x_new']  
-            
-            self.Function = cs.Function(name, input, output, input_names,output_names)
-            
-            return None
-   
-    def OneStepPrediction(self,x0,u0,params=None):
-        # Casadi Function needs list of parameters as input
-        if params==None:
-            params = self.Parameters
-        
-        params_new = []
-            
-        for name in  self.Function.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        x1 = self.Function(x0,u0,*params_new)     
-                              
-        return x1
-   
-    def Simulation(self,x0,u,params=None):
-        # Casadi Function needs list of parameters as input
-        
-        x = []
-
-        # initial states
-        x.append(x0)
-                      
-        # Simulate Model
-        for k in range(u.shape[0]):
-            x.append(self.OneStepPrediction(x[k],u[[k],:],params))
-        
-        # Concatenate list to casadiMX
-        x = cs.vcat(x) 
-       
-        return x
 
 class GRU():
     """
@@ -2346,47 +1899,6 @@ class GRU():
 
         return None
     
-    def OneStepPrediction(self,c0,u0,params=None):
-        # Casadi Function needs list of parameters as input
-        if params==None:
-            params = self.Parameters
-        
-        params_new = []
-            
-        for name in  self.Function.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        c1,x1 = self.Function(c0,u0,*params_new)     
-                              
-        return c1,x1
-   
-    def Simulation(self,c0,u,params=None):
-        # Casadi Function needs list of parameters as input
-        
-        # print('GRU Simulation ignores given initial state, initial state is set to zero!')
-        c0 = np.zeros((self.dim_c,1))
-        
-        c = []
-        x = []
-        
-        # initial cell state
-        c.append(c0)
-                      
-        # Simulate Model
-        for k in range(u.shape[0]):
-            c_new,x_new = self.OneStepPrediction(c[k],u[k,:],params)
-            c.append(c_new)
-            x.append(x_new)
-        
-        # Concatenate list to casadiMX
-        c = cs.hcat(c).T    
-        x = cs.hcat(x).T
-        
-        return x[-1]
-    
     
 class SilverBoxPhysikal():
     """
@@ -2458,82 +1970,6 @@ class SilverBoxPhysikal():
             
         return None
    
-    def OneStepPrediction(self,x0,u0,params=None):
-        '''
-        Estimates the next state and output from current state and input
-        x0: Casadi MX, current state
-        u0: Casadi MX, current input
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-        
-        if params==None:
-            params = self.Parameters
-        
-        params_new = []
-            
-        for name in  self.Function.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        x1,y1 = self.Function(x0,u0,*params_new)     
-                              
-        return x1,y1
-   
-    def Simulation(self,x0,u,params=None):
-        '''
-        A iterative application of the OneStepPrediction in order to perform a
-        simulation for a whole input trajectory
-        x0: Casadi MX, inital state a begin of simulation
-        u: Casadi MX,  input trajectory
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-
-        x = []
-        y = []
-
-        # initial states
-        x.append(x0)
-                      
-        # Simulate Model
-        for k in range(u.shape[0]):
-            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
-            x.append(x_new)
-            y.append(y_new)
-        
-
-        # Concatenate list to casadiMX
-        y = cs.hcat(y).T    
-        x = cs.hcat(x).T
-        
-        # y = y[0::10]
-       
-        return y
-
-    def EvalAffineParameters(self,x0,u0):
-        '''
-        Returns the affine Parameters of the LPV model
-        '''
-        
-        params = self.Parameters
-        
-        params_new = []
-            
-        for name in self.AffineParameters.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        theta = self.AffineParameters(x0,u0,*params_new) 
-
-        return theta   
-
     
     def AffineStateSpaceMatrices(self,x0,u0,params=None):
         
@@ -2568,118 +2004,6 @@ class SilverBoxPhysikal():
         
         return A,B,C
 
-
-
-
-class LinearSSM():
-    """
-    
-    """
-
-    def __init__(self,dim_u,dim_x,dim_y,name):
-        
-        self.dim_u = dim_u
-        self.dim_x = dim_x
-        self.dim_y = dim_y
-        self.name = name
-        
-        self.Initialize()
-
-    def Initialize(self):
-            
-            # For convenience of notation
-            dim_u = self.dim_u
-            dim_x = self.dim_x 
-            dim_y = self.dim_y             
-            name = self.name
-            
-            # Define input, state and output vector
-            u = cs.MX.sym('u',dim_u,1)
-            x = cs.MX.sym('x',dim_x,1)
-            y = cs.MX.sym('y',dim_y,1)
-            
-            # Define Model Parameters
-            A = cs.MX.sym('A',dim_x,dim_x)
-            B = cs.MX.sym('B',dim_x,dim_u)
-            C = cs.MX.sym('C',dim_y,dim_x)
-
-            
-            # Put all Parameters in Dictionary with random initialization
-            self.Parameters = {'A':np.random.rand(dim_x,dim_x),
-                               'B':np.random.rand(dim_x,dim_u),
-                               'C':np.random.rand(dim_y,dim_x)}
-        
-            # self.Input = {'u':np.random.rand(u.shape)}
-            
-            # Define Model Equations
-            x_new = cs.mtimes(A,x) + cs.mtimes(B,u)
-            y_new = cs.mtimes(C,x_new) 
-            
-            
-            input = [x,u,A,B,C]
-            input_names = ['x','u','A','B','C']
-            
-            output = [x_new,y_new]
-            output_names = ['x_new','y_new']  
-            
-            self.Function = cs.Function(name, input, output, input_names,output_names)
-            
-            return None
-   
-    def OneStepPrediction(self,x0,u0,params=None):
-        '''
-        Estimates the next state and output from current state and input
-        x0: Casadi MX, current state
-        u0: Casadi MX, current input
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-        
-        if params==None:
-            params = self.Parameters
-        
-        params_new = []
-            
-        for name in  self.Function.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        x1,y1 = self.Function(x0,u0,*params_new)     
-                              
-        return x1,y1
-   
-    def Simulation(self,x0,u,params=None):
-        '''
-        A iterative application of the OneStepPrediction in order to perform a
-        simulation for a whole input trajectory
-        x0: Casadi MX, inital state a begin of simulation
-        u: Casadi MX,  input trajectory
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-
-        x = []
-        y = []
-
-        # initial states
-        x.append(x0)
-                      
-        # Simulate Model
-        for k in range(u.shape[0]):
-            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
-            x.append(x_new)
-            y.append(y_new)
-        
-
-        # Concatenate list to casadiMX
-        y = cs.hcat(y).T    
-        x = cs.hcat(x).T
-       
-        return y
 
 
 class MLP():
@@ -2765,35 +2089,7 @@ class MLP():
         return None
    
     def OneStepPrediction(self,x0,u0,params=None):
-        """
-        OneStepPrediction() evaluates the model equation defined in 
-        self.Function()
-        
-        self.Function() takes initial state x0, input u0 and all model 
-        parameters as input. The model parameters can either be optimization
-        variables themselves (as in system identification) or the take specific 
-        values (when the estimated model is used for control)
 
-        Parameters
-        ----------
-        x0 : array-like with dimension [self.dim_x, 1]
-            initial state resp. state from last time-step
-        u0 : array-like with dimension [self.dim_u, 1]
-            input
-        params : dictionary, optional
-            params is None: This is the case during model based control,
-            self.Function() is evaluated with the numerical
-            values of the model parameters saved in self.Parameters
-            params is dictionary of opti.variables: During system identification
-            the model parameters are optimization variables themselves, so a 
-            dictionary of opti.variables is passed to self.Function()
-
-        Returns
-        -------
-        x1 : array-like with dimension [self.dim_x, 1]
-            output of the Feedforward Neural Network
-
-        """
         if params==None:
             params = self.Parameters
         
@@ -2844,365 +2140,204 @@ class MLP():
        
         return x
 
-class GRU():
-    
+
+class Rehmer_NN_LPV(LPV_RNN):
     """
-    Implementation of a Gated Recurrent Unit with a Feedforward Neural Network
-    as output
+    Quasi-LPV model structure for system identification. Matrices associated
+    with the time varying parameter vector supposed to be sparse and only have 
+    non-zero coefficients where necessary to approximate the nonlinearity. Each 
+    time varying parameter is modelled as a Neural Network. Scheduling variables
+    are the states and the input.
     """
 
-    def __init__(self,dim_u,dim_c,dim_hidden,dim_out,name):
-        """
-        Initialization procedure of the GRU Architecture
+    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA=0,dim_thetaB=0,dim_thetaC=0,
+                 NN_A_dim=[],NN_B_dim=[],NN_C_dim=[],
+                 NN_A_act=[],NN_B_act=[], NN_C_act=[], initial_params=None,
+                 frozen_params = None, init_proc='random'):
+        '''
+        Initializes the model structure by Rehmer et al. 2021.
+        dim_u: int, dimension of the input vector
+        dim_x: int, dimension of the state vector
+        dim_y: int, dimension of the output vector
+        dim_thetaA: int, dimension of the affine parameter associated with the 
+        system matrix
+        dim_thetaB: int, dimension of the affine parameter associated with the 
+        input matrix
+        dim_thetaC: int, dimension of the affine parameter associated with the 
+        output matrix
+        NN_A_dim: list, each entry is a list of integers specifying the number
+        of neurons in the layers of the NN 
+        NN_B_dim: list, each entry is a list of integers specifying the number
+        of neurons in the layers of the NN     
+        NN_C_dim: list, each entry is a list of integers specifying the number
+        of neurons in the layers of the NN     
+        NN_A_act: list, each entry is a list of integers, that specifies the
+        activation function used in the layers of the corresponding NN
+        NN_B_act: list, each entry is a list of integers, that specifies the
+        activation function used in the layers of the corresponding NN
+        NN_C_act: list, each entry is a list of integers, that specifies the
+        activation function used in the layers of the corresponding NN
         
-        Parameters
-        ----------
-        dim_u : int
-            Dimension of the input, e.g. dim_u = 2 if input is a 2x1 vector
-        dim_c : int
-            Dimension of the cell-state, i.e. the internal state of the GRU,
-            e.g. dim_c = 2 if cell-state is a 2x1 vector
-        dim_hidden : int
-            Number of nonlinear neurons in the hidden layer, e.g. dim_hidden=10,
-            if output network is supposed to have 10 neurons in hidden layer.           
-        dim_out : int
-            Dimension of the output, e.g. dim_out = 3 if output is a 3x1 vector.
-        name : str
-            Name of the model, e.g. name = 'QualityModel'.
 
-        Returns
-        -------
-        None.
-
-        """        
+        initial_params: dict, dictionary specifying the inital parameter values
+        name: str, specifies name of the model
+        '''
+        
         self.dim_u = dim_u
-        self.dim_c = dim_c
-        self.dim_hidden = dim_hidden
-        self.dim_out = dim_out
-        self.name = name
+        self.dim_x = dim_x
+        self.dim_y = dim_y
+        self.dim_thetaA = dim_thetaA
+        self.dim_thetaB = dim_thetaB
+        self.dim_thetaC = dim_thetaC
+        self.dim = dim_thetaA+dim_thetaB+dim_thetaC
+        self.NN_A_dim = NN_A_dim
+        self.NN_B_dim = NN_B_dim
+        self.NN_C_dim = NN_C_dim
+        self.NN_A_act = NN_A_act
+        self.NN_B_act = NN_B_act
+        self.NN_C_act = NN_C_act
         
-        self.Initialize()  
- 
+        self.InitialParameters = initial_params
+        self.FrozenParameters = frozen_params
+        self.InitializationProcedure = init_proc
+        
+        self.name = 'Rehmer_NN_LPV'
+        
+        self.Initialize()
 
     def Initialize(self):
-        """
-        Defines the parameters of the model as symbolic casadi variables and 
-        the model equation as casadi function. Model parameters are initialized
-        randomly.
-
-        Returns
-        -------
-        None.
-
-        """          
+            
+        # For convenience of notation
         dim_u = self.dim_u
-        dim_c = self.dim_c
-        dim_hidden = self.dim_hidden
-        dim_out = self.dim_out
-        name = self.name      
-        
-        u = cs.MX.sym('u',dim_u,1)
-        c = cs.MX.sym('c',dim_c,1)
-        
-        # Parameters
-        # RNN part
-        W_r = cs.MX.sym('W_r',dim_c,dim_u+dim_c)
-        b_r = cs.MX.sym('b_r',dim_c,1)
-    
-        W_z = cs.MX.sym('W_z',dim_c,dim_u+dim_c)
-        b_z = cs.MX.sym('b_z',dim_c,1)    
-        
-        W_c = cs.MX.sym('W_c',dim_c,dim_u+dim_c)
-        b_c = cs.MX.sym('b_c',dim_c,1)    
-    
-        # MLP part
-        W_h = cs.MX.sym('W_z',dim_hidden,dim_c)
-        b_h = cs.MX.sym('b_z',dim_hidden,1)    
-        
-        W_o = cs.MX.sym('W_c',dim_out,dim_hidden)
-        b_o = cs.MX.sym('b_c',dim_out,1)  
-        
-        # Put all Parameters in Dictionary with random initialization
-        self.Parameters = {'W_r':np.random.rand(W_r.shape[0],W_r.shape[1]),
-                           'b_r':np.random.rand(b_r.shape[0],b_r.shape[1]),
-                           'W_z':np.random.rand(W_z.shape[0],W_z.shape[1]),
-                           'b_z':np.random.rand(b_z.shape[0],b_z.shape[1]),
-                           'W_c':np.random.rand(W_c.shape[0],W_c.shape[1]),
-                           'b_c':np.random.rand(b_c.shape[0],b_c.shape[1]),                          
-                           'W_h':np.random.rand(W_h.shape[0],W_h.shape[1]),
-                           'b_h':np.random.rand(b_h.shape[0],b_h.shape[1]),                           
-                           'W_o':np.random.rand(W_o.shape[0],W_o.shape[1]),
-                           'b_o':np.random.rand(b_o.shape[0],b_o.shape[1])}
-        
-        # Equations
-        f_r = logistic(cs.mtimes(W_r,cs.vertcat(u,c))+b_r)
-        f_z = logistic(cs.mtimes(W_z,cs.vertcat(u,c))+b_z)
-        
-        c_r = f_r*c
-        
-        f_c = cs.tanh(cs.mtimes(W_c,cs.vertcat(u,c_r))+b_c)
-        
-        
-        c_new = f_z*c+(1-f_z)*f_c
-        
-        h =  cs.tanh(cs.mtimes(W_h,c_new)+b_h)
-        x_new = cs.mtimes(W_o,h)+b_o    
-    
-        
-        # Casadi Function
-        input = [c,u,W_r,b_r,W_z,b_z,W_c,b_c,W_h,b_h,W_o,b_o]
-        input_names = ['c','u','W_r','b_r','W_z','b_z','W_c','b_c','W_h','b_h',
-                        'W_o','b_o']
-        
-        output = [c_new,x_new]
-        output_names = ['c_new','x_new']
-    
-        self.Function = cs.Function(name, input, output, input_names,output_names)
-
-        return None
-    
-    def OneStepPrediction(self,c0,u0,params=None):
-        """
-        OneStepPrediction() evaluates the model equation defined in 
-        self.Function()
-        
-        self.Function() takes initial cell-state c0, input u0 and all model 
-        parameters as input. The model parameters can either be optimization
-        variables themselves (as in system identification) or the take specific 
-        values (when the estimated model is used for control)
-
-        Parameters
-        ----------
-        c0 : array-like with dimension [self.dim_c, 1]
-            initial cell-state resp. state from last time-step
-        u0 : array-like with dimension [self.dim_u, 1]
-            input
-        params : dictionary, optional
-            params is None: This is the case during model based control,
-            self.Function() is evaluated with the numerical
-            values of the model parameters saved in self.Parameters
-            params is dictionary of opti.variables: During system identification
-            the model parameters are optimization variables themselves, so a 
-            dictionary of opti.variables is passed to self.Function()
-
-        Returns
-        -------
-        c1 : array-like with dimension [self.dim_c, 1]
-            new cell-state
-        x1 : array-like with dimension [self.dim_x, 1]
-            output of the Feedforward Neural Network
-        """
-        if params==None:
-            params = self.Parameters
-        
-        params_new = []
-            
-        for name in  self.Function.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        c1,x1 = self.Function(c0,u0,*params_new)     
-                              
-        return c1,x1
-   
-    def Simulation(self,c0,u,params=None):
-        """
-        Repeated call of self.OneStepPrediction() for a given input trajectory
-        
-
-        Parameters
-        ----------
-        c0 : array-like with dimension [self.dim_c, 1]
-            initial cell-state
-        u : array-like with dimension [N,self.dim_u]
-            trajectory of input signal with length N
-        params : dictionary, optional
-            see self.OneStepPrediction()
-
-        Returns
-        -------
-        x : array-like with dimension [N+1,self.dim_x]
-            trajectory of output signal with length N+1 
-            
-        """
-        
-        # Is that necessary?
-        print('GRU Simulation ignores given initial state, initial state is set to zero!')
-        
-        
-        c0 = np.zeros((self.dim_c,1))
-        
-        c = []
-        x = []
-        
-        # initial cell state
-        c.append(c0)
-                      
-        # Simulate Model
-        for k in range(u.shape[0]):
-            c_new,x_new = self.OneStepPrediction(c[k],u[k,:],params)
-            c.append(c_new)
-            x.append(x_new)
-        
-        # Concatenate list to casadiMX
-        c = cs.hcat(c).T    
-        x = cs.hcat(x).T
-        
-        return x[-1]
-
-
-
-
-
-
-class TestLPV():
-    """
-
-    """
-
-    def __init__(self,initial_params=None,name=None):
-        
-        self.dim_u = 1
-        self.dim_x = 2
-        self.name = name
-        
-        self.Initialize(initial_params)
-
-    def Initialize(self,initial_params):
-            
-            # For convenience of notation
-            dim_u = self.dim_u
-            dim_x = self.dim_x 
-            name = self.name
-            
-            # Define input, state and output vector
-            u = cs.MX.sym('u',dim_u,1)
-            x = cs.MX.sym('x',dim_x,1)
-            
-  
-            # Put all Parameters in Dictionary with random initialization
-            self.Parameters = {}
-        
-            
-            # Initialize if inital parameters are given
-            if initial_params is not None:
-                for param in initial_params.keys():
-                    self.Parameters[param] = initial_params[param]
-            
-            # Define Model Equations
-            x_new1 = x[0]             + 0.01*x[1]
-            x_new2 = x[1] + (-0.5 - (0.1*x[0]**2) ) * x[0]        - 0.1 * x[1] + u
-            
-            x_new = cs.vertcat(x_new1,x_new2)
-                        
-            y_new = x_new[0]                                               
-
-            input = [x,u]
-            input_names = ['x','u']
-            
-            output = [x_new,y_new]
-            output_names = ['x_new','y_new']  
-            
-            self.Function = cs.Function(name, input, output, input_names,output_names)
-
-
-            theta = -(0.1*x[0]**2)
-
-            self.AffineParameters = cs.Function('AffineParameters',input,
-                                                [theta],input_names,['theta'])
-            
-            return None
-
-    def EvalAffineParameters(self,x0,u0):
-        '''
-        Returns the affine Parameters of the LPV model
-        '''
-        
-        params = self.Parameters
-        
-        params_new = []
-            
-        for name in self.AffineParameters.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        theta = self.AffineParameters(x0,u0,*params_new) 
-
-        return theta    
-
-    def OneStepPrediction(self,x0,u0,params=None):
-        '''
-        Estimates the next state and output from current state and input
-        x0: Casadi MX, current state
-        u0: Casadi MX, current input
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-        
-        if params==None:
-            params = self.Parameters
-        
-        params_new = []
-            
-        for name in  self.Function.name_in():
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                continue
-        
-        x1,y1 = self.Function(x0,u0,*params_new)     
-                              
-        return x1,y1
-   
-    def Simulation(self,x0,u,params=None):
-        '''
-        A iterative application of the OneStepPrediction in order to perform a
-        simulation for a whole input trajectory
-        x0: Casadi MX, inital state a begin of simulation
-        u: Casadi MX,  input trajectory
-        params: A dictionary of opti variables, if the parameters of the model
-                should be optimized, if None, then the current parameters of
-                the model are used
-        '''
-
-        x = []
-        y = []
-
-        # initial states
-        x.append(x0)
-                      
-        # Simulate Model
-        for k in range(u.shape[0]):
-            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
-            x.append(x_new)
-            y.append(y_new)
-        
-
-        # Concatenate list to casadiMX
-        y = cs.hcat(y).T    
-        x = cs.hcat(x).T
+        dim_x = self.dim_x 
+        dim_y = self.dim_y   
+        dim_thetaA = self.dim_thetaA
+        dim_thetaB = self.dim_thetaB
+        dim_thetaC = self.dim_thetaC
+        NN_A_dim = self.NN_A_dim
+        NN_B_dim = self.NN_B_dim
+        NN_C_dim = self.NN_C_dim    
+        NN_A_act = self.NN_A_act
+        NN_B_act = self.NN_B_act
+        NN_C_act = self.NN_C_act
        
-        return x,y
-
-
-    def AffineStateSpaceMatrices(self,theta):
+        name = self.name
         
-        A = np.array([[1, 0.01],[-0.5+theta,1-0.1]])
-        B = np.array([[0],[1]])
-        C = np.array([[1, 0]])
+        # Define input, state and output vector
+        u = cs.MX.sym('u',dim_u,1)
+        x = cs.MX.sym('x',dim_x,1)
+        
+        # Define Model Parameters for the linear part
+        A = cs.MX.sym('A',dim_x,dim_x)
+        B = cs.MX.sym('B',dim_x,dim_u)
+        C = cs.MX.sym('C',dim_y,dim_x)
+        
+        # Define Model Parameters for the time varying part
+        A_i = cs.MX.sym('A_i',dim_x,dim_x,dim_thetaA)
+        B_i = cs.MX.sym('B_i',dim_x,dim_u,dim_thetaB)
+        C_i = cs.MX.sym('C_i',dim_y,dim_x,dim_thetaC)
+       
+        # Define Parameters of all Neural Networks modelling the affine parameters
+        NN_Ai = [[] for i in range(0,dim_thetaA)]
+        NN_Bi = [[] for i in range(0,dim_thetaB)]
+        NN_Ci = [[] for i in range(0,dim_thetaC)]
+        
+        NN_Ai_names = ['NN_A'+str(i) for i in range(0,dim_thetaA)]
+        NN_Bi_names = ['NN_B'+str(i) for i in range(0,dim_thetaB)]
+        NN_Ci_names = ['NN_C'+str(i) for i in range(0,dim_thetaC)]        
         
         
+        NN_input_names = []
+        # NN_1_dim.append(dim_thetaA)
+        for NN, NN_name, NN_dim in zip([*NN_Ai,*NN_Bi,*NN_Ci],
+                                       [*NN_Ai_names,*NN_Bi_names,*NN_Ci_names],
+                                       [*NN_A_dim,*NN_B_dim,*NN_C_dim]):
+            
+            for l in range(0,len(NN_dim)):
+            
+                if l == 0:
+                    params = [cs.MX.sym(NN_name+'_Wx'+str(l),NN_dim[l],dim_x),
+                              cs.MX.sym(NN_name+'_Wu'+str(l),NN_dim[l],dim_u),
+                              cs.MX.sym(NN_name+'_b'+str(l),NN_dim[l],1)]
+                    
+                    NN_input_names.extend([NN_name+'_Wx'+str(l),
+                                           NN_name+'_Wu'+str(l),
+                                           NN_name+'_b'+str(l)])
+                else:
+                    params = [cs.MX.sym(NN_name+'_W'+str(l),NN_dim[l],NN_dim[l-1]),
+                              cs.MX.sym(NN_name+'_b'+str(l),NN_dim[l],1)]
+                    
+                    NN_input_names.extend([NN_name+'_W'+str(l),
+                                           NN_name+'_b'+str(l)])
+                
+                NN.append(params)
         
-        return A,B,C
-
-
-
-
-
-
-
+        # Save Neural Networks for further use
+        self.NN_Ai = NN_Ai
+        self.NN_Bi = NN_Bi
+        self.NN_Ci = NN_Ci
+        
+        # Define Model Equations
+       
+        # Calculate the activations of the NNs by looping over each NN and
+        # each layer
+        NN_out = [[0] for i in range(dim_thetaA+dim_thetaB+dim_thetaC)]
+        
+        for out,NN,NN_act in zip(NN_out,
+                                 [*NN_Ai,*NN_Bi,*NN_Ci],
+                                 [*NN_A_act,*NN_B_act,*NN_C_act]):
+            
+            out.extend(Eval_FeedForward_NN(cs.vertcat(x,u),NN,NN_act))
+        
+        # Multiply  matrices and NN outputs
+        
+        NN_mult = []
+        
+        for matrix,out in zip([*A_i,*B_i,*C_i],NN_out):
+            NN_mult.append(matrix*out[-1])
+        
+        
+        A_nl = sum(NN_mult[0:dim_thetaA])
+        B_nl = sum(NN_mult[dim_thetaA:dim_thetaA+dim_thetaB])
+        C_nl = sum(NN_mult[dim_thetaA+dim_thetaB::])
+        
+        # State and output equation
+        x_new = cs.mtimes(A+A_nl,x) + cs.mtimes(B+B_nl,u)
+        y_new = cs.mtimes(C+C_nl,x_new)
+        
+        
+        # Define inputs and outputs for casadi function
+        
+        NN_Ai_flat = [p for NN in NN_Ai for layer in NN for p in layer]
+        NN_Bi_flat = [p for NN in NN_Bi for layer in NN for p in layer]
+        NN_Ci_flat = [p for NN in NN_Ci for layer in NN for p in layer]
+        
+        input = [x,u,A,B,C,*A_i,*B_i,*C_i,*NN_Ai_flat,*NN_Bi_flat,*NN_Ci_flat]
+        
+        A_i_names = ['A_'+str(i) for i in range(0,dim_thetaA)]
+        B_i_names = ['B_'+str(i) for i in range(0,dim_thetaB)]
+        C_i_names = ['C_'+str(i) for i in range(0,dim_thetaC)]
+        
+        input_names = ['x','u','A','B','C',*A_i_names,*B_i_names,
+                        *C_i_names,*NN_input_names]
+      
+        output = [x_new,y_new]
+        output_names = ['x_new','y_new']
+        
+        self.Function = cs.Function(name, input, output, input_names,
+                                    output_names)
+       
+        # Calculate affine parameters
+        # theta_A = NN_out[0][-1] * cs.tanh(cs.mtimes(E_1,x))/cs.mtimes(E_1,x)
+        # theta_B = NN_out[1][-1] * cs.tanh(cs.mtimes(E_2,u))/cs.mtimes(E_2,u)
+        # theta_C = NN_out[2][-1] * cs.tanh(cs.mtimes(E_3,x))/cs.mtimes(E_3,x)
+        
+        # theta = cs.vertcat(theta_A,theta_B,theta_C)   
+        
+        # self.AffineParameters = cs.Function('AffineParameters',input,
+        #                                     [theta],input_names,['theta'])
+        
+        # Initialize symbolic variables with numeric values
+        self.ParameterInitialization()
+        
+        return None
