@@ -64,12 +64,12 @@ hold off
 %xlim([0,2*fband(2)])
 
 dataset1 = [u.data,y.data];
-save('dataset1_work.mat','dataset1')
+save('dataset1.mat','dataset1')
 
 %% Plot
-%close all
+close all
 figure;
-scatter(simout.x(:,2),simout.F_fric_nl(:,2)-simout.x(:,2).*d/m)
+scatter(simout.x(:,2),-simout.F_fric_nl(:,2)+simout.x(:,2).*d/m)
 xlabel('$\dot{x}$','fontsize',14,'interpreter','latex')
 ylabel('$F_{R}(\dot{x})$','fontsize',14,'interpreter','latex')
 saveas(gcf,'FrictionForce.png')
@@ -91,7 +91,7 @@ y = timeseries(y,[0:T_s:T_sim]);
 
 dataset2 = [u.data,y.data];
 
-save('dataset2_work.mat','dataset2')
+save('dataset2.mat','dataset2')
 
 
 %% Conduct experiment for test data
@@ -106,4 +106,4 @@ y = timeseries(y,[0:T_s:T_sim]);
 
 dataset3 = [u.data,y.data];
 
-save('dataset3_work.mat','dataset3')
+save('dataset3.mat','dataset3')

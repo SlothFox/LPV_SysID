@@ -1,39 +1,28 @@
 clear
 clc
 
-states = 2;
+states = 3;
+filename = 'LuGre_LSS_s3.mat';
 
 %% Load Data (first column is time, second input, third output)
 
-dataset1 = load('dataset1_work.mat');
+dataset1 = load('dataset1.mat');
 dataset1 = dataset1.dataset1;
 
-dataset2 = load('dataset2_work.mat');
+dataset2 = load('dataset2.mat');
 dataset2 = dataset2.dataset2;
 
-dataset3 = load('dataset3_work.mat');
+dataset3 = load('dataset3.mat');
 dataset3 = dataset3.dataset3;
 
 
-%% Scale Validierungsdatensatz2 to (-1,1) and the remaining datasets according to Validierungsdatensatz2
-train = [];
-val= [];
-test=[];
-
-[train(:,1),scale_u] = ScaleData(dataset2(:,1),[]);
-[train(:,2),scale_y] = ScaleData(dataset2(:,2),[]);
-
-[val(:,1),~] = ScaleData(dataset1(:,1),scale_u);
-[val(:,2),~] = ScaleData(dataset1(:,2),scale_y);
-
-[test(:,1),~] = ScaleData(dataset3(:,1),scale_u);
-[test(:,2),~] = ScaleData(dataset3(:,2),scale_y);
 
 %% Arange multi-experiment data surch that n4sid-Subspace can use it
+Ts = 1/200;
 
-train = iddata(train(:,2),train(:,1));                                                      % iddata(y,u,Ts)
-val = iddata(val(:,2),val(:,1));  
-test = iddata(test(:,2),test(:,1));  
+train = iddata(dataset1(:,2),dataset1(:,1),Ts);                                                      % iddata(y,u,Ts)
+val = iddata(dataset2(:,2),dataset2(:,1),Ts);    
+test = iddata(dataset3(:,2),dataset3(:,1),Ts);   
 
 
 %% Identify state space model from data with n4sid
@@ -44,7 +33,6 @@ opt = n4sidOptions('InitialState','zero','N4Weight','auto','Focus','simulation',
     'Display','on');
     
 [ssm,x0] = n4sid(train,states,opt,'DisturbanceModel','none','form','free');
-
 
 %% Simulate identified model
 opt = simOptions('InitialCondition',x0);
@@ -93,7 +81,8 @@ LuGre_LSS = struct(...
 'input_train_data_1',train.u,...
 'target_train_data_1',train.y);
 
-save('LuGre_LSS_s3.mat','LuGre_LSS')
+save(filename,'LuGre_LSS')
+
 %%
 figure
 hold on

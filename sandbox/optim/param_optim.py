@@ -70,24 +70,23 @@ def CreateOptimVariables(opti, Parameters):
     
     return opti_vars
 
-def ModelTraining(model,data,initializations = 10, initial_params=None, 
-                  BFR=False, p_opts=None, s_opts=None):
+def ModelTraining(model,data,initializations=10, BFR=False, 
+                  p_opts=None, s_opts=None):
     
    
     results = [] 
     
     for i in range(0,initializations):
         
-        # in first run use initial model parameters (useful for online 
-        # training when only time for one initialization) 
-        if i > 0:
-            model.ParameterInitialization()
+        # initialize model to make sure given initial parameters are assigned
+        model.ParameterInitialization()
         
         # Estimate Parameters on training data
         new_params = ModelParameterEstimation(model,data,p_opts,s_opts)
         
-        # Assign new parameters to model
-        model.Parameters = new_params
+        # Assign estimated parameters to model
+        for p in new_params.keys():
+            model.Parameters[p] = new_params[p]
         
         # Evaluate on Validation data
         u_val = data['u_val']
@@ -127,7 +126,7 @@ def ModelTraining(model,data,initializations = 10, initial_params=None,
         BFR = BestFitRate(y_ref_test[0],y_est)
         
         # save parameters and performance in list
-        results.append([e_val,BFR,model.name,model.dim,i,new_params])
+        results.append([e_val,BFR,model.name,model.dim,i,model.Parameters])
    
     results = pd.DataFrame(data = results, columns = ['loss_val','BFR_test',
                         'model','dim_theta','initialization','params'])
@@ -386,7 +385,7 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None):
                                                       params_opti)
                 
                 # Calculate one step prediction error
-                e = e + cs.sumsqr(y_ref[i,:,:]-y_new) + \
+                e = e + cs.sumsqr(y_ref[i,k,:]-y_new) + \
                     cs.sumsqr(x_ref[i,k+1,:]-x_new) 
     
     opti.minimize(e)
@@ -442,7 +441,7 @@ def EstimateNonlinearStateSequence(model,data,lam):
     init_state = data['init_state_train'][0]
     
     '''
-    Measurement data is arranged as
+    Measurement data is assumed to be arranged as
     u0,y1
     u1,y2
     ...
@@ -467,48 +466,34 @@ def EstimateNonlinearStateSequence(model,data,lam):
     N = u.shape[0]
     num_states = init_state.shape[0]
     
-    # Simulate LSS
-    x_lin, y_lin = model.Simulation(init_state,u)
 
-    '''
-    Simulation data is arranged as
-    x0,y1
-    x1,y2
-    ...
-    
-    '''
-    
     # Create Instance of the Optimization Problem
     opti = cs.Opti()
     
-    # Take linear model (Linear SS)
-    # Estimate nonlinear state sequence recursively
-    
-    # Initialize array for estimated state sequence
-    # x_LS = np.zeros(())
 
     # Create decision variables for states
-    x_LS = opti.variable(N,num_states) # x1,...,xN-1
+    x_LS = opti.variable(N,num_states) # x0,...,xN-1
+    x_LS[0,:] = init_state.T
     
     e = 0
     
 
-    for k in range(1,N):
+    for k in range(0,N-1):
         '''
         Since y0 is not part of recorded data, optimization starts with x1!
         
-        x2 = Model(x1,u1)
+        x1 = Model(x0,u0)
         y1 = C*x1
         
         e = e + (yref1 - y1)^2 + lam * (xlin2 - x2)^2
         '''
 
-        x2,_ = model.OneStepPrediction(x_LS[[k],:],u[[k],:])
+        x1,_ = model.OneStepPrediction(x_LS[[k],:],u[[k],:])
+        # print(k)
+        y1 = cs.mtimes(model.Parameters['C'],x_LS[[k+1],:].T)
         
-        y1 = cs.mtimes(model.Parameters['C'],x_LS[[k],:].T)
-        
-        e = e + cs.sumsqr(y_ref[[k-1],:] - y1)  + \
-            + lam * cs.sumsqr(x_lin[[k+1],:].T - x2)   
+        e = e + cs.sumsqr(y_ref[[k],:] - y1)  + \
+            + lam * cs.sumsqr(x_LS[[k+1],:].T - x1)   
             
     opti.minimize(e)    
     opti.solver("ipopt")
@@ -523,6 +508,6 @@ def EstimateNonlinearStateSequence(model,data,lam):
     # print(x_LS.shape)
     # x0 was not part of optimization (loop starts at 1!) and is replaced with
     # initial state
-    x_LS[0,:] = init_state.reshape(1,num_states)
+    # x_LS[0,:] = init_state.reshape(1,num_states)
     
     return x_LS
