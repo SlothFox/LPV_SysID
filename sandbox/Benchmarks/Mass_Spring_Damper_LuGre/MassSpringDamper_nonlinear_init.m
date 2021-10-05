@@ -12,8 +12,8 @@ xInitial = [0.0,0];
 %% Sampling rate, bandwidth, 'space' between excited frequencies, 
 % number of repetitions for skirts
 
-fs = 200;          % Sampling rate in Hz
-fband = [0.1,20];    % Bandwidth in Hz
+fs = 200;           % Sampling rate in Hz
+fband = [0.1,20];   % Bandwidth in Hz
 df = 0.1;           % frequency resolution in Hz
 Nsub = 5;           % consecutive harmonics to be chosen from which to excite
 Nrep = 4;           % Number of repetitions, equals bins between excited frequencies  
