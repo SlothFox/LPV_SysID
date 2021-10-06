@@ -12,7 +12,7 @@ from optim import param_optim
 
 ''' User specified parameters '''
 dim_x = 3
-inits = 2
+inits = 10
 lamb = 0.01
 
 ''' Data Preprocessing '''
@@ -66,17 +66,14 @@ data['x_train'] = x_LS.reshape(1,-1,dim_x)
 
 
 # p_opts = {"expand":False}
-# s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
-
-# dim_thetaA = [1,2,3]
-# A_0s = [np.identity(9)[i,:].reshape((dim_x,dim_x)) for i in range(0,dim_x**2)]
-# activations = [ [[1,0,1,0]], [[3,0,3,0]], [[1,2,1,2]]      ]
-# dim_phis = [1,2,3,4]
+s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
 dim_thetaA = [1]
-A_0s = [np.identity(9)[i,:].reshape((dim_x,dim_x)) for i in range(6,9)]
-activations = [ [[1,0,1,0]]]
-dim_phis = [1,2]
+A_0s = [np.identity(9)[i,:].reshape((dim_x,dim_x)) for i in range(0,dim_x**2)]
+activations = [ [[1,1,1,0]], [[3,3,3,0]], [[1,1,1,2]]      ]
+dim_phis = [1,2,5]
+
+counter = 0
 
 for dimA in dim_thetaA:
     for A_0 in A_0s:
@@ -94,18 +91,25 @@ for dimA in dim_thetaA:
                                                             'A_0':A_0}
                 
                 results_new = param_optim.ModelTraining(model,data,inits,
-                                         p_opts=None,s_opts=None)
+                                         p_opts=None,s_opts=s_opts)
                 
                 # Add information
                 results_new['dim_phi'] = dim_phi
                 results_new['activations'] = [activation for i in range(0,inits)]
                 results_new['dim_thetaA'] = dimA
                 results_new['lambda'] = lamb
+                
+                pkl.dump(results_new,open('./Results/MSD/MSD_LPVNN_3states_'+str(counter)+'.pkl',
+                                          'wb'))
+                
                 try:
                     results = results.append(results_new)
                 except NameError:
                     results = results_new
                 
+                counter = counter + 1
+   
+pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states.pkl','wb'))
 
 
     # pkl.dump(identification_results,open('Home_Bioreactor_RBF_2states_theta'+str(dim)+'.pkl',
