@@ -41,9 +41,9 @@ init_state = np.zeros((1,dim_x,1)) # system was excited from zero position
 
 # Arrange Training and Validation data in a dictionary with the following
 # structure. The dictionary must have these keys
-data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
-        'u_val':val_u , 'y_val':val_y,'init_state_val': init_state,
-        'u_test':test_u , 'y_test':test_y,'init_state_test': init_state}
+data = {'u_train':train_u[0:2000], 'y_train':train_y[0:2000],'init_state_train': init_state,
+        'u_val':val_u[0:2000] , 'y_val':val_y[0:2000],'init_state_val': init_state,
+        'u_test':test_u[0:2000] , 'y_test':test_y[0:2000],'init_state_test': init_state}
 
 
 ''' Pre-Identification via estimated state sequence '''
@@ -106,7 +106,7 @@ for dimA in dim_thetaA:
                 except NameError:
                     results = results_new
                 
-                # TO DO: ALLE DATAFRAMES ANEINANDERHÄNGEN
+
 
     # pkl.dump(identification_results,open('Home_Bioreactor_RBF_2states_theta'+str(dim)+'.pkl',
     #                                      'wb'))
