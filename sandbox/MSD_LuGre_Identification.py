@@ -99,8 +99,10 @@ for dimA in dim_thetaA:
                 results_new['dim_thetaA'] = dimA
                 results_new['lambda'] = lamb
                 
-                pkl.dump(results_new,open('./Results/MSD/MSD_LPVNN_3states_'+str(counter)+'.pkl',
-                                          'wb'))
+                pkl.dump(results_new,open('./Results/MSD/MSD_LPVNN_3states_'+
+                                          str(counter)+
+                                          'lam'+str(lamb)+
+                                          '.pkl','wb'))
                 
                 try:
                     results = results.append(results_new)
@@ -109,7 +111,9 @@ for dimA in dim_thetaA:
                 
                 counter = counter + 1
    
-pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states.pkl','wb'))
+pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states'+
+                                          'lam'+str(lamb)
+                                          +'.pkl','wb'))
 
 
     # pkl.dump(identification_results,open('Home_Bioreactor_RBF_2states_theta'+str(dim)+'.pkl',
