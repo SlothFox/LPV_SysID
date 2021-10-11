@@ -21,7 +21,15 @@ from scipy.io import loadmat
 import models.NN as NN
 from optim import param_optim
 
-
+def BestFitRate(y_target,y_est):
+    BFR = 1-sum((y_target-y_est)**2) / sum((y_target-np.mean(y_target))**2) 
+    
+    BFR = BFR*100
+    
+    if BFR<0:
+        BFR = np.array([0])
+        
+    return BFR
 
 ''' Data Preprocessing '''
 
@@ -74,16 +82,16 @@ for model in models:
         # Initialize model structure
         if model == 'RBF':
             LPV_model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=dim,
-                      initial_params=None,name='RBF_network')  
+                      initial_params=None,init_proc='xavier')  
         elif model == 'Rehmer':
             LPV_model = NN.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,dim_thetaB=0,
                           dim_thetaC=0, NN_1_dim=[dim],NN_2_dim=[],
-                          NN_3_dim=[],NN1_act=[1],NN2_act=[],NN3_act=[], 
-                          initial_params={},name='Rehmer_LPV')
+                          NN_3_dim=[],NN1_act=[2],NN2_act=[],NN3_act=[], 
+                          initial_params={})
         elif model == 'Lachhab':
             LPV_model = NN.LachhabLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,
                                       dim_thetaB=dim, dim_thetaC=0,
-                                      initial_params={},name='RBF_network') 
+                                      initial_params={},name='Lachhab_LPV') 
         
         # Assign parameters to model and evaluate model fit
         for init in range(0,10):
@@ -99,63 +107,69 @@ for model in models:
             
             BFR_on_val_data = BFR_on_val_data.append(new_row, ignore_index=True)
 
+BFR_on_val_data['BFR']=BFR_on_val_data['BFR'].astype('float64')
+
 # dim theta for lachhab and rehmer is actually dim theta *2 :
 # BFR_on_val_data.loc[np.arange(0,50,1),'theta'] = BFR_on_val_data.loc[np.arange(0,50,1),'theta']*2
 # BFR_on_val_data.loc[np.arange(100,150,1),'theta'] = BFR_on_val_data.loc[np.arange(100,150,1),'theta']*2
 
-fig, axs = plt.subplots(2,gridspec_kw={'height_ratios': [1, 1.5]})
-fig.set_size_inches((9/2.54,7/2.54))
 
 palette = sns.color_palette()[1::]
 
-sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
-                  palette=palette, fliersize=2,ax=axs[0], linewidth=1)
+fig, axs = plt.subplots() #plt.subplots(2,gridspec_kw={'height_ratios': [1, 1.5]})
 
-sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
-                  palette=palette,fliersize=2,ax=axs[1], linewidth=1)
+fig.set_size_inches((9/2.54,4/2.54))
 
-axs[0].legend_.remove()
-axs[1].legend_.remove()
+# sns.violinplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
+#                   palette=palette, fliersize=2,ax=axs, linewidth=1)
+sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, ax=axs,
+               color=".8")
+sns.stripplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
+                  palette=palette, ax=axs, linewidth=0.1,
+                  dodge=True,zorder=1)
 
-axs[0].set_xticks([])
+# sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
+#                   palette="Set1",fliersize=2,ax=axs[1], linewidth=1)
 
-axs[1].set_xlabel(r'$\dim(\theta_k)$')
-axs[0].set_xlabel(None)
+axs.legend_.remove()
 
-axs[0].set_ylabel(None)
-axs[1].set_ylabel(None)
+axs.set_xlabel(r'$\dim(\theta_k)$')
 
-# axs[1].set_xlim(-0.5,3.5)
-# axs[0].set_xlim(-0.5,3.5)
+axs.set_ylabel(None)
 
-axs[1].set_ylim(-5,105)
-axs[0].set_ylim(98,100)
+
+axs.set_ylim(-5,105)
+
 
 fig.savefig('Silverbox_StateSched_Boxplot.png', bbox_inches='tight',dpi=600)
 
-# plt.figure
 
-# ''' Plot measured Input-Output data'''
-# # plt.rc(usetex = True)
+# Old Plot 
 
-# # params = {'tex.usetex': True}
-# # plt.rcParams.update(params)
-
-# fig, axs = plt.subplots(2)
+# fig, axs = plt.subplots(2,gridspec_kw={'height_ratios': [1, 1.5]})
 # fig.set_size_inches((9/2.54,7/2.54))
-# axs[0].plot(test_u[0],label = '$u$',linewidth=1)
-# axs[0].set_xticklabels({})
-# axs[0].set_ylim((-0.05,0.05))
-# axs[0].set_xlim((200,500))
-# axs[0].set_ylabel('$u$')
-# # axs[0].legend(loc='upper right',shadow=False,fancybox=False,frameon=False)
 
-# axs[1].plot(test_y[0],label = '$y$',linewidth=2)
-# axs[1].plot(y_est,'--',label = '$\hat{y}$',linewidth=1)
-# axs[1].set_ylim((-0.35,0.35))
-# axs[1].set_xlim((200,500))
-# axs[1].set_ylabel('$y$')
-# axs[1].set_xlabel('$k$')
-# # axs[1].legend(loc='upper left',shadow=False,fancybox=False,frameon=False)
+# palette = sns.color_palette()[1::]
 
-# fig.savefig('Silverbox_test.png', bbox_inches='tight',dpi=600)
+# sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
+#                   palette=palette, fliersize=2,ax=axs[0], linewidth=1)
+
+# sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
+#                   palette=palette,fliersize=2,ax=axs[1], linewidth=1)
+
+
+# axs[0].legend_.remove()
+# axs[1].legend_.remove()
+
+# axs[0].set_xticks([])
+
+# axs[1].set_xlabel(r'$\dim(\theta_k)$')
+# axs[0].set_xlabel(None)
+
+# axs[0].set_ylabel(None)
+# axs[1].set_ylabel(None)
+
+# axs[1].set_ylim(-5,105)
+# axs[0].set_ylim(98,100)
+
+# fig.savefig('Silverbox_StateSched_Boxplot.png', bbox_inches='tight',dpi=600)

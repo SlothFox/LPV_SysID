@@ -141,6 +141,8 @@ for model in models:
 BFR_on_val_data.loc[np.arange(0,40,1),'theta'] = BFR_on_val_data.loc[np.arange(0,40,1),'theta']*2
 BFR_on_val_data.loc[np.arange(80,120,1),'theta'] = BFR_on_val_data.loc[np.arange(80,120,1),'theta']*2
 
+BFR_on_val_data['BFR']=BFR_on_val_data['BFR'].astype('float64')
+
 
 palette = sns.color_palette()[1::]
 
@@ -148,8 +150,13 @@ fig, axs = plt.subplots() #plt.subplots(2,gridspec_kw={'height_ratios': [1, 1.5]
 
 fig.set_size_inches((9/2.54,4/2.54))
 
-sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
-                  palette=palette, fliersize=2,ax=axs, linewidth=1)
+# sns.violinplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
+#                   palette=palette, fliersize=2,ax=axs, linewidth=1)
+sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, ax=axs,
+               color=".8")
+sns.stripplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
+                  palette=palette, ax=axs, linewidth=0.1,
+                  dodge=True,zorder=1)
 
 # sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
 #                   palette="Set1",fliersize=2,ax=axs[1], linewidth=1)
@@ -158,38 +165,10 @@ axs.legend_.remove()
 
 axs.set_xlabel(r'$\dim(\theta_k)$')
 
-
 axs.set_ylabel(None)
 
 
 axs.set_ylim(-5,100)
-# axs.set_xlim(-0.5,3.5)
 
 fig.savefig('Bioreactor_StateSched_Boxplot.png', bbox_inches='tight',dpi=600)
 
-# plt.figure
-
-# ''' Plot measured Input-Output data'''
-# # plt.rc(usetex = True)
-
-# # params = {'tex.usetex': True}
-# # plt.rcParams.update(params)
-
-# fig, axs = plt.subplots(2)
-# fig.set_size_inches((9/2.54,7/2.54))
-# axs[0].plot(test_u[0],label = '$u$',linewidth=1)
-# axs[0].set_xticklabels({})
-# axs[0].set_ylim((-0.05,0.05))
-# axs[0].set_xlim((200,500))
-# axs[0].set_ylabel('$u$')
-# # axs[0].legend(loc='upper right',shadow=False,fancybox=False,frameon=False)
-
-# axs[1].plot(test_y[0],label = '$y$',linewidth=2)
-# axs[1].plot(y_est,'--',label = '$\hat{y}$',linewidth=1)
-# axs[1].set_ylim((-0.35,0.35))
-# axs[1].set_xlim((200,500))
-# axs[1].set_ylabel('$y$')
-# axs[1].set_xlabel('$k$')
-# # axs[1].legend(loc='upper left',shadow=False,fancybox=False,frameon=False)
-
-# fig.savefig('Silverbox_test.png', bbox_inches='tight',dpi=600)
