@@ -128,7 +128,7 @@ class RBFLPV(LPV_RNN):
     """
 
     def __init__(self,dim_u,dim_x,dim_y,dim_theta=0,NN_dim=[],NN_act=[],
-                 initial_params=None, init_proc='random'):
+                 initial_params=None, frozen_params = [], init_proc='random'):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
@@ -139,6 +139,7 @@ class RBFLPV(LPV_RNN):
         self.NN_act = NN_act
         
         self.InitialParameters = initial_params
+        self.FrozenParameters = frozen_params
         self.InitializationProcedure = init_proc
         
         self.name = 'RBF_LPV_statesched'
@@ -372,31 +373,31 @@ class RBFLPV(LPV_RNN):
     #                     self.Parameters[param] = self.InitialParameters[param]      
                 
                 
-    def InitializeLocalModels(self,A,B,C,range_x=None,range_u=None):
-        '''
-        Initializes all local models with a given linear model and distributes
-        the weighting functions uniformly over a given range
-        A: array, system matrix
-        B: array, input matrix
-        C: array, output matrix
-        op_range: array, expected operating range over which to distribute 
-        the weighting functions
-        '''
+    # def InitializeLocalModels(self,A,B,C,range_x=None,range_u=None):
+    #     '''
+    #     Initializes all local models with a given linear model and distributes
+    #     the weighting functions uniformly over a given range
+    #     A: array, system matrix
+    #     B: array, input matrix
+    #     C: array, output matrix
+    #     op_range: array, expected operating range over which to distribute 
+    #     the weighting functions
+    #     '''
         
-        # Distribute centers of RBFs uniformly over given range
+    #     # Distribute centers of RBFs uniformly over given range
         
-        for loc in range(0,self.dim_theta):
+    #     for loc in range(0,self.dim_theta):
             
-                i = str(loc)
-                self.Parameters['A'+i] = A
-                self.Parameters['B'+i] = B
-                self.Parameters['C'+i] = C
-                # self.Parameters['c_u'+i] = range_u[:,[0]] + \
-                #     (range_u[:,[1]]-range_u[:,[0]]) * np.random.uniform(size=(self.dim_u,1))
-                # self.Parameters['c_x'+i] = range_x[:,[0]] + \
-                #     (range_x[:,[1]]-range_x[:,[0]]) * np.random.uniform(size=(self.dim_x,1))
+    #             i = str(loc)
+    #             self.Parameters['A'+i] = A
+    #             self.Parameters['B'+i] = B
+    #             self.Parameters['C'+i] = C
+    #             # self.Parameters['c_u'+i] = range_u[:,[0]] + \
+    #             #     (range_u[:,[1]]-range_u[:,[0]]) * np.random.uniform(size=(self.dim_u,1))
+    #             # self.Parameters['c_x'+i] = range_x[:,[0]] + \
+    #             #     (range_x[:,[1]]-range_x[:,[0]]) * np.random.uniform(size=(self.dim_x,1))
        
-        return None
+    #     return None
         
     
     def AffineStateSpaceMatrices(self,theta):
@@ -2153,7 +2154,7 @@ class Rehmer_NN_LPV(LPV_RNN):
     def __init__(self,dim_u,dim_x,dim_y,dim_thetaA=0,dim_thetaB=0,dim_thetaC=0,
                  NN_A_dim=[],NN_B_dim=[],NN_C_dim=[],
                  NN_A_act=[],NN_B_act=[], NN_C_act=[], initial_params=None,
-                 frozen_params = None, init_proc='random'):
+                 frozen_params = [], init_proc='random'):
         '''
         Initializes the model structure by Rehmer et al. 2021.
         dim_u: int, dimension of the input vector
