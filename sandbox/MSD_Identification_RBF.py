@@ -12,7 +12,7 @@ from optim import param_optim
 
 ''' User specified parameters '''
 dim_x = 3
-inits = 1
+inits = 10
 
 ''' Data Preprocessing '''
 
@@ -78,7 +78,7 @@ dim_theta = [1,2,3,4,5]
 
 counter = 0
 
-s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
+# s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
 for dim in dim_theta:
 
@@ -99,13 +99,12 @@ for dim in dim_theta:
     model.InitialParameters = initial_params
     
     results_new = param_optim.ModelTraining(model,data,inits,
-                             p_opts=None,s_opts=s_opts)
+                             p_opts=None,s_opts=None)
             
     # Add information?
                 
     # Save results
-    pkl.dump(results_new,open('./Results/MSD/MSD_RBF_3states_theta'+str(dim)+
-                              '_'+str(counter)+ '.pkl','wb'))
+    pkl.dump(results_new,open('./Results/MSD/MSD_RBF_3states_'+str(counter)+ '.pkl','wb'))
     try:
         results = results.append(results_new)
     except NameError:
@@ -113,6 +112,4 @@ for dim in dim_theta:
     
     counter = counter + 1
    
-pkl.dump(results,open('./Results/MSD/MSD_RBF_3states_'+
-                                          'theta'+str(dim)
-                                          +'.pkl','wb'))
+pkl.dump(results,open('./Results/MSD/MSD_RBF_3states.pkl','wb'))

@@ -12,7 +12,7 @@ from optim import param_optim
 
 ''' User specified parameters '''
 dim_x = 3
-inits = 10
+inits = 20
 lamb = 0.01
 
 ''' Data Preprocessing '''
@@ -69,8 +69,9 @@ data['x_train'] = x_LS.reshape(1,-1,dim_x)
 s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
 dim_thetaA = [1]
-A_0s = [np.identity(9)[i,:].reshape((dim_x,dim_x)) for i in range(0,dim_x**2)]
-activations = [ [[1,1,1,0]], [[3,3,3,0]], [[1,1,1,2]]      ]
+# A_0s = [np.identity(9)[i,:].reshape((dim_x,dim_x)) for i in range(0,dim_x**2)]
+A_0s = [np.array([[1,1,1],[0,0,0],[0,0,0]])]
+activations = [ [[1,1,1,0]] ]      
 dim_phis = [1,2,5]
 
 counter = 0
@@ -100,6 +101,7 @@ for dimA in dim_thetaA:
                 results_new['lambda'] = lamb
                 
                 pkl.dump(results_new,open('./Results/MSD/MSD_LPVNN_3states_'+
+                                          '111_'+
                                           str(counter)+
                                           'lam'+str(lamb)+
                                           '.pkl','wb'))
@@ -111,7 +113,7 @@ for dimA in dim_thetaA:
                 
                 counter = counter + 1
    
-pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states'+
+pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states_111_'+
                                           'lam'+str(lamb)
                                           +'.pkl','wb'))
 
