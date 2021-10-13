@@ -48,19 +48,19 @@ res=pkl.load(open(path+file,'rb'))
 #     except:
 #         break
         
-palette = sns.color_palette()[1::]
+palette = sns.color_palette()
 
 fig, axs = plt.subplots() #plt.subplots(2,gridspec_kw={'height_ratios': [1, 1.5]})
 
 fig.set_size_inches((9/2.54,4/2.54))
-fig.set_size_inches((9,4))
+# fig.set_size_inches((9,4))
 
-sns.boxplot(x='dim_phi', y='BFR_test', hue='structure', data=res, ax=axs,
-            color=".8")
+# sns.boxplot(x='dim_phi', y='BFR_test', hue='structure', data=res, ax=axs,
+#             color=".8", linewidth=2)
 
 sns.stripplot(x='dim_phi', y='BFR_test', hue='structure',data=res, 
                   palette=palette, ax=axs, linewidth=0.1,
-                   dodge=True,zorder=1,size=10)
+                   dodge=True,zorder=1,size=5)
 
 # sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
 #                   palette="Set1",fliersize=2,ax=axs[1], linewidth=1)
@@ -68,8 +68,8 @@ sns.stripplot(x='dim_phi', y='BFR_test', hue='structure',data=res,
 axs.legend_.remove()
 axs.set_xlabel(r'$\dim(\phi_k)$')
 axs.set_ylabel(None)
-axs.set_ylim(60,105)
-fig.tight_layout()
+axs.set_ylim(55,105)
+# fig.tight_layout()
 
 
-# fig.savefig('Bioreactor_StateSched_Boxplot.png', bbox_inches='tight',dpi=600)
+fig.savefig('MSD_ModelSelection.png', bbox_inches='tight',dpi=600)
