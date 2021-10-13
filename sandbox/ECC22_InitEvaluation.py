@@ -8,6 +8,7 @@ Created on Wed Oct 13 09:18:25 2021
 import pickle as pkl
 import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
 
 path = 'Results/MSD/'
 file = 'MSD_LPVNN_3stateslam0.01.pkl'
@@ -35,34 +36,40 @@ res=pkl.load(open(path+file,'rb'))
 # pkl.dump(res,open(path+file,'wb'))
 
 
+# Delete NaNs ?
+
+# for i in range(len(res)):
+#     try:
+#         if np.isnan(res.iloc[i]['BFR_test']) or np.isinf(res.iloc[i]['BFR_test']):
+#             # res.drop(res.index[i],inplace = True)
+#             continue
+#         elif res.iloc[i]['BFR_test']==0.0:
+#             res.drop(res.index[i],inplace = True)
+#     except:
+#         break
+        
 palette = sns.color_palette()[1::]
 
 fig, axs = plt.subplots() #plt.subplots(2,gridspec_kw={'height_ratios': [1, 1.5]})
 
 fig.set_size_inches((9/2.54,4/2.54))
+fig.set_size_inches((9,4))
 
-# sns.violinplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
-#                   palette=palette, fliersize=2,ax=axs, linewidth=1)
-# sns.boxplot(x='theta', y='BFR_test', hue='structure',data=BFR_on_val_data, ax=axs,
-#                color=".8")
 sns.boxplot(x='dim_phi', y='BFR_test', hue='structure', data=res, ax=axs,
             color=".8")
 
 sns.stripplot(x='dim_phi', y='BFR_test', hue='structure',data=res, 
                   palette=palette, ax=axs, linewidth=0.1,
-                   dodge=True,zorder=1)
+                   dodge=True,zorder=1,size=10)
 
 # sns.boxplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
 #                   palette="Set1",fliersize=2,ax=axs[1], linewidth=1)
 
-# axs.legend_.remove()
+axs.legend_.remove()
+axs.set_xlabel(r'$\dim(\phi_k)$')
+axs.set_ylabel(None)
+axs.set_ylim(60,105)
+fig.tight_layout()
 
-# axs.set_xlabel(r'$\dim(\theta_k)$')
-
-# axs.set_ylabel(None)
-
-axs.set_title('lambda 0.01')
-
-axs.set_ylim(-5,105)
 
 # fig.savefig('Bioreactor_StateSched_Boxplot.png', bbox_inches='tight',dpi=600)
