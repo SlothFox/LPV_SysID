@@ -68,7 +68,6 @@ save('dataset1.mat','dataset1')
 
 %% Plot
 close all
-
 figure;
 scatter(simout.x(:,2),-simout.F_fric_nl(:,2)+simout.x(:,2).*d/m)
 xlabel('$\dot{x}$','fontsize',14,'interpreter','latex')
@@ -78,9 +77,9 @@ saveas(gcf,'FrictionForce.png')
 figure;
 scatter3(simout.x(:,2),simout.z,-simout.F_fric_nl(:,2)+simout.x(:,2).*d/m)
 xlim([-0.04,0.04])
-xlabel('$\dot{x}$','fontsize',14,'interpreter','latex')
-ylabel('$z$','fontsize',14,'interpreter','latex')
-saveas(gcf,'FrictionForce3d.png')
+xlabel('$\dot{x}$')
+
+
 
 figure;
 hist(simout.x(:,2))
