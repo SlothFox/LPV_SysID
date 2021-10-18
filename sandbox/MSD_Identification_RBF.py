@@ -48,68 +48,124 @@ data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
 
 ''' Identification '''
 
+model = NN.LinearSSM(dim_u=1,dim_x=dim_x,dim_y=1,initial_params=None, init_proc='random')
 
+model.InitialParameters = {'A':np.array([[0.9,0,0],[0,0.9,0],[0,0,0.9]])}
 
-# Load inital linear state space model
+res =  param_optim.ModelTraining(model,data,initializations=2)
 
-''' Simulate linear model to get range of state for scheduling '''
-# Load inital linear state space model
-LSS=loadmat("Benchmarks/Mass_Spring_Damper_LuGre/data/LuGre_LSS_s3")
-LSS=LSS['LuGre_LSS']
-
-SubspaceModel = NN.LinearSSM(dim_u=1,dim_x=dim_x,dim_y=1)
-SubspaceModel.Parameters = {'A': LSS['A'][0][0],
-                  'B': LSS['B'][0][0],
-                  'C': LSS['C'][0][0]}
-
-x_lin,_ = SubspaceModel.Simulation(data['init_state_train'][0],data['u_train'][0])
-
-x_max = np.max(x_lin,0).reshape(-1,1)
-x_min = np.min(x_lin,0).reshape(-1,1)
-
-u_max = np.max(data['u_train'][0],0)
-u_min = np.min(data['u_train'][0],0)
+# new_params = param_optim.ModelParameterEstimation(model, data)
 
 
 
-''' Start training '''
 
-dim_theta = [1,2,3,4,5]
 
-counter = 0
 
-# s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
-for dim in dim_theta:
+
+
+
+
+# import matplotlib.pyplot as plt 
+
+# _,y_old = model.Simulation(np.zeros((dim_x,1)), train_u[0])
+# y_old = np.array(y_old)
+
+
+# model_opt = model
+# model_opt.Parameters = new_params
+
+# _,y_new = model_opt.Simulation(np.zeros((dim_x,1)), train_u[0])
+# y_new = np.array(y_new)
+
+
+
+# plt.plot(train_y[0])
+# plt.plot(y_old)
+# plt.plot(y_new)
+
+
+# plt.legend(['y_true','y_old','y_new'])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # Load inital linear state space model
+
+# ''' Simulate linear model to get range of state for scheduling '''
+# # Load inital linear state space model
+# LSS=loadmat("Benchmarks/Mass_Spring_Damper_LuGre/data/LuGre_LSS_s3")
+# LSS=LSS['LuGre_LSS']
+
+# SubspaceModel = NN.LinearSSM(dim_u=1,dim_x=dim_x,dim_y=1)
+# SubspaceModel.Parameters = {'A': LSS['A'][0][0],
+#                   'B': LSS['B'][0][0],
+#                   'C': LSS['C'][0][0]}
+
+# x_lin,_ = SubspaceModel.Simulation(data['init_state_train'][0],data['u_train'][0])
+
+# x_max = np.max(x_lin,0).reshape(-1,1)
+# x_min = np.min(x_lin,0).reshape(-1,1)
+
+# u_max = np.max(data['u_train'][0],0)
+# u_min = np.min(data['u_train'][0],0)
+
+
+
+# ''' Start training '''
+
+# dim_theta = [1,2,3,4,5]
+
+# counter = 0
+
+# # s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
+
+# for dim in dim_theta:
 
     
-    model = NN.RBFLPV(dim_u=1,dim_x=dim_x,dim_y=1,dim_theta=dim)  
+#     model = NN.RBFLPV(dim_u=1,dim_x=dim_x,dim_y=1,dim_theta=dim)  
     
-    initial_params = {}
+#     initial_params = {}
     
-    for i in range(0,dim):
-        initial_params['A'+str(i)] =  LSS['A'][0][0]
-        initial_params['B'+str(i)] =  LSS['B'][0][0]
-        initial_params['C'+str(i)] =  LSS['C'][0][0]
-        initial_params['c_u'+str(i)] = u_min + \
-                                (u_max-u_min) * np.random.uniform(size=(1,1))
-        initial_params['c_x'+str(i)] = x_min + \
-                                (x_max-x_min) * np.random.uniform(size=(dim_x,1))        
+#     for i in range(0,dim):
+#         initial_params['A'+str(i)] =  LSS['A'][0][0]
+#         initial_params['B'+str(i)] =  LSS['B'][0][0]
+#         initial_params['C'+str(i)] =  LSS['C'][0][0]
+#         initial_params['c_u'+str(i)] = u_min + \
+#                                 (u_max-u_min) * np.random.uniform(size=(1,1))
+#         initial_params['c_x'+str(i)] = x_min + \
+#                                 (x_max-x_min) * np.random.uniform(size=(dim_x,1))        
             
-    model.InitialParameters = initial_params
+#     model.InitialParameters = initial_params
     
-    results_new = param_optim.ModelTraining(model,data,inits,
-                             p_opts=None,s_opts=None)
+#     results_new = param_optim.ModelTraining(model,data,inits,
+#                              p_opts=None,s_opts=None)
             
-    # Add information?
+#     # Add information?
                 
-    # Save results
-    pkl.dump(results_new,open('./Results/MSD/MSD_RBF_3states_'+str(counter)+ '.pkl','wb'))
-    try:
-        results = results.append(results_new)
-    except NameError:
-        results = results_new
+#     # Save results
+#     pkl.dump(results_new,open('./Results/MSD/MSD_RBF_3states_'+str(counter)+ '.pkl','wb'))
+#     try:
+#         results = results.append(results_new)
+#     except NameError:
+#         results = results_new
     
-    counter = counter + 1
+#     counter = counter + 1
    
-pkl.dump(results,open('./Results/MSD/MSD_RBF_3states.pkl','wb'))
+# pkl.dump(results,open('./Results/MSD/MSD_RBF_3states.pkl','wb'))

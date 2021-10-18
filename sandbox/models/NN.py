@@ -1761,15 +1761,17 @@ class LinearSSM(LPV_RNN):
     
     """
 
-    def __init__(self,dim_u,dim_x,dim_y,initial_params=None, init_proc='random'):
+    def __init__(self,dim_u,dim_x,dim_y,initial_params=None, frozen_params = [], init_proc='random'):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
         self.dim_y = dim_y
         self.name = 'LinearSSM'
+        self.dim = dim_x
         
         self.InitialParameters = initial_params
         self.InitializationProcedure = init_proc
+        self.FrozenParameters = frozen_params
         
         self.Initialize(initial_params)
 
@@ -1811,6 +1813,8 @@ class LinearSSM(LPV_RNN):
             output_names = ['x_new','y_new']  
             
             self.Function = cs.Function(name, input, output, input_names,output_names)
+            
+            self.ParameterInitialization()
             
             return None
    
