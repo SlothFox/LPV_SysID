@@ -1566,15 +1566,15 @@ class RehmerLPV_old():
         
         return x,y
 
-class LachhabLPV():
+class LachhabLPV(LPV_RNN):
     """
     Quasi-LPV model structure for system identification. Uses a structured
     RNN which can be transformed into an affine LPV representation. Scheduling variables are the
     input and the state.
     """
 
-    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA,dim_thetaB,dim_thetaC,
-                 initial_params,name):
+    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA=0,dim_thetaB=0,dim_thetaC=0,
+                 initial_params=None, frozen_params = [], init_proc='random'):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
@@ -1582,11 +1582,19 @@ class LachhabLPV():
         self.dim_thetaA = dim_thetaA
         self.dim_thetaB = dim_thetaB
         self.dim_thetaC = dim_thetaC
-        self.name = name
         
-        self.Initialize(initial_params)
+        self.dim = dim_thetaA+dim_thetaB+dim_thetaC
+        
+        self.name = 'Lachhab_LPV'
+       
+        self.InitialParameters = initial_params
+        self.FrozenParameters = frozen_params
+        self.InitializationProcedure = init_proc
 
-    def Initialize(self,initial_params):
+        
+        self.Initialize()
+
+    def Initialize(self):
             
             # For convenience of notation
             dim_u = self.dim_u
@@ -1613,24 +1621,7 @@ class LachhabLPV():
             C_0 = cs.MX.sym('C_0',dim_y,dim_x)
             C_lpv = cs.MX.sym('C_lpv',dim_y,dim_thetaC)
             W_C = cs.MX.sym('W_C',dim_thetaC,dim_x)
-            
-            # Put all Parameters in Dictionary with random initialization
-            self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
-                               'A_lpv':np.random.rand(dim_x,dim_thetaA)*0.01,
-                               'W_A':np.random.rand(dim_thetaA,dim_x),
-                               'B_0':np.random.rand(dim_x,dim_u),
-                               'B_lpv':np.random.rand(dim_x,dim_thetaB)*0.01,
-                               'W_B':np.random.rand(dim_thetaB,dim_u),
-                               'C_0':np.random.rand(dim_y,dim_x),
-                               'C_lpv':np.random.rand(dim_y,dim_thetaC),
-                               'W_C':np.random.rand(dim_thetaC,dim_x)}
-        
-            
-            # Initialize if inital parameters are given
-            if initial_params is not None:
-                for param in initial_params.keys():
-                    self.Parameters[param] = initial_params[param]
-            
+           
             # Define Model Equations
             x_new = cs.mtimes(A_0,x) + cs.mtimes(B_0,u) + cs.mtimes(A_lpv, 
                     cs.tanh(cs.mtimes(W_A,x))) + cs.mtimes(B_lpv, 
@@ -1657,7 +1648,7 @@ class LachhabLPV():
             self.AffineParameters = cs.Function('AffineParameters',input,
                                                 [theta],input_names,['theta'])
 
-
+            self.ParameterInitialization()
             
             return None
 
