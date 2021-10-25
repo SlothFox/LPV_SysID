@@ -49,12 +49,15 @@ init_results = pkl.load(open('Results/MSD/MSD_LPVNN_3stateslam0.01.pkl','rb'))
 
 best_init_results = init_results.sort_values('BFR_test',ascending=False).iloc[0:10]
 
-s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
+# s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
-for i in range(0,len(best_init_results)):
+for i in range(4,len(best_init_results)):
+    
+    dim_phi = best_init_results.iloc[i]['dim_phi']
+    
     model = NN.Rehmer_NN_LPV(dim_u=1,dim_x=dim_x,dim_y=1,
-                        dim_thetaA=1, NN_A_dim=[[5,5,5,1]],
-                                         NN_A_act=[[1,1,1,0]])
+                        dim_thetaA=1, NN_A_dim=[[5,dim_phi,5,1]],
+                                         NN_A_act=[[1,1,1,0]]) 
     
     model.InitialParameters =  best_init_results.iloc[i]['params']
 
@@ -68,14 +71,14 @@ for i in range(0,len(best_init_results)):
     results_NOE['lambda'] = best_init_results.iloc[i]['lambda']
     
     try:
-        results = results.append(results_new)
+        results = results.append(results_NOE)
     except NameError:
-        results = results_new    
+        results = results_NOE    
 
 
    
-# pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states_2theta_shallow_'+
-#                                           'lam'+str(lamb)
-#                                           +'.pkl','wb'))
+pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states_NOE_'+
+                                          'lam'+str(0.01)
+                                          +'.pkl','wb'))
 
 
