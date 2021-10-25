@@ -45,13 +45,16 @@ data = {'u_train':train_u, 'y_train':train_y, 'init_state_train': init_state,
         'u_test':test_u, 'y_test':test_y,'init_state_test': init_state}
 
 
-init_results = pkl.load(open('Results/MSD/MSD_LPVNN_3stateslam0.01.pkl','rb'))
+init_results = pkl.load(open('Results/MSD/MSD_Lachhab_3states__lam0.01.pkl','rb'))
 
 best_init_results = init_results.sort_values('BFR_test',ascending=False).iloc[0:10]
 
 s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
 for i in range(0,len(best_init_results)):
+    
+    dim_theta = best_init_results.iloc[i]['dim_thetaA']
+        
     model = NN.LachhabLPV(dim_u=1,dim_x=dim_x,dim_y=1, dim_thetaA=dim_theta)
         
     model.InitialParameters =  best_init_results.iloc[i]['params']
@@ -69,11 +72,9 @@ for i in range(0,len(best_init_results)):
         results = results.append(results_new)
     except NameError:
         results = results_new    
-
-
    
-# pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states_2theta_shallow_'+
-#                                           'lam'+str(lamb)
-#                                           +'.pkl','wb'))
+pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states_2theta_shallow_'+
+                                          'lam'+str(lamb)
+                                          +'.pkl','wb'))
 
 
