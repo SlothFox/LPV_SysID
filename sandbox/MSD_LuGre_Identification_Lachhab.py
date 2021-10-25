@@ -63,15 +63,13 @@ for i in range(0,len(best_init_results)):
                                          p_opts=None,s_opts=None)
     
     # Add information
-    results_NOE['dim_phi'] = best_init_results.iloc[i]['dim_phi']
-    results_NOE['activations'] = best_init_results.iloc[i]['activations']
     results_NOE['dim_thetaA'] = best_init_results.iloc[i]['dim_thetaA']
     results_NOE['lambda'] = best_init_results.iloc[i]['lambda']
     
     try:
-        results = results.append(results_new)
+        results = results.append(results_NOE)
     except NameError:
-        results = results_new    
+        results = results_NOE    
    
 pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states_2theta_shallow_'+
                                           'lam'+str(lamb)
