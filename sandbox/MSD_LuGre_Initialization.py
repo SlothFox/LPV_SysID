@@ -12,7 +12,7 @@ from optim import param_optim
 
 ''' User specified parameters '''
 dim_x = 3
-inits = 10
+inits = 30
 lamb = 0.01
 
 ''' Data Preprocessing '''
@@ -66,13 +66,16 @@ data['x_train'] = x_LS.reshape(1,-1,dim_x)
 
 
 # p_opts = {"expand":False}
-s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
+s_opts = {"max_iter": 2000, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
 dim_thetaA = [2]
 # A_0s = [np.identity(9)[i,:].reshape((dim_x,dim_x)) for i in range(0,dim_x**2)]
-A_0s = [np.array([[1,0,0],[0,0,0],[0,0,0]])]
-A_1 = np.array([[0,1,0],[0,0,0],[0,0,0]])
-activations = [ [[1,0], [1,0]] ]      
+
+
+A_0s = [np.array([[0.1,0,0],[0,0,0],[0,0,0]]),np.array([[0,0.1,0],[0,0,0],[0,0,0]]),
+        np.array([[0.1,0,0],[0,0,0],[0,0,0]]),np.array([[0.1,0.1,0.1],[0,0,0],[0,0,0]])]
+# A_1 = np.array([[0,1,0],[0,0,0],[0,0,0]])
+activations = [ [[1,1,1,0]] ]      
 dim_phis = [5]
 
 counter = 0
@@ -83,15 +86,14 @@ for dimA in dim_thetaA:
             for dim_phi in dim_phis:
     
                 model = NN.Rehmer_NN_LPV(dim_u=1,dim_x=dim_x,dim_y=1,
-                        dim_thetaA=dimA, NN_A_dim=[[10,1],[10,1]],
+                        dim_thetaA=dimA, NN_A_dim=[[5,dim_phi,5,1]],
                                          NN_A_act=activation)
                 
-                model.FrozenParameters = ['A','B','C','A_0','A_1']
+                model.FrozenParameters = ['A','B','C','A_0']
                 model.InitialParameters = initial_params = {'A': LSS['A'][0][0],
                                                             'B': LSS['B'][0][0],
                                                             'C': LSS['C'][0][0],
-                                                            'A_0':A_0,
-                                                            'A_1':A_1}
+                                                            'A_0':A_0}
                 
                 results_new = param_optim.ModelTraining(model,data,inits,
                                          p_opts=None,s_opts=s_opts)
@@ -102,11 +104,11 @@ for dimA in dim_thetaA:
                 results_new['dim_thetaA'] = dimA
                 results_new['lambda'] = lamb
                 
-                pkl.dump(results_new,open('./Results/MSD/MSD_LPVNN_3states_'+
-                                          '111_'+
-                                          str(counter)+
-                                          'lam'+str(lamb)+
-                                          '.pkl','wb'))
+                # pkl.dump(results_new,open('./Results/MSD/MSD_LPVNN_3states_'+
+                #                           '2theta_shallow_'+
+                #                           str(counter)+
+                #                           'lam'+str(lamb)+
+                #                           '.pkl','wb'))
                 
                 try:
                     results = results.append(results_new)
@@ -115,7 +117,7 @@ for dimA in dim_thetaA:
                 
                 counter = counter + 1
    
-pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states_2theta_shallow_'+
+pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states_30inits_'+
                                           'lam'+str(lamb)
                                           +'.pkl','wb'))
 
