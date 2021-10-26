@@ -45,7 +45,7 @@ data = {'u_train':train_u, 'y_train':train_y, 'init_state_train': init_state,
         'u_test':test_u, 'y_test':test_y,'init_state_test': init_state}
 
 
-init_results = pkl.load(open('Results/MSD/MSD_Lachhab_3states__lam0.01.pkl','rb'))
+init_results = pkl.load(open('Results/MSD/MSD_Lachhab_3states_lam0.01.pkl','rb'))
 
 best_init_results = init_results.sort_values('BFR_test',ascending=False).iloc[0:30]
 
@@ -71,7 +71,7 @@ for i in range(0,len(best_init_results)):
     except NameError:
         results = results_NOE    
    
-pkl.dump(results,open('./Results/MSD/MSD_Lachhab_3states_NOE_'+
+pkl.dump(results,open('./Results/MSD/MSD_Lachhab_3states_NOE2_'+
                                           'lam'+str(lamb)
                                           +'.pkl','wb'))
 
