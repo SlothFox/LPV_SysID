@@ -13,7 +13,7 @@ import numpy as np
 path = 'Results/MSD/'
 Lach = 'MSD_Lachhab_3states_lam0.01.pkl'
 RBF = 'MSD_RBF_3states.pkl'
-LPVNN = 'MSD_LPVNN_3stateslam0.01.pkl'
+LPVNN = 'MSD_LPVNN_3states_lam0.01.pkl'
 
 Lach=pkl.load(open(path+Lach,'rb'))
 RBF=pkl.load(open(path+RBF,'rb'))

@@ -45,19 +45,19 @@ data = {'u_train':train_u, 'y_train':train_y, 'init_state_train': init_state,
         'u_test':test_u, 'y_test':test_y,'init_state_test': init_state}
 
 
-init_results = pkl.load(open('Results/MSD/MSD_LPVNN_3states_2theta_shallow_lam0.01.pkl','rb'))
+init_results = pkl.load(open('Results/MSD/MSD_LPVNN_3states_lam0.01.pkl','rb'))
 
-best_init_results = init_results.sort_values('BFR_test',ascending=False).iloc[0:10]
+best_init_results = init_results.sort_values('BFR_test',ascending=False).iloc[0:30]
 
 # s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
-for i in range(4,len(best_init_results)):
-    
+# for i in range(0,len(best_init_results)):
+for i in range(0,2):    
     dim_phi = best_init_results.iloc[i]['dim_phi']
     
     model = NN.Rehmer_NN_LPV(dim_u=1,dim_x=dim_x,dim_y=1,
-                        dim_thetaA=1, NN_A_dim=[[10,1]],
-                                         NN_A_act=[[1,0]]) 
+                        dim_thetaA=1, NN_A_dim=[[5,5,5,1]],
+                                         NN_A_act=[[1,1,1,0]]) 
     
     model.InitialParameters =  best_init_results.iloc[i]['params']
 
@@ -69,7 +69,7 @@ for i in range(4,len(best_init_results)):
     results_NOE['activations'] = best_init_results.iloc[i]['activations']
     results_NOE['dim_thetaA'] = best_init_results.iloc[i]['dim_thetaA']
     results_NOE['lambda'] = best_init_results.iloc[i]['lambda']
-    
+    results_NOE['structure'] = best_init_results.iloc[i]['structure']
     try:
         results = results.append(results_NOE)
     except NameError:
@@ -77,6 +77,6 @@ for i in range(4,len(best_init_results)):
 
 
    
-pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states_shallow_NOE_'+
+pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states_NOE_'+
                                           'lam'+str(0.01)
                                           +'.pkl','wb'))
