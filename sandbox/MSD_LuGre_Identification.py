@@ -49,9 +49,11 @@ init_results = pkl.load(open('Results/MSD/MSD_LPVNN_3states_lam0.01.pkl','rb'))
 
 best_init_results = init_results.sort_values('BFR_test',ascending=False).iloc[0:30]
 
-# s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
+s_opts = {"max_iter": 3000}#, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
-for i in range(0,len(best_init_results)):
+counter = 0
+
+for i in range(1,len(best_init_results)):
 # for i in range(0,2):    
     dim_phi = best_init_results.iloc[i]['dim_phi']
     
@@ -62,7 +64,7 @@ for i in range(0,len(best_init_results)):
     model.InitialParameters =  best_init_results.iloc[i]['params']
 
     results_NOE = param_optim.ModelTraining(model,data,1,
-                                         p_opts=None,s_opts=None)
+                                         p_opts=None,s_opts=s_opts)
     
     # Add information
     results_NOE['dim_phi'] = best_init_results.iloc[i]['dim_phi']
@@ -70,12 +72,15 @@ for i in range(0,len(best_init_results)):
     results_NOE['dim_thetaA'] = best_init_results.iloc[i]['dim_thetaA']
     results_NOE['lambda'] = best_init_results.iloc[i]['lambda']
     results_NOE['structure'] = best_init_results.iloc[i]['structure']
+    
+    pkl.dump(results_NOE,open('Results/MSD/LPVNN_NOE_'+str(counter),'wb'))
+    
     try:
         results = results.append(results_NOE)
     except NameError:
         results = results_NOE    
 
-
+    counter = counter + 1
    
 pkl.dump(results,open('./Results/MSD/MSD_LPVNN_3states_NOE_'+
                                           'lam'+str(0.01)
