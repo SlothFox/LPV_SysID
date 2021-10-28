@@ -49,10 +49,10 @@ init_results = pkl.load(open('Results/MSD/MSD_LPVNN_3states_lam0.01.pkl','rb'))
 
 best_init_results = init_results.sort_values('BFR_test',ascending=False).iloc[0:30]
 
-s_opts = {"max_iter": 3000}#, "print_level":0, 'hessian_approximation': 'limited-memory'}
+s_opts = {"max_iter": 2000}#, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
 
-for i in range(7,9):
+for i in range(17,22):
 # for i in range(0,2):    
     dim_phi = best_init_results.iloc[i]['dim_phi']
     
