@@ -52,12 +52,12 @@ best_init_results = init_results.sort_values('BFR_test',ascending=False).iloc[0:
 s_opts = {"max_iter": 2000}#, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
 
-for i in range(17,22):
+for i in range(16,17):
 # for i in range(0,2):    
     dim_phi = best_init_results.iloc[i]['dim_phi']
     
     model = NN.Rehmer_NN_LPV(dim_u=1,dim_x=dim_x,dim_y=1,
-                        dim_thetaA=1, NN_A_dim=[[5,5,5,1]],
+                        dim_thetaA=1, NN_A_dim=[[5,dim_phi,5,1]],
                                          NN_A_act=[[1,1,1,0]]) 
     
     model.InitialParameters =  best_init_results.iloc[i]['params']
