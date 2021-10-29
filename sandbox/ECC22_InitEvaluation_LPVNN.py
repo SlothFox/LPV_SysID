@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 path = 'Results/MSD/'
-file = 'MSD_LPVNN_3stateslam0.01.pkl'
+file = 'MSD_LPVNN_3states_lam0.01.pkl'
+BFR_lin = 71.46                     # BFR linear model on test data
 
 
 res=pkl.load(open(path+file,'rb'))
@@ -71,12 +72,18 @@ res = res.loc[res['structure']!='A012']
 sns.stripplot(x='structure', y='BFR_test', data=res[res['dim_phi']==1], 
                   palette=palette, ax=axs[0], linewidth=0.3,
                    dodge=True,zorder=1,size=3,marker='x')
+
 sns.stripplot(x='structure', y='BFR_test', data=res[res['dim_phi']==2], 
                   palette=palette, ax=axs[1], linewidth=0.3,
                    dodge=True,zorder=1,size=3,marker='x')
 sns.stripplot(x='structure', y='BFR_test', data=res[res['dim_phi']==5], 
                   palette=palette, ax=axs[2], linewidth=0.3,
                    dodge=True,zorder=1,size=3,marker='x')
+
+
+axs[0].axhline(y=BFR_lin, color='k', linestyle='-',linewidth=1)
+axs[1].axhline(y=BFR_lin, color='k', linestyle='-',linewidth=1)
+axs[2].axhline(y=BFR_lin, color='k', linestyle='-',linewidth=1)
 # sns.stripplot(x='structure', y='BFR_test', hue='dim_phi',data=res, 
 #                   palette=palette, ax=axs, linewidth=0.1,
 #                    dodge=True,zorder=1,size=5)

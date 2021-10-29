@@ -21,6 +21,7 @@ from scipy.io import loadmat
 
 import models.NN as NN
 from optim import param_optim
+from optim.common import BestFitRate
 
 
 ''' User specified parameters '''
@@ -60,20 +61,24 @@ data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
 
 
 
-# # Load inital linear state space model
-# LSS=loadmat("./Benchmarks/Silverbox/SilverBox_LSS")
-# LSS=LSS['Results']
+# Load inital linear state space model
+LSS=loadmat("Benchmarks/Mass_Spring_Damper_LuGre/data/LuGre_LSS_s3")
+LSS=LSS['LuGre_LSS']
 
-# initial_params = {'A': LSS['A'][0][0],
-#                   'B': LSS['B'][0][0],
-#                   'C': LSS['C'][0][0],
-#                   'range_u': np.array([[-0.05,0.05]]),
-#                   'range_x': np.array([[-0.2,0.2],[-0.2,0.2]])}
+SubspaceModel = NN.LinearSSM(dim_u=1,dim_x=dim_x,dim_y=1)
+SubspaceModel.Parameters = {'A': LSS[0][0][0],
+                  'B': LSS[0][0][1],
+                  'C': LSS[0][0][2]}
 
-# """ Choose best model of each approach and simulate over test data """
+x,y = SubspaceModel.Simulation(data['init_state_test'][0], data['u_test'][0])
+
+BFR = BestFitRate(data['y_test'][0],np.array(y))
+
     
 # model1 = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=3,
 #                       initial_params=initial_params,name='RBF_network')
+
+
 # res1=pkl.load(open('results_statesched/Silverbox_RBF_2states_theta3.pkl','rb'))
 # model1.Parameters = res1.loc[8,'params']
 # x_est, y_est1 = model1.Simulation(init_state[0],test_u[0])
@@ -109,27 +114,27 @@ data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
 # params = {'tex.usetex': True}
 # plt.rcParams.update(params)
 
-plt.close('all')
+# plt.close('all')
 
-fig, axs = plt.subplots(2)
-fig.set_size_inches((9/2.54,7/2.54))
-# axs[0].legend(loc='upper right',shadow=False,fancybox=False,frameon=False)
+# fig, axs = plt.subplots(2)
+# fig.set_size_inches((9/2.54,7/2.54))
+# # axs[0].legend(loc='upper right',shadow=False,fancybox=False,frameon=False)
 
 
-axs[0].plot(test_u[0],label = '$u$',linewidth=2)
-axs[0].set_xticklabels({})
-axs[0].set_ylim((-0.033,0.033))
-axs[0].set_xlim((0,800))
-axs[0].set_ylabel('$u$')
+# axs[0].plot(test_u[0],label = '$u$',linewidth=2)
+# axs[0].set_xticklabels({})
+# axs[0].set_ylim((-0.033,0.033))
+# axs[0].set_xlim((0,800))
+# axs[0].set_ylabel('$u$')
 
-axs[1].plot(test_y[0],label = '$y$',linewidth=2)
-axs[1].set_xticklabels({})
-axs[1].set_ylim((-0.0032,0.002))
-axs[1].set_xlim((0,800))
-axs[1].set_ylabel('$y$')
-axs[1].set_xlabel('$k$')
+# axs[1].plot(test_y[0],label = '$y$',linewidth=2)
+# axs[1].set_xticklabels({})
+# axs[1].set_ylim((-0.0032,0.002))
+# axs[1].set_xlim((0,800))
+# axs[1].set_ylabel('$y$')
+# axs[1].set_xlabel('$k$')
 
-fig.savefig('TestDataMSD.png', bbox_inches='tight',dpi=600)
+# fig.savefig('TestDataMSD.png', bbox_inches='tight',dpi=600)
 
 # axs[1].plot(test_y[0]-y_est1,'--',label = '$e$',linewidth=1,color=sns.color_palette()[2])
 # axs[1].plot(test_y[0]-y_est2,':',label = '$e$',linewidth=1,color=sns.color_palette()[3])
