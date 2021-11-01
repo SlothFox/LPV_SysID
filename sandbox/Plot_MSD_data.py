@@ -59,6 +59,97 @@ data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
         'u_test':test_u , 'y_test':test_y,'init_state_test': init_state}
 
 
+''' Load best models '''
+
+path = 'Results/MSD/'
+Lach = 'MSD_Lachhab_3states_NOE2_lam0.01.pkl'
+RBF = 'MSD_RBF_3states.pkl'
+LPVNN_NOE = 'LPVNN_NOE_final.pkl'
+LPVNN_init = 'MSD_LPVNN_3states_lam0.01.pkl'
+
+
+BFR_lin = 71.46                     # BFR linear model on test dat
+
+Lach=pkl.load(open(path+Lach,'rb'))
+RBF=pkl.load(open(path+RBF,'rb'))
+LPVNN_NOE=pkl.load(open(path+LPVNN_NOE,'rb'))
+LPVNN_init=pkl.load(open(path+LPVNN_init,'rb'))
+
+
+# Pick best from LPVNN
+LPVNN_NOE = LPVNN_NOE.sort_values('BFR_test',ascending=False).iloc[0:2]
+LPVNN_init = LPVNN_init.sort_values('BFR_test',ascending=False).iloc[0:9]
+
+LPVNN_NOE = LPVNN_NOE.append(LPVNN_init)
+
+# Pick best from Lach
+Lach = Lach.sort_values('BFR_test',ascending=False).iloc[8:19]
+Lach['dim_theta']=1
+
+model_LPV  = NN.Rehmer_NN_LPV(dim_u=1,dim_x=dim_x,dim_y=1,
+                        dim_thetaA=1, NN_A_dim=[[5,5,5,1]],
+                                         NN_A_act=[[1,1,1,0]]) 
+model_LPV.Parameters = LPVNN_NOE.iloc[2]['params']
+
+model_Lach = NN.LachhabLPV(dim_u=1,dim_x=dim_x,dim_y=1, dim_thetaA=1)
+model_Lach.Parameters =  Lach.iloc[0]['params']
+        
+model_RBF = NN.RBFLPV(dim_u=1,dim_x=dim_x,dim_y=1, dim_theta=2)
+model_RBF.Parameters =  RBF.iloc[11]['params']
+
+x_LPV,y_LPV = model_LPV.Simulation(data['init_state_train'][0], data['u_test'][0])
+x_Lach,y_Lach = model_Lach.Simulation(data['init_state_train'][0], data['u_test'][0])
+x_RBF,y_RBF = model_RBF.Simulation(data['init_state_train'][0], data['u_test'][0])
+
+######## Plot Shit ###########################################################
+plt.close('all')
+palette = sns.color_palette()[1::]
+
+fig, axs = plt.subplots(2,1,figsize=(9/2.54,5/2.54), gridspec_kw={'height_ratios': [2, 1]})
+
+axs[0].plot(data['y_test'][0], linewidth=2)
+axs[0].plot(np.array(y_LPV),color=palette[2],label='dLPV-RNN',linewidth=1)
+# axs[0].plot(np.array(y_Lach),color=palette[1],label='S-RNN')
+axs[0].plot(np.array(y_RBF),color=palette[1],label='RBF-RNN',linewidth=1,linestyle='--')
+
+e_LPV = np.abs(data['y_test'][0]-np.array(y_LPV))
+e_RBF = np.abs(data['y_test'][0]-np.array(y_RBF))
+
+axs[1].plot(e_LPV,color=palette[2],linewidth=1)
+# axs[1].plot(np.abs(np.array(y_Lach)-data['y_test'][0]),color=palette[1])
+axs[1].plot(e_RBF,color=palette[1],linewidth=1,linestyle='--')
+
+axs[1].set_xlabel(r'$k$')
+axs[0].set_ylabel(r'$y$')
+axs[1].set_ylabel(r'$|y-\hat{y}|$')
+
+
+axs[0].set_xlim([2300,3800])
+axs[1].set_xlim([2300,3800])
+
+axs[1].set_ylim([0,0.0015])
+
+axs[1].set_yticks([0,0.001])
+# fig.legend()
+
+
+fig.tight_layout()
+fig.savefig('MSD_NOE_simulation.png', bbox_inches='tight',dpi=600)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Load inital linear state space model

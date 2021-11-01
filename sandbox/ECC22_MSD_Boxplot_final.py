@@ -63,7 +63,7 @@ palette = sns.color_palette()[1::]
 
 fig, axs = plt.subplots() #plt.subplots(2,gridspec_kw={'height_ratios': [1, 1.5]})
 
-fig.set_size_inches((9/2.54,5/2.54))
+fig.set_size_inches((9/2.54,4/2.54))
 
 # sns.violinplot(x='theta', y='BFR', hue='model',data=BFR_on_val_data, 
 #                   palette=palette, fliersize=2,ax=axs, linewidth=1)
