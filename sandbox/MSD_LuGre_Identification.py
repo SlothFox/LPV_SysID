@@ -52,7 +52,7 @@ best_init_results = init_results.sort_values('BFR_test',ascending=False).iloc[0:
 s_opts = {"max_iter": 2000}#, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
 
-for i in range(16,17):
+for i in range(21,22):
 # for i in range(0,2):    
     dim_phi = best_init_results.iloc[i]['dim_phi']
     
