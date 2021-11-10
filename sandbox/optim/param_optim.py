@@ -302,7 +302,7 @@ def HyperParameterPSO(model,data,param_bounds,n_particles,options,
     
     return hist
 
-def ModelParameterEstimation(model,data,p_opts=None,s_opts=None):
+def ModelParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'):
     """
     
 
@@ -358,7 +358,7 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None):
     series-parallel configuration'''
     
     # Training in parallel configuration 
-    if x_ref is None:
+    if mode == 'parallel':
         
         # Loop over all batches 
         for i in range(0,u.shape[0]):   
@@ -374,7 +374,7 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None):
             
             
     # Training in series parallel configuration        
-    else:
+    elif mode == 'series':
         # Loop over all batches 
         for i in range(0,u.shape[0]):  
             
@@ -383,11 +383,18 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None):
                 # print(k)
                 x_new,y_new = model.OneStepPrediction(x_ref[i,k,:],u[i,k,:],
                                                       params_opti)
+            
+                if isinstance(pred, tuple):
+                    x_new = pred[0]
+                    y_new = pred[1]
                 
-                # Calculate one step prediction error
-                e = e + cs.sumsqr(y_ref[i,k,:]-y_new) + \
-                    cs.sumsqr(x_ref[i,k+1,:]-x_new) 
-    
+                    # Calculate one step prediction error
+                    e = e + cs.sumsqr(y_ref[i,k,:]-y_new) + \
+                        cs.sumsqr(x_ref[i,k+1,:]-x_new) 
+                else:
+                    y_new = pref
+
+                    e = e + cs.sumsqr(y_ref[i,k,:]-y_new)   
     opti.minimize(e)
         
     # Solver options
@@ -511,3 +518,90 @@ def EstimateNonlinearStateSequence(model,data,lam):
     # x_LS[0,:] = init_state.reshape(1,num_states)
     
     return x_LS
+
+def ARXParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'):
+    """
+    
+
+    Parameters
+    ----------
+    model : model
+        A model whose hyperparameters to be optimized are attributes of this
+        object and whose model equations are implemented as a casadi function.
+    data : dict
+        A dictionary with training and validation data, see ModelTraining()
+        for more information
+    p_opts : dict, optional
+        options to give to the optimizer, see Casadi documentation. The 
+        default is None.
+    s_opts : dict, optional
+        options to give to the optimizer, see Casadi documentation. The 
+        default is None.
+
+    Returns
+    -------
+    values : dict
+        dictionary with either the optimal parameters or if the solver did not
+        converge the last parameter estimate
+
+    """
+    
+    
+    u = data['u_train']
+    y_in = data['y_in']
+    y_ref = data['y_train']
+      
+    # Create Instance of the Optimization Problem
+    opti = cs.Opti()
+    
+    # Create dictionary of all non-frozen parameters to create Opti Variables of 
+    OptiParameters = model.Parameters.copy()
+    
+    for frozen_param in model.FrozenParameters:
+        OptiParameters.pop(frozen_param)
+        
+    
+    params_opti = CreateOptimVariables(opti, OptiParameters)
+    
+    e = 0
+    
+    # Training in series parallel configuration        
+    # Loop over all batches 
+    for i in range(0,u.shape[0]):  
+        
+        # One-Step prediction
+        for k in range(u[i,:,:].shape[0]-1):  
+            # print(k)
+            y_new = model.OneStepPrediction(y_in[i,k,:],u[i,k,:],
+                                                  params_opti)
+        
+            # Calculate one step prediction error
+            e = e + cs.sumsqr(y_ref[i,k,:]-y_new)
+
+    opti.minimize(e)
+        
+    # Solver options
+    if p_opts is None:
+        p_opts = {"expand":False}
+    if s_opts is None:
+        s_opts = {"max_iter": 3000, "print_level":1}
+
+    # Create Solver
+    opti.solver("ipopt",p_opts, s_opts)
+    
+    # Set initial values of Opti Variables as current Model Parameters
+    for key in params_opti:
+        opti.set_initial(params_opti[key], model.Parameters[key])
+    
+    
+    # Solve NLP, if solver does not converge, use last solution from opti.debug
+    try: 
+        sol = opti.solve()
+    except:
+        sol = opti.debug
+        
+    values = OptimValues_to_dict(params_opti,sol)
+    
+    return values
+
+
