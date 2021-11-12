@@ -50,6 +50,73 @@ def RK4(f_cont,input,dt):
     
     return x_new
 
+def MSE(y_target,y_est):
+    '''
+    Calculates Mean Squared Error
+
+    Parameters
+    ----------
+    y_target : numpy array of shape (N,dim_y)
+        Measured / true system output.
+    y_est : numpy array of shape (N,dim_y)
+        Estimated ouput by model
+
+    Raises
+    ------
+    ValueError
+        DESCRIPTION.
+
+    Returns
+    -------
+    MSE : float
+        Mean Squared Error
+
+    '''
+    
+    
+    if y_target.shape[0]==y_est.shape[0] and y_target.shape[1]==y_est.shape[1]:
+        N = y_target.shape[0]
+        dim_y = y_target.shape[1]
+        
+    else:
+        raise ValueError('y_target and y_est need to have the same shape.')
+    
+    MSE = float(1/N*sum(sum((y_target-y_est)**2)))
+    
+    return MSE
+
+def AIC(y_target,y_est,n,p=2):
+    '''
+    Calculates AIC for SISO System
+
+    Parameters
+    ----------
+    y_target : numpy array of shape (N,dim_y)
+        Measured / true system output.
+    y_est : numpy array of shape (N,dim_y)
+        Estimated ouput by model
+    n : int
+        Number of model parameters.
+    p : int, optional
+        AIC Hyperparameter. The default is 2.
+
+    Returns
+    -------
+    AIC : float
+        Value of AIC.
+
+    '''
+
+    
+    mse = MSE(y_target,y_est) 
+    
+    N = y_target.shape[0]
+    
+    AIC = float(N*np.log(mse) + p*n)
+    
+    return AIC
+
+
 def BestFitRate(y_target,y_est):
     BFR = 1-sum((y_target-y_est)**2) / sum((y_target-np.mean(y_target))**2) 
     

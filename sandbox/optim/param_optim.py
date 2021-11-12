@@ -20,8 +20,10 @@ import pickle as pkl
 
 from .DiscreteBoundedPSO import DiscreteBoundedPSO
 from .common import OptimValues_to_dict
-from .common import BestFitRate
+from .common import BestFitRate,AIC
 from models.NN import LinearSSM
+
+from miscellaneous.PreProcessing import arrange_ARX_data
 
 # Import sphere function as objective function
 #from pyswarms.utils.functions.single_obj import sphere as f
@@ -545,8 +547,7 @@ def ARXParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'):
         converge the last parameter estimate
 
     """
-    
-    
+   
     u = data['u_train']
     y_in = data['y_in']
     y_ref = data['y_train']
@@ -604,4 +605,50 @@ def ARXParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'):
     
     return values
 
+def ARXOrderSelection(model,u,y,order=[i for i in range(1,20)],p_opts=None,
+                      s_opts=None):
 
+    results = []
+    
+    for o in order:
+        print(o)
+        # Arange data according to model order
+       
+        y_ref, y_shift, u_shift = arrange_ARX_data(u=u,y=y,shifts=o)
+
+        y_ref = y_ref.reshape(1,-1,1)
+        y_shift = y_shift.reshape(1,-1,o)
+        u_shift = u_shift.reshape(1,-1,o)
+
+
+        data = {'u_train':u_shift,'y_train':y_ref, 'y_in':y_shift}
+        
+        
+        setattr(model,'shifts',o)
+        model.Initialize()
+        
+        params = ARXParameterEstimation(model,data)
+        
+        model.Parameters = params
+        
+        # Evaluate estimated model on first batch of training data in parallel mode        
+        _,y_NARX = model.Simulation(y_shift[0,[0],:],u_shift[0])
+        
+        y_NARX = np.array(y_NARX)
+        
+        
+        # Calculate AIC
+        aic = AIC(y_ref[0],y_NARX,model.num_params,p=2)
+
+        # save results in list
+        results.append([o,model.num_params,aic,params])
+
+   
+    results = pd.DataFrame(data = results, columns = ['order','num_params',
+                                                      'aic','params'])
+    
+    
+    return results
+    
+    
+    

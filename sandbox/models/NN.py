@@ -19,7 +19,8 @@ class LPV_RNN():
         Function defining the model equations self.Function and defines a 
         dictionary with input_names as keys. According to the initialization
         procedure defined in self.InitializationProcedure each key contains 
-        a numpy array of appropriate shape
+        a numpy array of appropriate shape. Also counts the number of model 
+        parameters
 
         Returns
         -------
@@ -37,9 +38,15 @@ class LPV_RNN():
         
         # Define all parameters in a dictionary and initialize them 
         self.Parameters = {}
+        
+        self.num_params = 0
+        
         for p_name in self.Function.name_in()[2::]:
-            self.Parameters[p_name] = initialization(self.Function.size_in(p_name))
-
+            
+            p_shape = self.Function.size_in(p_name)
+            self.Parameters[p_name] = initialization(p_shape)
+            self.num_params = self.num_params + p_shape[0]*p_shape[1]
+            
         # Initialize with specific inital parameters if given
         if self.InitialParameters is not None:
             for param in self.InitialParameters.keys():
@@ -2376,13 +2383,13 @@ class LPV_NARX(LPV_RNN):
         y = []
 
         # initial states
-        y.append(y0)
+        # y.append(np.flip(y0))
         x.append(y0)
 
                       
         # Simulate Model
         for k in range(u.shape[0]):
-            y_new = self.OneStepPrediction(y[k],u[[k],:],params)
+            y_new = self.OneStepPrediction(y0,u[[k],:],params)
             
             
             y0 = cs.horzcat(y_new,y0[:,0:-1])
