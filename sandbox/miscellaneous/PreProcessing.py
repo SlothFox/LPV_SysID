@@ -6,6 +6,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import pickle as pkl
 
+from numpy.linalg import matrix_power
+from scipy.linalg import inv
 
 def hdf5_to_pd_dataframe(file,save_path=None):
     '''
@@ -309,5 +311,95 @@ def arrange_ARX_data(u,y=None,shifts=1):
     
         return y_out, y_shift, u_shift
        
+    
+
+def hankel_matrix(x,f=None,shifts=None):
+    
+        
+    N = x.shape[0]
+    dim_x = x.shape[1]
+    
+    if f is not None:
+        
+        if N%f != 0:
+            x = x[0:-1,:]
+            N = x.shape[0] 
+        
+        shifts =  int(N/f) + 1
+        
+        x_hankel = np.zeros((f,shifts*dim_x))
+    
+        for s in range(0,shifts):
+            x_hankel[:,(s)*dim_x:(s+1)*dim_x] = x[s:s+N-shifts+1,:]
+
+    elif shifts is not None:
+        print('Muss noch implementiert werden!')    
+        x_hankel = None
+     
+
+    return x_hankel
+
+
+def extend_observ_matrix(C,A,f):
+    
+    if C.shape[1]==A.shape[0] and A.shape[0]==A.shape[1]:
+        dim_x = C.shape[1]
+    else:
+        ValueError('Dimensionen stimmen nicht!')
+    
+    dim_y = C.shape[0]
+    
+    Of = C
+    
+    for i in range(0,f):
+        Of = np.vstack((Of,C.dot(matrix_power(A,f))))
+        
+    return Of
+    
+    
+def toeplitz(diag,pair,A,f):
+    
+    D = diag
+    C = pair[0]
+    B = pair[1]
+    
+    if C.shape[0] == D.shape[0]:
+        dim_y = C.shape[0]
+    else:
+        ValueError('Dimensionen stimmen nicht!')   
+        
+    if B.shape[1] == D.shape[1] :
+        dim_u = B.shape[1]
+    else:
+        ValueError('Dimensionen stimmen nicht!')           
+
+    
+    Hf = [[np.zeros((dim_y,dim_u)) for row in range(0,f) ] for row in range(0,f)]
+
+    
+    for i in range(0,f):
+        for j in range(0,f):
+  
+            if j>i:
+                pass
+            elif i==j:
+                Hf[i][j] = D
+            else:
+                Hf[i][j] = C.dot(matrix_power(A,f)).dot(B)
+    
+    Hf = np.block(Hf)
+            
+    return Hf    
+    
+def project_row_space(X):
+
+    Px = np.linalg.multi_dot((X.T,inv(X.dot(X.T)),X))
+    
+    return Px
+    
+    
+    
+    
+    
     
     
