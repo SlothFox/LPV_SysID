@@ -313,7 +313,33 @@ def arrange_ARX_data(u,y=None,shifts=1):
        
     
 
-def hankel_matrix(x,f=None,shifts=None):
+# def hankel_matrix(x,f=None,shifts=None):
+    
+        
+#     N = x.shape[0]
+#     dim_x = x.shape[1]
+    
+#     if f is not None:
+        
+#         if N%f != 0:
+#             x = x[0:-1,:]
+#             N = x.shape[0] 
+        
+#         shifts =  int(N/f) + 1
+        
+#         x_hankel = np.zeros((f,shifts*dim_x))
+    
+#         for s in range(0,shifts):
+#             x_hankel[:,(s)*dim_x:(s+1)*dim_x] = x[s:s+N-shifts+1,:]
+
+#     elif shifts is not None:
+#         print('Muss noch implementiert werden!')    
+#         x_hankel = None
+     
+
+#     return x_hankel
+
+def hankel_matrix_f(x,f=None,shifts=None):
     
         
     N = x.shape[0]
@@ -327,10 +353,41 @@ def hankel_matrix(x,f=None,shifts=None):
         
         shifts =  int(N/f) + 1
         
-        x_hankel = np.zeros((f,shifts*dim_x))
+        # x = 
+        
+        x_hankel = np.zeros((dim_x*f,shifts))
     
         for s in range(0,shifts):
-            x_hankel[:,(s)*dim_x:(s+1)*dim_x] = x[s:s+N-shifts+1,:]
+            x_hankel[:,[s]] = x[s:s+N-shifts+1,:].reshape((-1,1))
+
+    elif shifts is not None:
+        print('Muss noch implementiert werden!')    
+        x_hankel = None
+     
+
+    return x_hankel
+
+def hankel_matrix_p(x,p=None,shifts=None):
+    
+        
+    N = x.shape[0]
+    dim_x = x.shape[1]
+    
+    if p is not None:
+        
+        if N%p != 0:
+            x = x[0:-1,:]
+            N = x.shape[0] 
+        
+        shifts =  int(N/p) + 1
+        
+        # x = 
+        
+        x_hankel = np.zeros((dim_x*p,shifts))
+    
+        for s in range(0,shifts):
+            x_p = np.flip(x[N-(s+1)-p:N-(s+1),:],axis=0) 
+            x_hankel[:,[shifts-(s+1)]] = x_p.reshape((-1,1))
 
     elif shifts is not None:
         print('Muss noch implementiert werden!')    
