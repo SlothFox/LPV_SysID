@@ -347,11 +347,11 @@ def hankel_matrix_f(x,f=None,shifts=None):
     
     if f is not None:
         
-        if N%f != 0:
-            x = x[0:-1,:]
-            N = x.shape[0] 
+        # if N%f != 0:
+        #     x = x[0:-1,:]
+        #     N = x.shape[0] 
         
-        shifts =  int(N/f) + 1
+        shifts =  N - f + 1
         
         # x = 
         
@@ -375,18 +375,18 @@ def hankel_matrix_p(x,p=None,shifts=None):
     
     if p is not None:
         
-        if N%p != 0:
-            x = x[0:-1,:]
-            N = x.shape[0] 
+        # if N%p != 0:
+        #     x = x[0:-1,:]
+        #     N = x.shape[0] 
         
-        shifts =  int(N/p) + 1
+        shifts =  N - p + 1
         
         # x = 
         
         x_hankel = np.zeros((dim_x*p,shifts))
     
         for s in range(0,shifts):
-            x_p = np.flip(x[N-(s+1)-p:N-(s+1),:],axis=0) 
+            x_p = np.flip(x[N-(s)-p:N-(s),:],axis=0) 
             x_hankel[:,[shifts-(s+1)]] = x_p.reshape((-1,1))
 
     elif shifts is not None:
