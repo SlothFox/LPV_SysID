@@ -60,7 +60,7 @@ U,S,V = np.linalg.svd(H_fp.dot(Z_p),full_matrices=False)
 
 Gf = U[:,0:2].dot(np.sqrt(np.diag(S[0:2])))
 
-Lp = np.linalg.pinv(Gf).dot(H_fp.dot(Z_p))
+Lp = np.linalg.pinv(Gf).dot(H_fp)
 
 
 x_est = Lp.dot(Z_p).reshape((1,-1,2))
