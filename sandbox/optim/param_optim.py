@@ -386,17 +386,11 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'
                 x_new,y_new = model.OneStepPrediction(x_ref[i,k,:],u[i,k,:],
                                                       params_opti)
             
-                if isinstance(pred, tuple):
-                    x_new = pred[0]
-                    y_new = pred[1]
-                
-                    # Calculate one step prediction error
-                    e = e + cs.sumsqr(y_ref[i,k,:]-y_new) + \
-                        cs.sumsqr(x_ref[i,k+1,:]-x_new) 
-                else:
-                    y_new = pref
+              
+                # Calculate one step prediction error
+                e = e + cs.sumsqr(y_ref[i,k,:]-y_new) + \
+                    cs.sumsqr(x_ref[i,k+1,:]-x_new) 
 
-                    e = e + cs.sumsqr(y_ref[i,k,:]-y_new)   
     opti.minimize(e)
         
     # Solver options
