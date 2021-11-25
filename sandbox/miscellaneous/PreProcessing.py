@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import pickle as pkl
 
 from numpy.linalg import matrix_power
-from scipy.linalg import inv
+from scipy.linalg import inv, pinv
+
 
 def hdf5_to_pd_dataframe(file,save_path=None):
     '''
@@ -450,12 +451,44 @@ def toeplitz(diag,pair,A,f):
     
 def project_row_space(X):
 
-    Px = np.linalg.multi_dot((X.T,inv(X.dot(X.T)),X))
+    Px = np.linalg.multi_dot((X.T,pinv(X.dot(X.T)),X))
     
     return Px
+
+def oblique_projection(A,B,C):
+
+    CC = C.dot(C.T)
+    CB = C.dot(B.T)
+    BB = B.dot(B.T)
+
+    X = np.block([C.T, B.T])
+    Y = pinv(np.block([[CC, CB],[CB.T,BB]]))
+    
+    # r = np.linalg.matrix_rank(C)
+    r = C.shape[0]
+    
+    O = np.linalg.multi_dot((A,X,Y[:,0:r],C))
+    
+    return O
     
     
+def hankel_matrix(x,i):
     
+        
+    N = x.shape[0]
+    dim_x = x.shape[1]
+    
+    if i is not None:
+
+        shifts =  N -2*i + 1
+        
+        x_hankel = np.zeros((dim_x*(2*i),shifts))
+    
+        for s in range(0,shifts):
+            x_hankel[:,[s]] = x[s:s+N-shifts+1,:].reshape((-1,1))
+     
+
+    return x_hankel    
     
     
     
