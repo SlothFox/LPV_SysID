@@ -1692,22 +1692,23 @@ class LinearSSM(LPV_RNN):
             A = cs.MX.sym('A',dim_x,dim_x)
             B = cs.MX.sym('B',dim_x,dim_u)
             C = cs.MX.sym('C',dim_y,dim_x)
-
+            D = cs.MX.sym('D',dim_y,dim_u)
             
             # Put all Parameters in Dictionary with random initialization
             self.Parameters = {'A':np.random.rand(dim_x,dim_x),
                                'B':np.random.rand(dim_x,dim_u),
-                               'C':np.random.rand(dim_y,dim_x)}
+                               'C':np.random.rand(dim_y,dim_x),
+                               'D':np.random.rand(dim_y,dim_u)}
         
             # self.Input = {'u':np.random.rand(u.shape)}
             
             # Define Model Equations
             x_new = cs.mtimes(A,x) + cs.mtimes(B,u)
-            y_new = cs.mtimes(C,x_new) 
+            y_new = cs.mtimes(C,x_new) + cs.mtimes(D,u) 
             
             
-            input = [x,u,A,B,C]
-            input_names = ['x','u','A','B','C']
+            input = [x,u,A,B,C,D]
+            input_names = ['x','u','A','B','C','D']
             
             output = [x_new,y_new]
             output_names = ['x_new','y_new']  

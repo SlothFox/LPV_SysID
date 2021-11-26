@@ -16,6 +16,9 @@ from miscellaneous.PreProcessing import (hankel_matrix_f,hankel_matrix_p,
 from models.NN import LinearSSM
 from optim import param_optim
 
+
+np.random.seed(1)
+
 N=1000
 
 p=2
@@ -25,7 +28,7 @@ dim_u = 2
 dim_x = 2
 dim_y = 2
 
-A = np.array([[0.5, 0.6],[0.5,0.3]])
+A = np.array([[0.5, 0.4],[0.4,0.3]])
 B = np.array([[1, 0],[0,1]])
 C = np.array([[1, 0],[0,1]])
 D = np.array([[0],[0]])
@@ -34,7 +37,8 @@ LSS = LinearSSM(dim_u=dim_u,dim_x=dim_x,dim_y=dim_y)
 
 LSS.Parameters = {'A': A,
                   'B': B,
-                  'C': C}  
+                  'C': C,
+                  'D': D}  
 
 
 u = np.random.randn(N,dim_u)
@@ -69,7 +73,8 @@ A_Qin = np.linalg.inv((Gf1.T).dot(Gf1)).dot(Gf1.T).dot(Gf2)
 
 ''' Overschee '''
 
-i=2
+plt.close('all')
+i=3
 
 # y = np.array([[11],[12],[13],[14],[15],[16],[17],[18],[19],[20]])
 # u = np.array([[1],[2],[3],[4],[5],[6],[7],[8],[9],[10]])
@@ -83,8 +88,8 @@ Z_hankel = hankel_matrix(z,i=i)
 Uf= U_hankel[dim_u*i:,:]
 Yf= Y_hankel[dim_y*i:,:]
 
-Uf_= U_hankel[dim_u*(i-1):,:]
-Yf_= Y_hankel[dim_y*(i-1):,:]
+Uf_= U_hankel[dim_u*(i+1):,:]
+Yf_= Y_hankel[dim_y*(i+1):,:]
 
 Up= U_hankel[0:dim_u*i,:]
 Yp= Y_hankel[0:dim_y*i,:]
@@ -100,15 +105,52 @@ O = oblique_projection(Yf,Uf,Zp)
 O_ = oblique_projection(Yf_,Uf_,Zp_)
 
 
-W1 = np.eye(4)
-W2 = np.eye(997)-project_row_space(Uf)
+W1 = np.eye(6)
+W2 = np.eye(N-2*i+1)-project_row_space(Uf)
 
 U,S,V = np.linalg.svd(W1.dot(O).dot(W2),full_matrices=False)
 
 Gf = np.linalg.inv(W1).dot(U[:,0:2]).dot(np.diag(np.sqrt(S[0:2])))
-Gf_ = Gf
+Gf_ = Gf[0:-dim_u,:]
 
 Xd = np.linalg.pinv(Gf).dot(O)
+Xd_ = np.linalg.pinv(Gf_).dot(O_)
+
+a = np.block([[Xd],[U_hankel[i*dim_u:dim_u*(i+1),::]]])
+b = np.block([[Xd_],[Y_hankel[i*dim_y:dim_y*(i+1),::]]])
+
+ABCD,_,_,_ = np.linalg.lstsq(a.T,b.T)
+
+
+# Simulate
+
+
+LSS.Parameters = {'A': ABCD[0:2,0:2],
+                  'B': ABCD[0:2,2:4],
+                  'C': ABCD[2:4,0:2],
+                  'D': ABCD[2:4,2:4]}  
+
+x_sim,y_sim = LSS.Simulation(np.zeros((2,1)), u)
+
+x_sim = np.array(x_sim)
+y_sim = np.array(y_sim)
+
+
+scale_factor = np.array(x_sim)[i,0]/Xd[0,0]
+
+Xd_int = Xd*scale_factor
+
+# x_new,y_new = LSS.OneStepPrediction(x_sim[3,:], u[3,:])
+
+
+
+# plt.figure()
+# plt.plot(np.array(y_sim[:,0]))
+# plt.plot(np.array(y[:,0]))
+
+# plt.figure()
+# plt.plot(np.array(y_sim[:,1]))
+# plt.plot(np.array(y[:,1]))
 
 # P_Uf = np.eye(989)-project_row_space(U_f)
 
@@ -125,11 +167,9 @@ Xd = np.linalg.pinv(Gf).dot(O)
 # Lp = np.linalg.pinv(Gf).dot(H_fp)
 
 
-# x_est = Xd.reshape((1,-1,2))
-# u_est = u[i:-1,:].reshape((1,-1,2))
-# y_est = y[i+1:,:].reshape((1,-1,2))
-
-
+x_est = Xd.T.reshape((1,-1,2))
+u_est = u[3:i+N-2*i+1-1,:].reshape((1,-1,2))
+y_est = y[4:i+1+N-2*i,:].reshape((1,-1,2))
 
 
 # Initialize linear SSM and estimate parameters
@@ -137,26 +177,31 @@ Xd = np.linalg.pinv(Gf).dot(O)
 # Arrange Training and Validation data in a dictionary with the following
 # structure. The dictionary must have these keys
 
-# init_state =np.zeros((1,2,1))
+init_state =np.zeros((1,2,1))
 
-# data = {'u_train':u_est, 'y_train':y_est,'init_state_train': init_state,
-#         'u_val':u_est, 'y_val':y_est,'init_state_val': init_state,
-#         'u_test':u_est, 'y_test':y_est,'init_state_test': init_state,
-#         'x_train':x_est}
+data = {'u_train':u_est, 'y_train':y_est,'init_state_train': init_state,
+        'u_val':u_est, 'y_val':y_est,'init_state_val': init_state,
+        'u_test':u_est, 'y_test':y_est,'init_state_test': init_state,
+        'x_train':x_est}
 
-# LSS.Parameters['C'] = np.array([[1, 1],[1,1]])
+LSS = LinearSSM(dim_u=dim_u,dim_x=dim_x,dim_y=dim_y)
 
-# params_new = param_optim.ModelParameterEstimation(LSS,data, p_opts=None,
-#                                                    s_opts=None, mode='series')
+params_new = param_optim.ModelParameterEstimation(LSS,data, p_opts=None,
+                                                    s_opts=None, mode='series')
 
 
 
-# LSS.Parameters = params_new
+LSS.Parameters = params_new
 
-# x_sim,y_sim = LSS.Simulation(init_state[0], u)
+x_sim,y_sim = LSS.Simulation(init_state[0], u)
 
-# x_sim = np.array(x_sim)
-# y_sim = np.array(y_sim)
+plt.figure()
+plt.plot(np.array(y_sim[:,0]))
+plt.plot(np.array(y[1:,0]))
+
+plt.figure()
+plt.plot(np.array(y_sim[:,1]))
+plt.plot(np.array(y[1:,1]))
 
 # plt.plot(y_sim)
 # plt.plot(x_est[0])
