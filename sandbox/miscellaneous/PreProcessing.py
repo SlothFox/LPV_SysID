@@ -275,45 +275,6 @@ def eliminate_outliers(doe_plan):
     
     
 
-def arrange_ARX_data(u,y=None,shifts=1):
-    
-    if y is None:
-        N = u.shape[0]
-        dim_u = u.shape[1]
-        
-        u_shift = np.zeros((N-shifts,shifts*dim_u))
-
-        for s in range(0,shifts):
-            u_shift[:,(shifts-s-1)*dim_u:(shifts-s)*dim_u] = u[s:s+N-shifts,:]        
-        
-        return u_shift
-    
-    else:
-        if y.shape[0] == u.shape[0]:
-            N = y.shape[0]
-        else:
-            print('Dimensions dont agree')
-            
-            
-        dim_y = y.shape[1]
-        dim_u = u.shape[1]
-        
-        y_shift = np.zeros((N-shifts,shifts*dim_y))
-        u_shift = np.zeros((N-shifts,shifts*dim_u))
-        
-        
-        for s in range(0,shifts):
-            y_shift[:,(shifts-s-1)*dim_y:(shifts-s)*dim_y] = y[s:s+N-shifts,:]
-            u_shift[:,(shifts-s-1)*dim_u:(shifts-s)*dim_u] = u[s:s+N-shifts,:]
-            
-            
-        y_out = y[shifts::,:]
-    
-    
-        return y_out, y_shift, u_shift
-       
-    
-
 # def hankel_matrix(x,f=None,shifts=None):
     
         
@@ -472,7 +433,7 @@ def oblique_projection(A,B,C):
     return O
     
     
-def hankel_matrix(x,i):
+def hankel_matrix(x,i=None,shifts=None):
     
         
     N = x.shape[0]
@@ -486,10 +447,55 @@ def hankel_matrix(x,i):
     
         for s in range(0,shifts):
             x_hankel[:,[s]] = x[s:s+N-shifts+1,:].reshape((-1,1))
-     
+
+    elif shifts is not None:
+        
+        x_hankel = np.zeros((dim_x*(shifts+1),N-shifts))
+    
+        for s in range(0,x_hankel.shape[1]):
+            x_hankel[:,[s]] = x[s:s+shifts+1,:].reshape((-1,1))
 
     return x_hankel    
     
     
+def arrange_ARX_data(u,y=None,shifts=1):
+        
+        N = y.shape[0]
     
+        dim_u = u.shape[1]
+        dim_y = y.shape[1]
+        
+        y_hankel = hankel_matrix(x=y,shifts=shifts)
+        u_hankel = hankel_matrix(x=u,shifts=shifts)
+        
+       
+        # y_hankel_rev = np.zeros(y_hankel.shape)
+        # u_hankel_rev = np.zeros(u_hankel.shape)
+        
+        # for block_row in range(0,y_hankel.shape[0]//dim_y):
+        #     y_hankel_rev[-(block_row+1)*dim_y:-(block_row)*dim_y,:] = \
+        #     y_hankel[block_row*dim_y:(block_row+1)*dim_y,:]
+
+        # for block_row in range(0,u_hankel.shape[0]//dim_u):
+        #     u_hankel_rev[-(block_row+1)*dim_u:-(block_row)*dim_u,:] = \
+        #     u_hankel[block_row*dim_u:(block_row+1)*dim_u,:]
+          
+        
+        
+        y_out = y_hankel[-1*dim_y::,:].T   
+        
+        y_in = y_hankel[0:-1*dim_y,:]
+        u_in = u_hankel[0:-1*dim_u,:]
+    
+        # reserve order of y_in and u_in block row wise
+        y_in = [[y_in[i*dim_y:(i+1)*dim_y,:]] for i in range(0,shifts)]
+        y_in.reverse()
+        
+        u_in = [[u_in[i*dim_u:(i+1)*dim_u,:]] for i in range(0,shifts)]
+        u_in.reverse()
+        
+        y_in = np.block(y_in).T
+        u_in = np.block(u_in).T
+        
+        return y_out, y_in, u_in    
     

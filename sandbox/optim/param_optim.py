@@ -567,8 +567,11 @@ def ARXParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'):
         # One-Step prediction
         for k in range(u[i,:,:].shape[0]-1):  
             # print(k)
-            y_new = model.OneStepPrediction(y_in[i,k,:],u[i,k,:],
-                                                  params_opti)
+            
+            Y = y_in[i,k,:].reshape((model.shifts,model.dim_y)).T
+            U = u[i,k,:].reshape((model.shifts,model.dim_u)).T
+            
+            y_new = model.OneStepPrediction(Y,U,params_opti)
         
             # Calculate one step prediction error
             e = e + cs.sumsqr(y_ref[i,k,:]-y_new)
@@ -610,9 +613,9 @@ def ARXOrderSelection(model,u,y,order=[i for i in range(1,20)],p_opts=None,
        
         y_ref, y_shift, u_shift = arrange_ARX_data(u=u,y=y,shifts=o)
 
-        y_ref = y_ref.reshape(1,-1,1)
-        y_shift = y_shift.reshape(1,-1,o)
-        u_shift = u_shift.reshape(1,-1,o)
+        y_ref = y_ref.reshape(1,-1,model.dim_y)
+        y_shift = y_shift.reshape(1,-1,o*model.dim_u)
+        u_shift = u_shift.reshape(1,-1,o*model.dim_u)
 
 
         data = {'u_train':u_shift,'y_train':y_ref, 'y_in':y_shift}

@@ -2250,9 +2250,7 @@ class Rehmer_NN_LPV(LPV_RNN):
     
 class LPV_NARX(LPV_RNN):
     """
-    Quasi-LPV model structure for system identification. Uses local linear models
-    with nonlinear interpolation using RBFs. Scheduling variables are the
-    input and the state.
+
     """
 
     def __init__(self,dim_u,dim_y,shifts, dim_theta, initial_params=None, 
@@ -2385,12 +2383,20 @@ class LPV_NARX(LPV_RNN):
 
         # initial states
         # y.append(np.flip(y0))
+        
+        y0 = y0.reshape((self.shifts,self.dim_y)).T
+        # u = u.reshape((-1,self.dim_u,self.shifts))
+        
         x.append(y0)
 
                       
         # Simulate Model
         for k in range(u.shape[0]):
-            y_new = self.OneStepPrediction(y0,u[[k],:],params)
+            
+            U = u[k,:].reshape((self.shifts,self.dim_u)).T
+            
+            y_new = self.OneStepPrediction(y0,U,params)
+
             
             
             y0 = cs.horzcat(y_new,y0[:,0:-1])
