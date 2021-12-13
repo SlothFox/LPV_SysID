@@ -314,26 +314,6 @@ class RBFLPV(LPV_RNN):
         A function that returns the state space matrices at a given value 
         for theta
         """
-        # A_0 = self.Parameters['A_0']
-        # B_0 = self.Parameters['B_0']
-        # C_0 = self.Parameters['C_0']
-    
-        # A_lpv = self.Parameters['A_0']
-        # B_lpv = self.Parameters['B_lpv']
-        # C_lpv = self.Parameters['C_lpv']  
-    
-        # W_A = self.Parameters['W_A']
-        # W_B = self.Parameters['W_B']
-        # W_C = self.Parameters['W_C']      
-    
-        # theta_A = theta[0:self.dim_thetaA]
-        # theta_B = theta[self.dim_thetaA:self.dim_thetaA+self.dim_thetaB]
-        # theta_C = theta[self.dim_thetaA+self.dim_thetaB:self.dim_thetaA+
-        #                 self.dim_thetaB+self.dim_thetaC]
-        
-        # A = A_0 + np.linalg.multi_dot([A_lpv,np.diag(theta_A),W_A])
-        # B = B_0 + np.linalg.multi_dot([B_lpv,np.diag(theta_B),W_B])
-        # C = C_0 + np.linalg.multi_dot([C_lpv,np.diag(theta_C),W_C]) 
         
         return None #A,B,C
 
@@ -519,82 +499,7 @@ class RBFLPV_outputSched(LPV_RNN):
             
         return None        
 
-
-    # def ParameterInitialization(self):        
-
-    #     dim_u = self.dim_u
-    #     dim_x = self.dim_x
-    #     dim_y = self.dim_y
-    #     dim_theta = self.dim_theta
-    #     NN_dim = self.NN_dim
-    #     NN_act = self.NN_act
-    #     NN = self.NN
-        
-    #     # Initialization procedure
-    #     if self.InitializationProcedure == 'random':
-    #         initialization = np.random.rand
-    #     elif self.InitializationProcedure == 'xavier':
-    #         initialization = XavierInitialization
-    #     elif self.InitializationProcedure == 'he':
-    #         initialization = HeInitialization    
-              
-    #     Parameters = {}
-        
-    #     Parameters['C'] = initialization(dim_y,dim_x)
-        
-    #     # Add local model parameters
-    #     for loc in range(0,dim_theta):
-    
-    #         i=str(loc)
-            
-    #         Parameters['A'+i] = initialization((dim_x,dim_x))
-    #         Parameters['B'+i] = initialization((dim_x,dim_u))
-
-
-    #         if len(NN)==0:
-    #             Parameters['c_u'+i] = initialization((dim_u,1))
-    #             Parameters['c_y'+i] = initialization((dim_y,1))
-    #             Parameters['w_u'+i] = initialization((dim_u,1))
-    #             Parameters['w_y'+i] = initialization((dim_y,1))
-            
-    #         else:
-                
-    #             Parameters['c_h'+i] = initialization((NN_dim[-1],1))
-    #             Parameters['w_h'+i] = initialization((NN_dim[-1],1))
-            
-    #     for l in range(0,len(NN)):
- 
-    #         if l==0:
-               
-    #             Parameters['NN_Wy'+str(l)] = initialization(NN[l][0].shape)
-    #             Parameters['NN_Wu'+str(l)] = initialization(NN[l][1].shape)
-    #             Parameters['NN_b'+str(l)] = initialization(NN[l][2].shape)
-                
-    #         else:
-                
-    #             Parameters['NN_W'+str(l)] = initialization(NN[l][0].shape)
-    #             Parameters['NN_b'+str(l)] = initialization(NN[l][1].shape)   
-
-
-    #     self.Parameters=Parameters            
-        
-    #     # Initialize if inital parameters are given
-    #     if 'A' in self.InitialParameters.keys() and 'B' in self.InitialParameters.keys() and 'C' in self.InitialParameters.keys():
-    #         A = self.InitialParameters['A']
-    #         B = self.InitialParameters['B']
-    #         C = self.InitialParameters['C']
-    #         range_y = self.InitialParameters['range_y']
-    #         range_u = self.InitialParameters['range_u']
-            
-    #         self.InitializeLocalModels(A,B,C,range_y,range_u)
-    #     else:
-    #         if initial_params is not None:
-    #             for param in initial_params.keys():
-    #                 if param in self.Parameters.keys():
-    #                     self.Parameters[param] = self.InitialParameters[param]
-
-    #     return None
-    
+   
     def InitializeLocalModels(self,A,B,C,range_y=None,range_u=None):
         '''
         Initializes all local models with a given linear model and distributes
@@ -836,71 +741,7 @@ class RehmerLPV(LPV_RNN):
         
         return None
     
-    # def ParameterInitialization(self):
-        
-    #     # For convenience of notation
-    #     dim_u = self.dim_u
-    #     dim_x = self.dim_x 
-    #     dim_y = self.dim_y   
-    #     dim_thetaA = self.dim_thetaA
-    #     dim_thetaB = self.dim_thetaB
-    #     dim_thetaC = self.dim_thetaC
-    #     NN_1_dim = self.NN_1_dim
-    #     NN_2_dim = self.NN_2_dim
-    #     NN_3_dim = self.NN_3_dim    
-    #     NN1_act = self.NN1_act
-    #     NN2_act = self.NN2_act
-    #     NN3_act = self.NN3_act
-       
-    #     name = self.name   
-        
-    #     NN1 = self.NN1
-    #     NN2 = self.NN2
-    #     NN3 = self.NN3
-        
-    #     # Initialization procedure
-    #     if self.InitializationProcedure == 'random':
-    #         initialization = RandomInitialization
-    #     elif self.InitializationProcedure == 'xavier':
-    #         initialization = XavierInitialization
-    #     elif self.InitializationProcedure == 'he':
-    #         initialization = HeInitialization      
-        
-    #     # Define all parameters in a dictionary and initialize them 
-    #     self.Parameters = {'A_0':initialization((dim_x,dim_x)),
-    #                'A_1':initialization((dim_x,dim_thetaA)),
-    #                'E_1':initialization((dim_thetaA,dim_x)),
-    #                'B_0':initialization((dim_x,dim_u)),
-    #                'B_1':initialization((dim_x,dim_thetaB))*0.01,
-    #                'E_2':initialization((dim_thetaB,dim_u)),
-    #                'C_0':initialization((dim_y,dim_x)),
-    #                'C_1':initialization((dim_y,dim_thetaC))*0.01,
-    #                'E_3':initialization((dim_thetaC,dim_x))}
-        
-    #     # Add remaining parameters in loop since they depend on depth of NNs
-        
-    #     for NN_name, NN in zip(['NN1','NN2','NN3'],[NN1,NN2,NN3]):
-            
-    #         for l in range(0,len(NN)):
 
-    #             i=str(l)
-                
-    #             if l==0:                   
-    #                 self.Parameters[NN_name+'_Wx'+i] = initialization(NN[l][0].shape)
-    #                 self.Parameters[NN_name+'_Wu'+i] = initialization(NN[l][1].shape)
-    #                 self.Parameters[NN_name+'_b'+i] = initialization(NN[l][2].shape,True)
-                    
-    #             else:
-                    
-    #                 self.Parameters[NN_name+'_W'+i] = initialization(NN[l][0].shape)
-    #                 self.Parameters[NN_name+'_b'+i] = initialization(NN[l][1].shape,True)            
-        
-        
-    #     # Initialize if specific inital parameters are given
-    #     if self.InitialParameters is not None:
-    #         for param in self.InitialParameters.keys():
-    #             if param in self.Parameters.keys():
-    #                 self.Parameters[param] = self.InitialParameters[param]
     
         
     def AffineStateSpaceMatrices(self,theta):
@@ -1101,74 +942,7 @@ class RehmerLPV_outputSched(LPV_RNN):
         self.ParameterInitialization()
         
         return None
-
-    # def ParameterInitialization(self):
-        
-    #     # For convenience of notation
-    #     dim_u = self.dim_u
-    #     dim_x = self.dim_x 
-    #     dim_y = self.dim_y   
-    #     dim_thetaA = self.dim_thetaA
-    #     dim_thetaB = self.dim_thetaB
-    #     dim_thetaC = self.dim_thetaC
-    #     NN_1_dim = self.NN_1_dim
-    #     NN_2_dim = self.NN_2_dim
-    #     NN_3_dim = self.NN_3_dim    
-    #     NN1_act = self.NN1_act
-    #     NN2_act = self.NN2_act
-    #     NN3_act = self.NN3_act
        
-    #     name = self.name   
-        
-    #     NN1 = self.NN1
-    #     NN2 = self.NN2
-        
-    #     # Initialization procedure
-    #     if self.InitializationProcedure == 'random':
-    #         initialization = np.random.rand
-    #     elif self.InitializationProcedure == 'xavier':
-    #         initialization = XavierInitialization
-    #     elif self.InitializationProcedure == 'he':
-    #         initialization = HeInitialization      
-        
-    #     # Define all parameters in a dictionary and initialize them 
-    #     self.Parameters = {'A_0':np.random.rand(dim_x,dim_x),
-    #                'A_1':initialization(dim_x,dim_thetaA)*0.01,
-    #                'E_1':initialization(dim_thetaA,dim_x),
-    #                'B_0':initialization(dim_x,dim_u),
-    #                'B_1':initialization(dim_x,dim_thetaB)*0.01,
-    #                'E_2':initialization(dim_thetaB,dim_u),
-    #                'C_0':initialization(dim_y,dim_x)}
-        
-    #     # Add remaining parameters in loop since they depend on depth of NNs
-        
-    #     for NN_name, NN in zip(['NN1','NN2'],[NN1,NN2]):
-            
-    #         for l in range(0,len(NN)):
-
-    #             i=str(l)
-                
-    #             if l==0:
-                   
-    #                 self.Parameters[NN_name+'_Wy'+i] = initialization(*NN[l][0].shape)
-    #                 self.Parameters[NN_name+'_Wu'+i] = initialization(*NN[l][1].shape)
-    #                 self.Parameters[NN_name+'_b'+i] = initialization(*NN[l][2].shape)
-                    
-    #             else:
-                    
-    #                 self.Parameters[NN_name+'_W'+i] = initialization(*NN[l][0].shape)
-    #                 self.Parameters[NN_name+'_b'+i] = initialization(*NN[l][1].shape)            
-        
-        
-    #     # Initialize if specific inital parameters are given
-    #     if self.InitialParameters is not None:
-    #         for param in self.InitialParameters.keys():
-    #             if param in self.Parameters.keys():
-    #                 self.Parameters[param] = self.InitialParameters[param]
-
-
-
-        
     def AffineStateSpaceMatrices(self,theta):
         
         A_0 = self.Parameters['A_0']
@@ -1568,9 +1342,9 @@ class LachhabLPV_outputSched():
     variables are the input and the output, which is assumed to be a linear 
     observable combination of the state.
     """
-
-    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA,dim_thetaB,dim_thetaC,
-                 initial_params,name):
+       
+    def __init__(self,dim_u,dim_x,dim_y,dim_thetaA=0,dim_thetaB=0,dim_thetaC=0,
+                 initial_params=None, frozen_params = [], init_proc='random'):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
@@ -1578,9 +1352,16 @@ class LachhabLPV_outputSched():
         self.dim_thetaA = dim_thetaA
         self.dim_thetaB = dim_thetaB
 
-        self.name = name
+        self.dim = dim_thetaA+dim_thetaB+dim
         
-        self.Initialize(initial_params)
+        self.name = 'Lachhab_LPV_out'
+       
+        self.InitialParameters = initial_params
+        self.FrozenParameters = frozen_params
+        self.InitializationProcedure = init_proc
+
+        
+        self.Initialize()
 
     def Initialize(self,initial_params):
             

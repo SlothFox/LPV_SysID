@@ -17,6 +17,7 @@ from miscellaneous.PreProcessing import (hankel_matrix_f,hankel_matrix_p,
 from models.NN import LinearSSM, LPV_NARX
 from optim import param_optim
 from sklearn.cross_decomposition import CCA
+from scipy.linalg import sqrtm
 
 np.random.seed(1)
 
@@ -70,7 +71,7 @@ conditions'''
 
 # Build matrices with past and future
 
-i=20
+i=3
 
 z = np.hstack((u,y))
 
@@ -100,7 +101,7 @@ y0 = np.zeros((dim_y,1))
 for col in range(0,Uf.shape[1]):
     
     uf = Uf[:,[col]].T.reshape((-1,dim_u))
-    _,y_pred = ARX.Simulation(y0, uf)
+    _,y_pred = ARX.Simulation(y0, uf) 'WERDEN HIER DIE RICHTIGEN ZEITSCHRITTE GEGENÜBERESTELLT? ICH GLAUBE NICHT!!!'
     
     y_pred = y_pred.T.reshape((-1,1))
     
@@ -116,6 +117,19 @@ cca.fit(Zp.T, Yf_corr.T)
 
 x_est = (cca.x_loadings_.T[0:2,:]).dot(Zp)
 X_c, Y_c = cca.transform(Zp.T, Yf_corr.T)
+
+
+# OR
+
+W_r = sqrtm(Yf_corr.dot(Yf_corr.T),1/2)
+W_c = sqrtm(Zp.dot(Zp.T),1/2)
+
+
+USV = W_r.dot(Yf_corr.dot(Zp.T)).dot(W_c)
+
+U,S,V = np.linalg.svd(USV,full_matrices=False)
+
+Pf = np.linalg.inv(W_r).dot(U).dot(sqrtm(np.diag(S))) 
 
 
 ''' Estimate Parameters from state space sequence'''
