@@ -55,44 +55,40 @@ init_state = np.zeros((1,2,1))
 # Arrange Training and Validation data in a dictionary with the following
 # structure. The dictionary must have these keys
 data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
-        'u_val':val_u, 'y_val':val_y,'init_state_val': init_state}
+        'u_val':val_u, 'y_val':val_y,'init_state_val': init_state,
+        'u_test':val_u, 'y_test':val_y,'init_state_test': init_state}
 
 
 ''' Identification '''
-
-
 # Load inital linear state space model
 LSS=loadmat("./Benchmarks/Silverbox/Silverbox_LSS_s2")
 LSS=LSS['LSS']
 
 
 ''' Approach Rehmer '''
-initial_params = {'A_0': LSS['A'][0][0], 'B_0': LSS['B'][0][0], 'C_0': LSS['C'][0][0] }
-# model = NN.RehmerLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=1,dim_thetaB=0,
-#                           dim_thetaC=0,fA_dim=20,fB_dim=0,fC_dim=0,
-#                           initial_params=initial_params,name='Rehmer_LPV')
+initial_params = {'A': LSS['A'][0][0], 'B': LSS['B'][0][0], 'C': LSS['C'][0][0] }
 
-model = NN.RehmerLPV_new(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=3,dim_thetaB=0,dim_thetaC=0,
-                 NN_1_dim=[5,3],NN_2_dim=[],NN_3_dim=[],NN1_act=[0,0],NN2_act=[],
-                 NN3_act=[], initial_params=initial_params,name='Rehmer_LPV')
+model = NN.Rehmer_NN_LPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=1,dim_thetaB=0,dim_thetaC=0,
+                  NN_A_dim=[[5,1]],NN_B_dim=[],NN_C_dim=[],
+                  NN_A_act=[[1,1]],NN_B_act=[], NN_C_act=[], initial_params=None,
+                  frozen_params = [], init_proc='random')
 
-# model.OneStepPrediction(init_state,np.array([[1]]))
 ''' Approach Lachhab '''
 # initial_params = {'A_0': LSS['A'][0][0], 'B_0': LSS['B'][0][0], 'C_0': LSS['C'][0][0] }
-# model = Model.LachhabLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=0,
-#                           dim_thetaC=0,name='Lachhab_LPV')
-
+# model = NN.LachhabLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=2,dim_thetaB=0,
+#                           dim_thetaC=0, initial_params=None, frozen_params = [],
+#                           init_proc='random')
 
 ''' RBF approach'''
-# initial_params = {'A0': LSS['A'][0][0], 'B0': LSS['B'][0][0], 'C0': LSS['C'][0][0],
-#                   'A1': LSS['A'][0][0], 'B1': LSS['B'][0][0], 'C1': LSS['C'][0][0]}
-# model = Model.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=2,
-#                       initial_params=initial_params,name='RBF_network')
+initial_params = {'A0': LSS['A'][0][0], 'B0': LSS['B'][0][0], 'C0': LSS['C'][0][0],
+                  'A1': LSS['A'][0][0], 'B1': LSS['B'][0][0], 'C1': LSS['C'][0][0]}
+model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=2,
+                      initial_params=initial_params)
 
 ''' Call the Function ModelTraining, which takes the model and the data and 
 starts the optimization procedure 'initializations'-times. '''
-identification_results = param_optim.ModelTraining(model,data,5,initial_params=initial_params)
-identification_results_save = pkl.load(open('Benchmarks/Silverbox/IdentifiedModels/Silverbox_Topmodel.pkl','rb'))
+
+identification_results = param_optim.ModelTraining(model,data,5)
 
 ''' The output is a pandas dataframe which contains the results for each of
 the 10 initializations, specifically the loss on the validation data
