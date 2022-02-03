@@ -12,7 +12,7 @@ from optim import param_optim
 
 ''' User specified parameters '''
 dim_x = 3
-inits = 10
+inits = 1
 lamb = 0.01
 
 ''' Data Preprocessing '''

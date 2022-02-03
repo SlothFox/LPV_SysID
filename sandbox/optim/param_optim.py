@@ -72,9 +72,35 @@ def CreateOptimVariables(opti, Parameters):
     
     return opti_vars
 
-def ModelTraining(model,data,initializations=10, BFR=False, 
-                  p_opts=None, s_opts=None, mode='parallel'):
+def ModelTraining(model,data,initializations=10, p_opts=None, s_opts=None, mode='parallel'):
+    '''
     
+
+    Parameters
+    ----------
+    model : model-class
+        Model defined via a Casadi function with model.function()
+    data : dict
+        dictionary containing 3-dimensional numpy arrays (batch x steps x num_var)
+        under the keys 'u_train', 'y_train', 'u_val', 'y_val' ans optionally
+        'x_train'
+    initializations : int, optional
+        Number or multi-starts performed. The default is 10.
+    p_opts : dict, optional
+        See casadi documentation. The default is None.
+    s_opts : dict, optional
+        See casadi documentation. The default is None.
+    mode : TYPE, optional
+        'parallel': model is evaluated in parallel configuration (i.e. simulation).
+        'series': model is evaluated in series-parallel configuration 
+        (i.e. one-step prediction). The default is 'parallel'.
+
+    Returns
+    -------
+    results : dict
+        Dictionary with optimization results.
+
+    '''
    
     results = [] 
     
@@ -91,46 +117,28 @@ def ModelTraining(model,data,initializations=10, BFR=False,
             model.Parameters[p] = new_params[p]
         
         # Evaluate on Validation data
-        u_val = data['u_val']
-        y_ref_val = data['y_val']
-        init_state_val = data['init_state_val']
-
-        # Evaluate estimated model on validation data        
-        e_val = 0
-        
-        for j in range(0,u_val.shape[0]):   
-            # Simulate Model
-            pred = model.Simulation(init_state_val[j],u_val[j])
-            
-            if isinstance(pred, tuple):
-                pred = pred[1]
-            
-            e_val = e_val + cs.sqrt(cs.sumsqr(y_ref_val[j,:,:] - pred))
+        u = data['u_val']
+        y_ref = data['y_val']
+    
+        if mode == 'parallel':
+            x0 = data['init_state_val']
+            e_val = parallel_mode(model,u,y_ref,x0)    
+        elif mode == 'static':
+            e_val = static_mode(model,u,y_ref)   
+        elif mode == 'series':
+            x0 = data['init_state_val']
+            e_val = parallel_mode(model,u,y_ref,x0)
         
         # Calculate mean error over all validation batches
-        e_val = e_val / u_val.shape[0]
+        e_val = e_val / u.shape[0]
         e_val = np.array(e_val).reshape((1,))
         
         
-        # Evaluate estimated model on test data
-        
-        u_test = data['u_test']
-        y_ref_test = data['y_test']
-        init_state_test = data['init_state_test']
-            
-        pred = model.Simulation(init_state_test[0],u_test[0])
-        
-        if isinstance(pred, tuple):
-            pred = pred[1]
-        
-        y_est = np.array(pred)
-        
-        BFR = BestFitRate(y_ref_test[0],y_est)
         
         # save parameters and performance in list
-        results.append([e_val,BFR,model.name,model.dim,i,model.Parameters])
+        results.append([e_val,model.name,model.dim,i,model.Parameters])
    
-    results = pd.DataFrame(data = results, columns = ['loss_val','BFR_test',
+    results = pd.DataFrame(data = results, columns = ['loss_val',
                         'model','dim_theta','initialization','params'])
     
     return results 
@@ -306,8 +314,8 @@ def HyperParameterPSO(model,data,param_bounds,n_particles,options,
 
 def ModelParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'):
     """
+    Estimates optimal parameters of a given model.
     
-
     Parameters
     ----------
     model : model
@@ -322,6 +330,8 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'
     s_opts : dict, optional
         options to give to the optimizer, see Casadi documentation. The 
         default is None.
+    mode : str, optional
+        See ModelTraining. The default is 'parallel'
 
     Returns
     -------
@@ -330,17 +340,7 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'
         converge the last parameter estimate
 
     """
-    
-    
-    # u = data['u_train']
-    # y_ref = data['y_train']
-    # init_state = data['init_state_train']
-    
-    try:
-        x_ref = data['x_train']
-    except:
-        x_ref = None
-        
+       
     # Create Instance of the Optimization Problem
     opti = cs.Opti()
     
@@ -353,15 +353,18 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'
     
     params_opti = CreateOptimVariables(opti, OptiParameters)
     
-    # e = 0
-
+    u = data['u_train']
+    y_ref = data['y_train']
+    
     if mode == 'parallel':
-        e = parallel_training(model,data,params_opti)    
+        x0 = data['init_state_train']
+        e = parallel_mode(model,u,y_ref,x0,params_opti)    
     elif mode == 'static':
-        e = static_training(model,data,params_opti)
+        e = static_mode(model,u,y_ref,params_opti)   
     elif mode == 'series':
-        e = series_parallel_training(model,data,params_opti)
-
+        x_ref = data['x_train']
+        e = series_parallel_mode(model,u,y_ref,x_ref,params_opti)
+    
     opti.minimize(e)
         
     # Solver options
@@ -619,19 +622,20 @@ def ARXOrderSelection(model,u,y,order=[i for i in range(1,20)],p_opts=None,
     return results
     
     
-def parallel_training(model,data,params):
-    
-
-    u = data['u_train']
-    y_ref = data['y_train']
-    
+def parallel_mode(model,u,y_ref,x0,params=None):
+      
     e = 0
     
     # Loop over all batches 
     for i in range(0,len(u)):   
-     
+        
+        try:
+            model.switching_instances = data['switch_train'][i]
+        except NameError:
+            pass
+        
         # Simulate Model
-        pred = model.Simulation(init_state[i],u[i],params)
+        pred = model.Simulation(x0[i],u[i],params)
         
         if isinstance(pred, tuple):
             pred = pred[1]
@@ -645,10 +649,7 @@ def parallel_training(model,data,params):
     
     return e
 
-def static_training(model,data,params):
-    
-    u = data['u_train']
-    y_ref = data['y_train']
+def static_mode(model,u,y_ref,params=None):
     
     e = 0
 
@@ -663,14 +664,11 @@ def static_training(model,data,params):
             # Calculate one step prediction error
             e = e + cs.sumsqr(y_ref[i][k,:]-y_new) 
     
-    return e    
+    return e
 
-def series_parallel_training(model,data,params_opti):
 
-    u = data['u_train']         # u0, u1, u2 , ...
-    y_ref = data['y_train']     # y1, y2, y3 , ...
-    x_ref = data['x_train']     # x0, x1, x2, ...
-    
+def series_parallel_mode(model,u,y_ref,x_ref,params=None):
+   
     e = 0
     
     # Training in series parallel configuration        
@@ -681,7 +679,7 @@ def series_parallel_training(model,data,params_opti):
         for k in range(u[i,:,:].shape[0]-1):  
             # predict x1 and y1 from x0 and u0
             x_new,y_new = model.OneStepPrediction(x_ref[i,k,:],u[i,k,:],
-                                                  params_opti)
+                                                  params)
         
           
             # Calculate one step prediction error as 
