@@ -47,7 +47,6 @@ data = {'u_train':train_u[0:2000], 'y_train':train_y[0:2000],'init_state_train':
 
 
 ''' Pre-Identification via estimated state sequence '''
-
 # Load inital linear state space model
 LSS=loadmat("Benchmarks/Mass_Spring_Damper_LuGre/data/LuGre_LSS_s3")
 LSS=LSS['LuGre_LSS']
@@ -55,7 +54,8 @@ LSS=LSS['LuGre_LSS']
 SubspaceModel = NN.LinearSSM(dim_u=1,dim_x=dim_x,dim_y=1)
 SubspaceModel.Parameters = {'A': LSS[0][0][0],
                   'B': LSS[0][0][1],
-                  'C': LSS[0][0][2]}
+                  'C': LSS[0][0][2],
+                  'D': LSS[0][0][3]}
 
 # Estimate nonlinear state sequence
 x_LS = param_optim.EstimateNonlinearStateSequence(SubspaceModel,data,lamb)
@@ -64,44 +64,20 @@ x_LS = param_optim.EstimateNonlinearStateSequence(SubspaceModel,data,lamb)
 data['x_train'] = x_LS.reshape(1,-1,dim_x)
 
 
-
 # p_opts = {"expand":False}
 s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
-dim_thetaA = [1,2,3,4,5]
 
-counter = 0
+model = NN.LachhabLPV(dim_u=1,dim_x=dim_x,dim_y=1, dim_thetaA=1)
+            
+model.FrozenParameters = ['A_0','B_0','C_0']
+    
+model.InitialParameters = initial_params = {'A_0': LSS['A'][0][0],
+                                            'B_0': LSS['B'][0][0],
+                                            'C_0': LSS['C'][0][0]}
+    
+results = param_optim.ModelTraining(model,data,inits,
+                         p_opts=None,s_opts=s_opts,mode='series')
+                
 
-for dimA in dim_thetaA:
 
-    model = NN.LachhabLPV(dim_u=1,dim_x=dim_x,dim_y=1, dim_thetaA=dimA)
-                
-    model.FrozenParameters = ['A_0','B_0','C_0']
-    
-    model.InitialParameters = initial_params = {'A_0': LSS['A'][0][0],
-                                                'B_0': LSS['B'][0][0],
-                                                'C_0': LSS['C'][0][0]}
-    
-    results_new = param_optim.ModelTraining(model,data,inits,
-                             p_opts=None,s_opts=s_opts)
-                
-    # Add information
-    results_new['dim_thetaA'] = dimA
-    results_new['lambda'] = lamb
-                
-    pkl.dump(results_new,open('./Results/MSD/MSD_Lachhab_3states_'+
-                              str(counter)+
-                              '_lam'+str(lamb)+
-                              '.pkl','wb'))
-                
-    try:
-        results = results.append(results_new)
-    except NameError:
-        results = results_new
-    
-    counter = counter + 1
-    
-   
-pkl.dump(results,open('./Results/MSD/MSD_Lachhab_3states_'+
-                                          '_lam'+str(lamb)
-                                          +'.pkl','wb'))

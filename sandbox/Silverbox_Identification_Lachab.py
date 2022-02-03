@@ -84,7 +84,7 @@ for dim in [1,2,3,4,5]:
                           dim_thetaC=0, initial_params=initial_params,
                           name='Lachhab_LPV')    
 
-    identification_results = param_optim.ModelTraining(model,data,10,
+    identification_results = param_optim.ModelTraining(model,data,1,
                              initial_params=initial_params,p_opts=p_opts,
                              s_opts=s_opts)
 

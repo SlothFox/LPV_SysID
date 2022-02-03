@@ -73,7 +73,7 @@ def CreateOptimVariables(opti, Parameters):
     return opti_vars
 
 def ModelTraining(model,data,initializations=10, BFR=False, 
-                  p_opts=None, s_opts=None):
+                  p_opts=None, s_opts=None, mode='parallel'):
     
    
     results = [] 
@@ -84,7 +84,7 @@ def ModelTraining(model,data,initializations=10, BFR=False,
         model.ParameterInitialization()
         
         # Estimate Parameters on training data
-        new_params = ModelParameterEstimation(model,data,p_opts,s_opts)
+        new_params = ModelParameterEstimation(model,data,p_opts,s_opts,mode)
         
         # Assign estimated parameters to model
         for p in new_params.keys():
@@ -332,9 +332,9 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'
     """
     
     
-    u = data['u_train']
-    y_ref = data['y_train']
-    init_state = data['init_state_train']
+    # u = data['u_train']
+    # y_ref = data['y_train']
+    # init_state = data['init_state_train']
     
     try:
         x_ref = data['x_train']
@@ -353,43 +353,14 @@ def ModelParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'
     
     params_opti = CreateOptimVariables(opti, OptiParameters)
     
-    e = 0
-    
-    ''' Depending on whether a reference trajectory for the hidden state is
-    provided or not, the model is either trained in parallel (recurrent) or 
-    series-parallel configuration'''
-    
-    # Training in parallel configuration 
+    # e = 0
+
     if mode == 'parallel':
-        
-        # Loop over all batches 
-        for i in range(0,u.shape[0]):   
-               
-            # Simulate Model
-            pred = model.Simulation(init_state[i],u[i],params_opti)
-            
-            if isinstance(pred, tuple):
-                pred = pred[1]
-            
-            # Calculate simulation error
-            e = e + cs.sumsqr(y_ref[i,:,:] - pred)
-            
-            
-    # Training in series parallel configuration        
+        e = parallel_training(model,data,params_opti)    
+    elif mode == 'static':
+        e = static_training(model,data,params_opti)
     elif mode == 'series':
-        # Loop over all batches 
-        for i in range(0,u.shape[0]):  
-            
-            # One-Step prediction
-            for k in range(u[i,:,:].shape[0]-1):  
-                # print(k)
-                x_new,y_new = model.OneStepPrediction(x_ref[i,k,:],u[i,k,:],
-                                                      params_opti)
-            
-              
-                # Calculate one step prediction error
-                e = e + cs.sumsqr(y_ref[i,k,:]-y_new) + \
-                    cs.sumsqr(x_ref[i,k+1,:]-x_new) 
+        e = series_parallel_training(model,data,params_opti)
 
     opti.minimize(e)
         
@@ -648,4 +619,73 @@ def ARXOrderSelection(model,u,y,order=[i for i in range(1,20)],p_opts=None,
     return results
     
     
+def parallel_training(model,data,params):
     
+
+    u = data['u_train']
+    y_ref = data['y_train']
+    
+    e = 0
+    
+    # Loop over all batches 
+    for i in range(0,len(u)):   
+     
+        # Simulate Model
+        pred = model.Simulation(init_state[i],u[i],params)
+        
+        if isinstance(pred, tuple):
+            pred = pred[1]
+        
+        # Calculate simulation error            
+        # Check for the case, where only last value is available
+        if y_ref[i].shape[0]==1:
+            e = e + cs.sumsqr(y_ref[i] - pred[-1,:])
+        else:
+            e = e + cs.sumsqr(y_ref[i] - pred)
+    
+    return e
+
+def static_training(model,data,params):
+    
+    u = data['u_train']
+    y_ref = data['y_train']
+    
+    e = 0
+
+    # Loop over all batches 
+    for i in range(0,len(u)):  
+        
+        # One-Step prediction
+        for k in range(u[i].shape[0]):  
+            # print(k)
+            y_new = model.OneStepPrediction(u[i][k,:],params)
+            
+            # Calculate one step prediction error
+            e = e + cs.sumsqr(y_ref[i][k,:]-y_new) 
+    
+    return e    
+
+def series_parallel_training(model,data,params_opti):
+
+    u = data['u_train']         # u0, u1, u2 , ...
+    y_ref = data['y_train']     # y1, y2, y3 , ...
+    x_ref = data['x_train']     # x0, x1, x2, ...
+    
+    e = 0
+    
+    # Training in series parallel configuration        
+    # Loop over all batches 
+    for i in range(0,u.shape[0]):  
+        
+        # One-Step prediction
+        for k in range(u[i,:,:].shape[0]-1):  
+            # predict x1 and y1 from x0 and u0
+            x_new,y_new = model.OneStepPrediction(x_ref[i,k,:],u[i,k,:],
+                                                  params_opti)
+        
+          
+            # Calculate one step prediction error as 
+            e = e + cs.sumsqr(y_ref[i,k,:]-y_new) + \
+                cs.sumsqr(x_ref[i,k+1,:]-x_new) 
+                
+    return e 
