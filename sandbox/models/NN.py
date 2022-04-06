@@ -79,7 +79,7 @@ class LPV_RNN():
                               
         return x1,y1
    
-    def Simulation(self,x0,u,params=None):
+    def Simulation(self,x0,u,params=None,**kwargs):
         '''
         A iterative application of the OneStepPrediction in order to perform a
         simulation for a whole input trajectory
@@ -134,12 +134,16 @@ class RBFLPV(LPV_RNN):
     input and the state.
     """
 
-    def __init__(self,dim_u,dim_x,dim_y,dim_theta=0,NN_dim=[],NN_act=[],
+    def __init__(self,dim_u,dim_x,dim_y,u_lab,y_lab,dim_theta=0,NN_dim=[],NN_act=[],
                  initial_params=None, frozen_params = [], init_proc='random'):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
         self.dim_y = dim_y
+        
+        self.u_label = u_lab
+        self.y_label = y_lab
+        
         self.dim_theta = dim_theta
         self.dim = dim_theta
         self.NN_dim = NN_dim

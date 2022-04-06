@@ -30,38 +30,33 @@ val = val[0::50,:]
 test = test[0::50,:]
 ################# Pick Training- Validation- and Test-Data ####################
 
-train_u = train[0:-1,0].reshape(1,-1,1)
-train_y = train[1::,1].reshape(1,-1,1)
+train = pd.DataFrame(data=train,columns=['u','y'])
+val = pd.DataFrame(data=val,columns=['u','y'])
 
-val_u = val[0:-1,0].reshape(1,-1,1)
-val_y = val[1::,1].reshape(1,-1,1)
 
-test_u = test[0:-1,0].reshape(1,-1,1)
-test_y = test[1::,1].reshape(1,-1,1)
 
-init_state = np.zeros((1,2,1))
+init_state = np.zeros((2,1))
 
 # Arrange Training and Validation data in a dictionary with the following
 # structure. The dictionary must have these keys
-data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
-        'u_val':val_u, 'y_val':val_y,'init_state_val': init_state}
-
+data_train = {'data':[train], 'init_state': [init_state]}
+data_val = {'data':[val], 'init_state': [init_state]}
 
 ''' Identification '''
-# Load inital linear state space model
-LSS=loadmat("./Benchmarks/Bioreactor/Bioreactor_LSS")
-LSS=LSS['Results']
+# # Load inital linear state space model
+# LSS=loadmat("./Benchmarks/Bioreactor/Bioreactor_LSS")
+# LSS=LSS['Results']
 
 
-''' RBF approach'''
+# ''' RBF approach'''
 
-initial_params = {'A': LSS['A'][0][0],
-                  'B': LSS['B'][0][0],
-                  'C': LSS['C'][0][0],
-                  'range_u': np.array([[0,0.7]]),
-                  'range_x': np.array([[-0.1,0.1],[-0.1,0.1]])}
+# initial_params = {'A': LSS['A'][0][0],
+#                   'B': LSS['B'][0][0],
+#                   'C': LSS['C'][0][0],
+#                   'range_u': np.array([[0,0.7]]),
+#                   'range_x': np.array([[-0.1,0.1],[-0.1,0.1]])}
 
-p_opts = {"expand":False}
+# p_opts = {"expand":False}
 # s_opts = {"max_iter": 1000, "print_level":0, 'hessian_approximation': 'limited-memory'}
 
 
@@ -70,12 +65,11 @@ starts the optimization procedure 'initializations'-times. '''
 
 for dim in [6,8]:
     
-    model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,dim_theta=dim,
-                      initial_params=initial_params,name='RBF_network')    
+    model = NN.RBFLPV(dim_u=1,dim_x=2,dim_y=1,u_lab=['u'],y_lab=['y'],
+                      dim_theta=dim,initial_params=None)    
     
-    identification_results = param_optim.ModelTraining(model,data,5,
-                             initial_params=initial_params,p_opts=p_opts,
-                             s_opts=None)
+    identification_results = param_optim.ModelTraining(model,data_train,
+                                data_val,5,p_opts=None,s_opts=None, mode='parallel')
 
     pkl.dump(identification_results,open('Home_Bioreactor_RBF_2states_theta'+str(dim)+'.pkl',
                                          'wb'))
