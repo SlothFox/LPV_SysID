@@ -412,81 +412,54 @@ def EstimateNonlinearStateSequence(model,data,lam):
         numpy-array containing the estimated nonlinear state sequence
 
     """
-    
-    u = data['u_train'][0]          # [0] because only first batch is used
-    y_ref = data['y_train'][0]
-    init_state = data['init_state_train'][0]
-    
-    '''
-    Measurement data is assumed to be arranged as
-    u0,y1
-    u1,y2
-    ...
-    
-    '''
-    
-    # if not isinstance(model,LinearSSM):
-    #     print('Models needs to be',LinearSSM)
-              
-        # return None
-    
-    # elif u.shape[0]+1 != y_ref.shape[0]:
-    #     print('Length of output signal needs to be lenght of input signal + 1!\n\
-    #           [u_0, u_1, ... , u_N] \n\
-    #           [y_0, y_1, ... , y_N, y_N+1]')
-              
-        # return None
-    
-    # elif lam>=0:
-    #     print('lam needs to be greater than zero')
-    
-    N = u.shape[0]
-    num_states = init_state.shape[0]
-    
-
-    # Create Instance of the Optimization Problem
-    opti = cs.Opti()
-    
-
-    # Create decision variables for states
-    x_LS = opti.variable(N,num_states) # x0,...,xN-1
-    x_LS[0,:] = init_state.T
-    
-    e = 0
-    
-
-    for k in range(0,N-1):
-        '''
-        Since y0 is not part of recorded data, optimization starts with x1!
+    for i in range(0,len(data['data'])):
         
-        x1 = Model(x0,u0)
-        y1 = C*x1
         
-        e = e + (yref1 - y1)^2 + lam * (xlin2 - x2)^2
-        '''
-
-        x1,_ = model.OneStepPrediction(x_LS[[k],:],u[[k],:])
-        # print(k)
-        y1 = cs.mtimes(model.Parameters['C'],x_LS[[k+1],:].T)
-        
-        e = e + cs.sumsqr(y_ref[[k],:] - y1)  + \
-            + lam * cs.sumsqr(x_LS[[k+1],:].T - x1)   
+        if i>1:
+            print('This program is designed for only one batch of data')
             
-    opti.minimize(e)    
+        
+        io_data = data['data'][i]
+        x0 = data['init_state'][i]
+        
+        N = io_data.shape[0]
+        num_states = model.dim_x
+        # switch = data['switch'][i]
+        
+        # Create Instance of the Optimization Problem
+        opti = cs.Opti()        
+
+        # Create decision variables for states
+        x_LS = opti.variable(N,num_states) # x0,...,xN-1
+        x_LS[0,:] = x0.T
+        
+        loss = 0
+        
+        # One-Step prediction
+        for k in range(0,N-1):
+            
+            uk = io_data.iloc[k][model.u_label].values
+            yk_plus = io_data.iloc[k+1][model.y_label].values
+            
+            # predict x1 and y1 from x0 and u0
+            x_new,y_new = model.OneStepPrediction(x_LS[[k],:],uk)
+
+            loss = loss + cs.sumsqr(yk_plus - y_new)  + \
+                + lam * cs.sumsqr(x_LS[[k+1],:].T - x_new)   
+
+        
+    opti.minimize(loss)    
     opti.solver("ipopt")
     
     try: 
         sol = opti.solve()
     except:
         sol = opti.debug
-            
+       
       
     x_LS = np.array(sol.value(x_LS)).reshape(N,num_states)
-    # print(x_LS.shape)
-    # x0 was not part of optimization (loop starts at 1!) and is replaced with
-    # initial state
-    # x_LS[0,:] = init_state.reshape(1,num_states)
-    
+    x_LS = pd.DataFrame(data=x_LS,columns=['x_LS'],index=io_data.index)
+      
     return x_LS
 
 def ARXParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'):
@@ -643,9 +616,9 @@ def parallel_mode(model,data,params=None):
         
         kwargs = {'switching_instances':switch}
         
-        y_ref = io_data[model.y_label].values
+        y_ref = io_data.iloc[1::][model.y_label].values                         # y_1,...,y_N
         
-        u = io_data.iloc[0:-1][model.u_label].values
+        u = io_data.iloc[0:-1][model.u_label].values                            # u_0,...,u_N-1
 
         # Simulate Model
         pred = model.Simulation(x0,u,params,**kwargs)
@@ -654,7 +627,7 @@ def parallel_mode(model,data,params=None):
             x_est= pred[0]
             y_est= pred[1]
         else:
-            y_est = pred
+            y_est = pred                                                        # y_1,...,y_N
             
         # Calculate simulation error            
         # Check for the case, where only last value is available
@@ -745,35 +718,80 @@ def series_parallel_mode(model,data,params=None):
         
         io_data = data['data'][i]
         x0 = data['init_state'][i]
-        switch = data['switch'][i]
+       
+        try:
+            switch = data['switch'][i]
+            switch = [io_data.index.get_loc(s) for s in switch]
+            print('Kontrolliere ob diese Zeile gewünschte Indizes zurückgibt!!!')               
+        except KeyError:
+            switch = None
         
-        y_est = []
-        # One-Step prediction
-        for k in range(0,io_data.shape[0]-1):
+        if 'x_ref' in io_data.keys():
             
-            uk = io_data.iloc[k][model.u_label].values.reshape((-1,1))
-            yk = io_data.iloc[k][model.y_label].values.reshape((-1,1))
+            x_est = []
+            y_est = []
             
-            ykplus = io_data.iloc[k+1][model.y_label].values.reshape((-1,1))
+            # One-Step prediction
+            for k in range(0,io_data.shape[0]-1):
+                
+                uk = io_data.iloc[k][model.u_label].values.reshape((-1,1))
+                xk = io_data.iloc[k][model.y_label].values.reshape((-1,1))
+                
+                xkplus = io_data.iloc[k+1][['x_ref']].values.reshape((-1,1))        # TO DO: FÜR dim_x>1 anpassen
+                ykplus = io_data.iloc[k+1][model.y_label].values.reshape((-1,1))
+                
+                # predict x1 and y1 from x0 and u0
+                x_new, y_new = model.OneStepPrediction(xk,uk,params)
+                
+                loss = loss + cs.sumsqr(ykplus-y_new) + cs.sumsqr(xkplus-x_new)        
+                
+                x_est.append(x_new.T)
+                y_est.append(y_new.T)
             
-            # predict x1 and y1 from x0 and u0
-            y_new = model.OneStepPrediction(yk,uk,params)
-            
-            loss = loss + cs.sumsqr(ykplus-y_new)        
-            
-            y_est.append(y_new.T)
+            x_est = cs.vcat(x_est) 
+            y_est = cs.vcat(y_est)            
         
-        y_est = cs.vcat(y_est)
-        
-        if params is None:
-            y_est = np.array(y_est)
-            
-            df = pd.DataFrame(data=y_est, columns=model.y_label,
-                              index=io_data.index[1::])
-            
-            prediction.append(df)
+            if params is None:
+                x_est = np.array(x_est)
+                y_est = np.array(y_est)
+                
+                df = pd.DataFrame(data=np.hstack([y_est,x_est]), 
+                                  columns=[*model.y_label,'x_ref'],
+                                  index=io_data.index[1::])
+                
+                prediction.append(df)
+            else:
+                prediction = None
         else:
-            prediction = None
+        
+            y_est = []
+        
+            # One-Step prediction
+            for k in range(0,io_data.shape[0]-1):
+                
+                uk = io_data.iloc[k][model.u_label].values.reshape((-1,1))
+                yk = io_data.iloc[k][model.y_label].values.reshape((-1,1))
+                
+                ykplus = io_data.iloc[k+1][model.y_label].values.reshape((-1,1))
+                
+                # predict x1 and y1 from x0 and u0
+                y_new = model.OneStepPrediction(yk,uk,params)
+                
+                loss = loss + cs.sumsqr(ykplus-y_new)        
+                
+                y_est.append(y_new.T)
+            
+            y_est = cs.vcat(y_est)
+            
+            if params is None:
+                y_est = np.array(y_est)
+                
+                df = pd.DataFrame(data=y_est, columns=model.y_label,
+                                  index=io_data.index[1::])
+                
+                prediction.append(df)
+            else:
+                prediction = None
         
     return loss,prediction
 

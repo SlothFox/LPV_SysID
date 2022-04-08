@@ -1446,13 +1446,18 @@ class LinearSSM(LPV_RNN):
     
     """
 
-    def __init__(self,dim_u,dim_x,dim_y,initial_params=None, frozen_params = [], init_proc='random'):
+    def __init__(self,dim_u,dim_x,dim_y,u_lab,y_lab,initial_params=None, 
+                 frozen_params = [], init_proc='random'):
         
         self.dim_u = dim_u
         self.dim_x = dim_x
         self.dim_y = dim_y
         self.name = 'LinearSSM'
         self.dim = dim_x
+        
+        self.u_label = u_lab
+        self.y_label = y_lab
+        
         
         self.InitialParameters = initial_params
         self.InitializationProcedure = init_proc
@@ -2033,6 +2038,161 @@ class Rehmer_NN_LPV(LPV_RNN):
         
         return None
     
+
+    
+    
+    
+    
+class DummySystem1(LPV_RNN):
+    """
+    
+    """
+
+    def __init__(self,dim_u,dim_x,dim_y,u_lab,y_lab,initial_params=None, 
+                 frozen_params = [], init_proc='random'):
+        
+        self.dim_u = dim_u
+        self.dim_x = dim_x
+        self.dim_y = dim_y
+        self.name = 'DummySystem1'
+        self.dim = dim_x
+        
+        self.u_label = u_lab
+        self.y_label = y_lab
+        
+        
+        self.InitialParameters = initial_params
+        self.InitializationProcedure = init_proc
+        self.FrozenParameters = frozen_params
+        
+        self.Initialize(initial_params)
+
+    def Initialize(self,initial_params=None):
+            
+            # For convenience of notation
+            dim_u = self.dim_u
+            dim_x = self.dim_x 
+            dim_y = self.dim_y             
+            name = self.name
+            
+            # Define input, state and output vector
+            u = cs.MX.sym('u',dim_u,1)
+            x = cs.MX.sym('x',dim_x,1)
+            y = cs.MX.sym('y',dim_y,1)
+            
+            # Define Model Parameters
+            A = cs.MX.sym('A',dim_x,dim_x)
+            B = cs.MX.sym('B',dim_x,dim_u)
+            C = cs.MX.sym('C',dim_y,dim_x)
+            D = cs.MX.sym('D',dim_y,dim_u)
+            
+            # Put all Parameters in Dictionary with random initialization
+            self.Parameters = {'A':np.random.rand(dim_x,dim_x),
+                               'B':np.random.rand(dim_x,dim_u),
+                               'C':np.random.rand(dim_y,dim_x),
+                               'D':np.random.rand(dim_y,dim_u)}
+        
+            # self.Input = {'u':np.random.rand(u.shape)}
+            
+            # Define Model Equations
+            x_new = cs.tanh(cs.mtimes(A,x)) + cs.mtimes(B,u)
+            y_new = cs.mtimes(C,x_new) + cs.mtimes(D,u) 
+            
+            
+            input = [x,u,A,B,C,D]
+            input_names = ['x','u','A','B','C','D']
+            
+            output = [x_new,y_new]
+            output_names = ['x_new','y_new']  
+            
+            self.Function = cs.Function(name, input, output, input_names,output_names)
+            
+            self.ParameterInitialization()
+            
+            return None
+        
+        
+class DummySystem2(LPV_RNN):
+    """
+    
+    """
+
+    def __init__(self,dim_u,dim_x,dim_y,dim_h,u_lab,y_lab,initial_params=None, 
+                 frozen_params = [], init_proc='random'):
+        
+        self.dim_u = dim_u
+        self.dim_x = dim_x
+        self.dim_y = dim_y
+        self.dim_h = dim_h
+        
+        self.name = 'DummySystem2'
+
+        
+        self.u_label = u_lab
+        self.y_label = y_lab
+        
+        
+        self.InitialParameters = initial_params
+        self.InitializationProcedure = init_proc
+        self.FrozenParameters = frozen_params
+        
+        self.Initialize(initial_params)
+
+    def Initialize(self,initial_params=None):
+            
+            # For convenience of notation
+            dim_u = self.dim_u
+            dim_x = self.dim_x 
+            dim_y = self.dim_y     
+            dim_h = self.dim_h
+            
+            name = self.name
+            
+            # Define input, state and output vector
+            u = cs.MX.sym('u',dim_u,1)
+            x = cs.MX.sym('x',dim_x,1)
+            y = cs.MX.sym('y',dim_y,1)
+            
+            # Define Model Parameters
+            A = cs.MX.sym('A',dim_x,dim_x)
+            B = cs.MX.sym('B',dim_x,dim_u)
+            C = cs.MX.sym('C',dim_y,dim_x)
+            D = cs.MX.sym('D',dim_y,dim_u)
+            W_h = cs.MX.sym('W_h',dim_y,dim_x)
+            b_h = cs.MX.sym('b_h',dim_h,1)
+            W_o = cs.MX.sym('W_o',dim_y,dim_h)
+            b_o = cs.MX.sym('b_o',dim_y,1)
+            
+            # Put all Parameters in Dictionary with random initialization
+            self.Parameters = {'A':np.random.rand(dim_x,dim_x),
+                               'B':np.random.rand(dim_x,dim_u),
+                               'C':np.random.rand(dim_y,dim_x),
+                               'D':np.random.rand(dim_y,dim_u),
+                               'W_h': np.random.rand(dim_y,dim_x),
+                               'b_h': np.random.rand(dim_h,1),
+                               'W_o': np.random.rand(dim_y,dim_h),
+                               'b_o': np.random.rand(dim_y,1)}
+        
+            # self.Input = {'u':np.random.rand(u.shape)}
+            
+            # Define Model Equations
+            NN = cs.mtimes(W_o,cs.tanh(cs.mtimes(W_h,x)+b_h))+b_o
+            x_new = cs.mtimes(A,x) + cs.mtimes(B,u)+ NN
+            y_new = cs.mtimes(C,x_new) + cs.mtimes(D,u) 
+            
+            
+            input = [x,u,A,B,C,D,W_h,b_h,W_o,b_o]
+            input_names = ['x','u','A','B','C','D','W_h','b_h','W_o','b_o']
+            
+            output = [x_new,y_new]
+            output_names = ['x_new','y_new']  
+            
+            self.Function = cs.Function(name, input, output, input_names,output_names)
+            
+            self.ParameterInitialization()
+            
+            return None
+        
 class LPV_NARX(LPV_RNN):
     """
 
