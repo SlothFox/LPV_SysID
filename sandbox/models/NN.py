@@ -63,21 +63,26 @@ class LPV_RNN():
                 the model are used
         '''
         
-        if params==None:
-            params = self.Parameters
+        function_in = {'x':x0, 'u':u0}
         
-        params_new = []
-            
-        for name in self.Function.name_in()[2::]:
- 
-            try:
-                params_new.append(params[name])                      # Parameters are already in the right order as expected by Casadi Function
-            except:
-                params_new.append(self.Parameters[name])  
-            
-        x1,y1 = self.Function(x0,u0,*params_new)     
-                              
-        return x1,y1
+        # If no parameters are provided the numerical values in self.Parameters
+        # will be used
+        if params==None:
+            function_in.update(self.Parameters)
+        
+        
+        # If parameters are provided, use them and use the numerical values 
+        # in self.Parameters for the remaining not provided parameters   
+        else:
+                    
+            for name in self.Function.name_in()[2::]:
+                
+                if name in params:
+                    function_in[name] = params[name]
+                else:
+                    function_in[name] = self.Parameters[name]
+
+        return self.Function(**function_in)   
    
     def Simulation(self,x0,u,params=None,**kwargs):
         '''
@@ -98,9 +103,9 @@ class LPV_RNN():
                       
         # Simulate Model
         for k in range(u.shape[0]):
-            x_new,y_new = self.OneStepPrediction(x[k],u[[k],:],params)
-            x.append(x_new)
-            y.append(y_new)
+            pred = self.OneStepPrediction(x[k],u[[k],:],params)
+            x.append(pred['x_new'])
+            y.append(pred['y_new'])
         
         # Concatenate list to casadiMX
         y = cs.hcat(y).T    
@@ -2098,6 +2103,10 @@ class DummySystem1(LPV_RNN):
             x_new = cs.tanh(cs.mtimes(A,x)) + cs.mtimes(B,u)
             y_new = cs.mtimes(C,x_new) + cs.mtimes(D,u) 
             
+            dfdx = cs.jacobian(x_new,x)
+            dfdu = cs.jacobian(x_new,u)
+            dgdx = cs.jacobian(y_new,x)
+            
             
             input = [x,u,A,B,C,D]
             input_names = ['x','u','A','B','C','D']
@@ -2180,12 +2189,18 @@ class DummySystem2(LPV_RNN):
             x_new = cs.mtimes(A,x) + cs.mtimes(B,u)+ NN
             y_new = cs.mtimes(C,x_new) + cs.mtimes(D,u) 
             
+            dfdx = cs.jacobian(x_new,x)
+            dfdu = cs.jacobian(x_new,u)
+            dgdx = cs.jacobian(y_new,x)
             
             input = [x,u,A,B,C,D,W_h,b_h,W_o,b_o]
             input_names = ['x','u','A','B','C','D','W_h','b_h','W_o','b_o']
-            
-            output = [x_new,y_new]
-            output_names = ['x_new','y_new']  
+
+            # output = [x_new,y_new]
+            # output_names = ['x_new','y_new']              
+
+            output = [x_new,y_new,dfdx,dfdu,dgdx]
+            output_names = ['x_new','y_new','dfdx','dfdu','dgdx']  
             
             self.Function = cs.Function(name, input, output, input_names,output_names)
             

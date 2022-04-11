@@ -53,7 +53,7 @@ nl_system.Parameters = {'A': np.array([[1]]),
 # Generate identifikation data
 N = 1000
 
-np.random.seed(42)
+# np.random.seed(42)
 
 x0 = np.ones((1,1))*0
 u = np.random.normal(0,2,(N,1))
@@ -88,46 +88,62 @@ lin_model.Parameters = {'A': theta[[0]],
 # Estimate the state space sequence
 data = {'data':[io_data],'init_state': [init_state]}
 
-x_LS = param_optim.EstimateNonlinearStateSequence(lin_model,data,1)
 
-io_data['x_ref']=x_LS['x_LS'].values
 
-# Now estimate parameters of a model given the state space sequence
-nl_system_est = NN.DummySystem2(dim_u=1,dim_x=1,dim_y=1,dim_h=5,u_lab=['u'],y_lab=['y'], 
-             frozen_params = ['A','B','C','D'], init_proc='random')
+nl_system_est = NN.DummySystem2(dim_u=1,dim_x=1,dim_y=1,dim_h=1,u_lab=['u'],y_lab=['y'], 
+             frozen_params = [], init_proc='random')
 
 initial_params = {'A': theta[[0]],
                   'B': theta[[1]],
                   'C': np.array([[1]]),
                   'D': np.array([[0]])}
-
+nl_system_est.Parameters.update(initial_params)
 nl_system_est.InitialParameters = initial_params
 
-res = param_optim.ModelTraining(nl_system_est,data,data,initializations=1,p_opts=None,
-                                s_opts=None,mode='series')
-
-
-nl_system_est.Parameters.update(res.iloc[0]['params_val'])
-
-
-# Simulate the estimated model
-x_est,y_est = nl_system_est.Simulation(init_state[0],u)
-
-
-_,prediction = param_optim.series_parallel_mode(nl_system_est, data)
-
-
-
-plt.close('all')
-plt.figure()
+# Figure for x_est
+fig1 = plt.figure()
 plt.plot(io_data['y'],label='y')
-plt.plot(prediction[0]['y'],label='y_est')
-# plt.plot(io_data_est['x_est'],label='x_est')
+
+# Figure for y_est
+fig2 = plt.figure()
+plt.plot(io_data['y'],label='y')
+
+for i in range(0,10):
+    
+    _,prediction = param_optim.series_parallel_mode(nl_system_est, data)
+    
+    plt.figure(fig2)
+    plt.plot(prediction[0]['y'],label='y_est')
+    
+    # Estimate state sequence
+    x_LS = param_optim.EstimateNonlinearStateSequenceEKF(nl_system_est,data,10)
+
+
+    plt.figure(fig1)
+    plt.plot(x_LS['x_LS'],label='x_LS')
+
+    io_data['x_ref']=x_LS['x_LS'].values
+    
+    s_opts = {"max_iter": 10, "print_level":1}
+    # Now estimate parameters of a model given the state space sequence
+    res = param_optim.ModelTraining(nl_system_est,data,data,initializations=1,p_opts=None,
+                                    s_opts=s_opts,mode='series')
+
+
+    nl_system_est.Parameters.update(res.iloc[0]['params_val'])
+    nl_system_est.InitialParameters = res.iloc[0]['params_val']
+    
+# # Simulate the estimated model
+# sim = nl_system_est.Simulation(init_state[0],u)
+
+plt.figure(fig1)
+plt.legend()
+plt.figure(fig2)
 plt.legend()
 
 
-# Make a linspace for f
-io_data['x_ref'] = np.linspace(-5,5,N)
+# # Make a linspace for f
+io_data['x_ref'] = np.linspace(-3,3,N)
 io_data['u'] = np.zeros((N,1))
 
 
@@ -139,14 +155,16 @@ plt.figure()
 x_in = io_data['x_ref'].loc[0:998]
 x_true = true[0]['x_est'].loc[1::]
 x_est = prediction[0]['x_est'].loc[1::]
+y_est = prediction[0]['y'].loc[1::]
 
-x_nl = x_est.values - x_in.values*theta[0]
+x_nl = x_est.values - x_in.values*nl_system_est.Parameters['A']
 
 
 plt.scatter(x_in,x_true,label='x_true')
 plt.scatter(x_in,x_est,label='x_est')
+plt.scatter(x_in,y_est,label='y_est')
 plt.scatter(x_in,x_nl,label='x_est_nl')
-
+plt.legend()
 # plt.plot(io_data['y'],label='y')
 # plt.plot(x_LS['x_LS'],label='x_LS')
 # plt.plot(io_data_est['x_est'],label='x_est')

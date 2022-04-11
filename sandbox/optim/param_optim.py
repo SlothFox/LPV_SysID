@@ -17,6 +17,7 @@ import numpy as np
 import math
 import pandas as pd
 import pickle as pkl
+import copy
 
 # from .DiscreteBoundedPSO import DiscreteBoundedPSO
 from .common import OptimValues_to_dict
@@ -158,7 +159,7 @@ def ModelParameterEstimation(model,data_train,data_val,p_opts=None,
     opti = cs.Opti()
     
     # Create dictionary of all non-frozen parameters to create Opti Variables of 
-    OptiParameters = model.Parameters.copy()
+    OptiParameters = copy.deepcopy(model.Parameters)
     
     for frozen_param in model.FrozenParameters:
         OptiParameters.pop(frozen_param)
@@ -391,7 +392,7 @@ def series_parallel_mode(model,data,params=None):
     return loss,prediction
 
 
-def EstimateNonlinearStateSequence(model,data,lam):
+def EstimateNonlinearStateSequenceKF(model,data,lam):
     """
     
 
@@ -446,6 +447,89 @@ def EstimateNonlinearStateSequence(model,data,lam):
 
             loss = loss + cs.sumsqr(yk_plus - y_new)  + \
                 + lam * cs.sumsqr(x_LS[[k+1],:].T - x_new)   
+
+        
+    opti.minimize(loss)    
+    opti.solver("ipopt")
+    
+    try: 
+        sol = opti.solve()
+    except:
+        sol = opti.debug
+       
+      
+    x_LS = np.array(sol.value(x_LS)).reshape(N,num_states)
+    x_LS = pd.DataFrame(data=x_LS,columns=['x_LS'],index=io_data.index)
+      
+    return x_LS
+
+def EstimateNonlinearStateSequenceEKF(model,data,lam):
+    """
+    
+
+    Parameters
+    ----------
+    model : LinearSSM
+        Linear state space model.
+    data : dict
+        dictionary containing input and output data as numpy arrays with keys
+        'u_train' and 'y_train'
+    lam : float
+        trade-off parameter between fit to data and linear model fit, needs to
+        be positive
+
+    Returns
+    -------
+    x_LS: array-like
+        numpy-array containing the estimated nonlinear state sequence
+
+    """
+    for i in range(0,len(data['data'])):
+        
+        
+        if i>1:
+            print('This program is designed for only one batch of data')
+            
+        
+        io_data = data['data'][i]
+        x0 = data['init_state'][i]
+        
+        N = io_data.shape[0]
+        num_states = model.dim_x
+        # switch = data['switch'][i]
+        
+        # Create Instance of the Optimization Problem
+        opti = cs.Opti()        
+
+        # Create decision variables for states
+        x_LS = opti.variable(N,num_states) # x0,...,xN-1
+        x_LS[0,:] = x0.T
+        
+        loss = 0
+        
+        # One-Step prediction
+        for k in range(0,N-1):
+            
+            uk = io_data.iloc[k][model.u_label].values
+            yk_plus = io_data.iloc[k+1][model.y_label].values
+            
+            # predict x1 and y1 from x0 and u0
+            pred = model.OneStepPrediction(x_LS[[k],:],uk)
+            
+            A = pred['dfdx']
+            B = pred['dfdu']
+            C = pred['dgdx']
+            
+            x_pred = cs.mtimes(A,x_LS[[k],:]) + cs.mtimes(B,uk)                 # estimate of x_k+1
+            y_pred = cs.mtimes(C,x_LS[[k+1],:].T)                               # estimate of y_k+1
+            
+            
+            # x_new = pred['x_new']
+            # y_new = pred['y_new']
+            
+            
+            loss = loss + cs.sumsqr(yk_plus - y_pred)  + \
+                + lam * cs.sumsqr(x_LS[[k+1],:].T - x_pred)   
 
         
     opti.minimize(loss)    
@@ -687,33 +771,7 @@ def series_parallel_mode(model,data,params=None):
     
     prediction = []
 
-    # if None is not None:
-        
-    #     print('This is not implemented properly!!!')
-        
-    #     for i in range(0,len(u)):
-    #         x_batch = []
-    #         y_batch = []
-            
-    #         # One-Step prediction
-    #         for k in range(u[i].shape[0]-1):
-                
-                
-                
-    #             x_new,y_new = model.OneStepPrediction(x_ref[i][k,:],u[i,k,:],
-    #                                                   params)
-    #             x_batch.append(x_new)
-    #             y_batch.append(y_new)
-                
-    #             loss = loss + cs.sumsqr(y_ref[i][k,:]-y_new) + \
-    #                 cs.sumsqr(x_ref[i,k+1,:]-x_new) 
-            
-    #         x.append(x_batch)
-    #         y.append(y_batch)
-        
-    #     return loss,x,y 
-    
-    # else:
+
     for i in range(0,len(data['data'])):
         
         io_data = data['data'][i]
@@ -735,13 +793,15 @@ def series_parallel_mode(model,data,params=None):
             for k in range(0,io_data.shape[0]-1):
                 
                 uk = io_data.iloc[k][model.u_label].values.reshape((-1,1))
-                xk = io_data.iloc[k][model.y_label].values.reshape((-1,1))
+                xk = io_data.iloc[k][['x_ref']].values.reshape((-1,1))
                 
                 xkplus = io_data.iloc[k+1][['x_ref']].values.reshape((-1,1))        # TO DO: FÜR dim_x>1 anpassen
                 ykplus = io_data.iloc[k+1][model.y_label].values.reshape((-1,1))
                 
                 # predict x1 and y1 from x0 and u0
-                x_new, y_new = model.OneStepPrediction(xk,uk,params)
+                pred = model.OneStepPrediction(xk,uk,params)
+                x_new = pred['x_new']
+                y_new = pred['y_new']
                 
                 loss = loss + cs.sumsqr(ykplus-y_new) + cs.sumsqr(xkplus-x_new)        
                 
@@ -756,7 +816,7 @@ def series_parallel_mode(model,data,params=None):
                 y_est = np.array(y_est)
                 
                 df = pd.DataFrame(data=np.hstack([y_est,x_est]), 
-                                  columns=[*model.y_label,'x_ref'],
+                                  columns=[*model.y_label,'x_est'],
                                   index=io_data.index[1::])
                 
                 prediction.append(df)
@@ -775,7 +835,8 @@ def series_parallel_mode(model,data,params=None):
                 ykplus = io_data.iloc[k+1][model.y_label].values.reshape((-1,1))
                 
                 # predict x1 and y1 from x0 and u0
-                y_new = model.OneStepPrediction(yk,uk,params)
+                pred = model.OneStepPrediction(yk,uk,params)
+                y_new = pred['y_new']
                 
                 loss = loss + cs.sumsqr(ykplus-y_new)        
                 
