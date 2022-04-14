@@ -106,7 +106,6 @@ nl_system_est.InitialParameters = initial_params
 res = param_optim.ModelTraining(nl_system_est,data,data,initializations=1,p_opts=None,
                                 s_opts=None,mode='series')
 
-
 nl_system_est.Parameters.update(res.iloc[0]['params_val'])
 
 
@@ -115,8 +114,6 @@ x_est,y_est = nl_system_est.Simulation(init_state[0],u)
 
 
 _,prediction = param_optim.series_parallel_mode(nl_system_est, data)
-
-
 
 plt.close('all')
 plt.figure()
@@ -141,7 +138,6 @@ x_true = true[0]['x_est'].loc[1::]
 x_est = prediction[0]['x_est'].loc[1::]
 
 x_nl = x_est.values - x_in.values*theta[0]
-
 
 plt.scatter(x_in,x_true,label='x_true')
 plt.scatter(x_in,x_est,label='x_est')

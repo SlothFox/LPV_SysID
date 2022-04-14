@@ -34,12 +34,14 @@ from scipy.linalg import inv
 import sys
 # sys.path.insert(0, "E:\GitHub\DigitalTwinInjectionMolding")
 # sys.path.insert(0, 'C:/Users/rehmer/Documents/GitHub/DigitalTwinInjectionMolding/')
-# sys.path.insert(0, '/home/alexander/GitHub/DigitalTwinInjectionMolding/')
+sys.path.insert(0, '/home/alexander/GitHub/LPV_SysID/sandbox/')
 sys.path.insert(0, 'E:/GitHub/LPV_SysID/sandbox/')
 
 import models.NN as NN
 from optim import param_optim
 from testsignals.testsignals import APRBS
+
+plt.close('all')
 
 # Initialiaze NL system
 nl_system = NN.DummySystem1(dim_u=1,dim_x=1,dim_y=1,u_lab=['u'],y_lab=['y'],initial_params=None, 
@@ -47,8 +49,7 @@ nl_system = NN.DummySystem1(dim_u=1,dim_x=1,dim_y=1,u_lab=['u'],y_lab=['y'],init
 
 nl_system.Parameters = {'A': np.array([[1]]),
                         'B': np.array([[0.5]]),
-                        'C': np.array([[1]]),
-                        'D': np.array([[0]])}
+                        'C': np.array([[1]])}
 
 # Generate identifikation data
 N = 1000
@@ -56,7 +57,7 @@ N = 1000
 # np.random.seed(42)
 
 x0 = np.ones((1,1))*0
-u = np.random.normal(0,2,(N,1))
+u = np.random.normal(0,1,(N,1))
 # u = APRBS(1000,[-2,2],[100,200]).T
 x,y = nl_system.Simulation(x0, u)
 
@@ -65,7 +66,11 @@ y = np.vstack((x0,np.array(y)))[0:-1]
 
 io_data = pd.DataFrame(data=np.hstack([u,x,y]),columns=['u','x','y'])
 
-init_state = x[0,0].reshape(1,1) 
+
+# Plot state equation
+# fig1 = plt.figure()
+# x_in = io_data['x'].loc[0:998]
+# plt.scatter(x_in,x[1::],label='x_true')
 
 
 
@@ -82,10 +87,10 @@ lin_model = NN.LinearSSM(dim_u=1,dim_x=1,dim_y=1,u_lab=['u'],y_lab=['y'])
 
 lin_model.Parameters = {'A': theta[[0]],
                         'B': theta[[1]],
-                        'C': np.array([[1]]),
-                        'D': np.array([[0]])}
+                        'C': np.array([[1]])}
 
 # Estimate the state space sequence
+init_state = x[0,0].reshape(1,1) 
 data = {'data':[io_data],'init_state': [init_state]}
 
 
@@ -93,51 +98,64 @@ data = {'data':[io_data],'init_state': [init_state]}
 nl_system_est = NN.DummySystem2(dim_u=1,dim_x=1,dim_y=1,dim_h=1,u_lab=['u'],y_lab=['y'], 
              frozen_params = [], init_proc='random')
 
-initial_params = {'A': theta[[0]],
-                  'B': theta[[1]],
-                  'C': np.array([[1]]),
-                  'D': np.array([[0]])}
+initial_params = {'A': theta[[0]], 
+                  'B': theta[[1]],  
+                  'C': np.array([[1]])}
+                  # 'W_h': np.array([[0.1]]), 
+                  # 'b_h': np.array([[0.0]]),
+                  # 'W_o': np.array([[1]]), 
+                  # 'b_o': np.array([[0]])}
+                                
+
 nl_system_est.Parameters.update(initial_params)
 nl_system_est.InitialParameters = initial_params
 
 # Figure for x_est
-fig1 = plt.figure()
-plt.plot(io_data['y'],label='y')
-
-# Figure for y_est
 fig2 = plt.figure()
+plt.title('x')
 plt.plot(io_data['y'],label='y')
 
-for i in range(0,10):
+# # Figure for y_est
+# fig2 = plt.figure()
+# plt.title('y')
+# plt.plot(io_data['y'],label='y')
+
+for i in range(0,16):
     
     _,prediction = param_optim.series_parallel_mode(nl_system_est, data)
     
-    plt.figure(fig2)
-    plt.plot(prediction[0]['y'],label='y_est')
+    # plt.figure(fig1)
+    # plt.scatter(x_in,x_est,label='x_est')
     
     # Estimate state sequence
-    x_LS = param_optim.EstimateNonlinearStateSequenceEKF(nl_system_est,data,10)
+    x_LS = param_optim.EstimateNonlinearStateSequenceEKF(nl_system_est,data,1)
+    
+    if i//5==0:
+        plt.figure(fig2)
+        plt.plot(x_LS['x_LS'],label='x_LS')
+        
+    
+    print(np.linalg.norm(x_LS.values-x))
+# 5.832474566298009
 
-
-    plt.figure(fig1)
-    plt.plot(x_LS['x_LS'],label='x_LS')
 
     io_data['x_ref']=x_LS['x_LS'].values
+    io_data['x_LS']=x_LS['x_LS']
     
-    s_opts = {"max_iter": 10, "print_level":1}
+    s_opts = {"max_iter": 1, "print_level":1}
     # Now estimate parameters of a model given the state space sequence
     res = param_optim.ModelTraining(nl_system_est,data,data,initializations=1,p_opts=None,
                                     s_opts=s_opts,mode='series')
 
 
     nl_system_est.Parameters.update(res.iloc[0]['params_val'])
-    nl_system_est.InitialParameters = res.iloc[0]['params_val']
+    nl_system_est.InitialParameters.update(res.iloc[0]['params_val'])
     
 # # Simulate the estimated model
 # sim = nl_system_est.Simulation(init_state[0],u)
 
-plt.figure(fig1)
-plt.legend()
+# plt.figure(fig1)
+# plt.legend()
 plt.figure(fig2)
 plt.legend()
 

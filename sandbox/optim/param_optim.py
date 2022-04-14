@@ -505,46 +505,119 @@ def EstimateNonlinearStateSequenceEKF(model,data,lam):
         x_LS = opti.variable(N,num_states) # x0,...,xN-1
         x_LS[0,:] = x0.T
         
+        # x_LS = []
+        # x_LS.append(x0.T)
+        
         loss = 0
+        
+
         
         # One-Step prediction
         for k in range(0,N-1):
+
+            # Create Instance of the Optimization Problem
+            # opti = cs.Opti()   
+            
+            # New state is the target of optimization
+            # x_new = opti.variable(1,num_states)
+            
+        
             
             uk = io_data.iloc[k][model.u_label].values
-            yk_plus = io_data.iloc[k+1][model.y_label].values
             
-            # predict x1 and y1 from x0 and u0
-            pred = model.OneStepPrediction(x_LS[[k],:],uk)
+            # do a one step prediction given the model
+            # pred = model.OneStepPrediction(x0,uk)
+            pred = model.OneStepPrediction(x_LS[k,:],uk)
             
             A = pred['dfdx']
             B = pred['dfdu']
             C = pred['dgdx']
+                     
             
-            x_pred = cs.mtimes(A,x_LS[[k],:]) + cs.mtimes(B,uk)                 # estimate of x_k+1
-            y_pred = cs.mtimes(C,x_LS[[k+1],:].T)                               # estimate of y_k+1
+            # dx = x_new.T-x0
+            dx = x_LS[k+1,:].T - x_LS[k,:].T
+            
+            x_pred = pred['x_new'] # cs.mtimes(A,dx) + cs.mtimes(B,uk) + pred['x_new']          # estimate of x_k+1
+            y_pred = cs.mtimes(C,dx) + pred['y_old']                            # estimate of y_k+1
             
             
             # x_new = pred['x_new']
             # y_new = pred['y_new']
             
+            yk_plus = io_data.iloc[k+1][model.y_label].values
             
+            # loss = cs.sumsqr(yk_plus - y_pred)  + \
+            #     + lam * cs.sumsqr(x_new.T - x_pred)   
+                
+                
             loss = loss + cs.sumsqr(yk_plus - y_pred)  + \
-                + lam * cs.sumsqr(x_LS[[k+1],:].T - x_pred)   
-
-        
+                + lam * cs.sumsqr(x_LS[k+1,:].T - x_pred)  
+                
+            # opti.minimize(loss) 
+            
+            # opti.solver('ipopt')
+            
+            # sol = opti.solve()
+            
+            # x_new = np.array(sol.value(x_new)).reshape(1,num_states) 
+            
+            # x_LS.append(x_new)
+            
+            # x0 = x_new
+            
     opti.minimize(loss)    
     opti.solver("ipopt")
     
+    try:
+        x_init = io_data['x_LS'] 
+
+        for i in range(0,x_LS.shape[0]):
+            opti.set_initial(x_LS[i],x_init.iloc[i]) 
+              
+    except KeyError:
+        pass
+
     try: 
         sol = opti.solve()
     except:
         sol = opti.debug
-       
+        
+
       
     x_LS = np.array(sol.value(x_LS)).reshape(N,num_states)
+    # x_LS = np.array(x_LS).reshape(N,num_states)
     x_LS = pd.DataFrame(data=x_LS,columns=['x_LS'],index=io_data.index)
       
     return x_LS
+
+def EKF_Filter(model,io_data,w,v):
+    
+    state_est = pd.DataFrame(data=[],index=io_data.index,
+                             columns=['x_prio','x_post','Pf_prio','Pf_post'])
+    
+    state_est['x_prio'].iloc[0] = np.zeros((model.dim_x,1))
+    state_est['x_post'].iloc[0] = np.zeros((model.dim_x,1))
+    
+    # Noise covariance matrices 
+    Q = np.eye(model.dim_x) * w
+    P = np.eye(model.dim_y) * v
+
+    
+    
+    for k in io_data.index[1::]:
+        
+        P_old = state_est['Pf_post'].loc[k-1]
+        P_new
+        
+        # Propagate state
+        state_est['x_prio'].loc[k] = F.dot(state_est['x_prio'].loc[k-1])
+        
+        P_new = F.dot(P_old).dot(F.T) + Q
+        state_est['Pf_prio'].loc[k] = P_new
+        
+        
+        G = 
+        
 
 def ARXParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'):
     """

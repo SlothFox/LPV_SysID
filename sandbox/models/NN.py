@@ -2089,27 +2089,25 @@ class DummySystem1(LPV_RNN):
             A = cs.MX.sym('A',dim_x,dim_x)
             B = cs.MX.sym('B',dim_x,dim_u)
             C = cs.MX.sym('C',dim_y,dim_x)
-            D = cs.MX.sym('D',dim_y,dim_u)
             
             # Put all Parameters in Dictionary with random initialization
             self.Parameters = {'A':np.random.rand(dim_x,dim_x),
                                'B':np.random.rand(dim_x,dim_u),
-                               'C':np.random.rand(dim_y,dim_x),
-                               'D':np.random.rand(dim_y,dim_u)}
+                               'C':np.random.rand(dim_y,dim_x)}
         
             # self.Input = {'u':np.random.rand(u.shape)}
             
             # Define Model Equations
-            x_new = cs.tanh(cs.mtimes(A,x)) + cs.mtimes(B,u)
-            y_new = cs.mtimes(C,x_new) + cs.mtimes(D,u) 
+            x_new = cs.tanh(cs.mtimes(A,x)) + cs.mtimes(B,u) 
+            y_new = cs.mtimes(C,x_new)
             
             dfdx = cs.jacobian(x_new,x)
             dfdu = cs.jacobian(x_new,u)
             dgdx = cs.jacobian(y_new,x)
             
             
-            input = [x,u,A,B,C,D]
-            input_names = ['x','u','A','B','C','D']
+            input = [x,u,A,B,C]
+            input_names = ['x','u','A','B','C']
             
             output = [x_new,y_new]
             output_names = ['x_new','y_new']  
@@ -2166,7 +2164,6 @@ class DummySystem2(LPV_RNN):
             A = cs.MX.sym('A',dim_x,dim_x)
             B = cs.MX.sym('B',dim_x,dim_u)
             C = cs.MX.sym('C',dim_y,dim_x)
-            D = cs.MX.sym('D',dim_y,dim_u)
             W_h = cs.MX.sym('W_h',dim_y,dim_x)
             b_h = cs.MX.sym('b_h',dim_h,1)
             W_o = cs.MX.sym('W_o',dim_y,dim_h)
@@ -2176,7 +2173,6 @@ class DummySystem2(LPV_RNN):
             self.Parameters = {'A':np.random.rand(dim_x,dim_x),
                                'B':np.random.rand(dim_x,dim_u),
                                'C':np.random.rand(dim_y,dim_x),
-                               'D':np.random.rand(dim_y,dim_u),
                                'W_h': np.random.rand(dim_y,dim_x),
                                'b_h': np.random.rand(dim_h,1),
                                'W_o': np.random.rand(dim_y,dim_h),
@@ -2187,20 +2183,22 @@ class DummySystem2(LPV_RNN):
             # Define Model Equations
             NN = cs.mtimes(W_o,cs.tanh(cs.mtimes(W_h,x)+b_h))+b_o
             x_new = cs.mtimes(A,x) + cs.mtimes(B,u)+ NN
-            y_new = cs.mtimes(C,x_new) + cs.mtimes(D,u) 
+            y_new = cs.mtimes(C,x_new)
+            
+            y_old = cs.mtimes(C,x)
             
             dfdx = cs.jacobian(x_new,x)
             dfdu = cs.jacobian(x_new,u)
-            dgdx = cs.jacobian(y_new,x)
+            dgdx = cs.jacobian(y_old,x)
             
-            input = [x,u,A,B,C,D,W_h,b_h,W_o,b_o]
-            input_names = ['x','u','A','B','C','D','W_h','b_h','W_o','b_o']
+            input = [x,u,A,B,C,W_h,b_h,W_o,b_o]
+            input_names = ['x','u','A','B','C','W_h','b_h','W_o','b_o']
 
             # output = [x_new,y_new]
             # output_names = ['x_new','y_new']              
 
-            output = [x_new,y_new,dfdx,dfdu,dgdx]
-            output_names = ['x_new','y_new','dfdx','dfdu','dgdx']  
+            output = [x_new,y_new,y_old,dfdx,dfdu,dgdx]
+            output_names = ['x_new','y_new','y_old','dfdx','dfdu','dgdx']  
             
             self.Function = cs.Function(name, input, output, input_names,output_names)
             
