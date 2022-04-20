@@ -236,88 +236,7 @@ def ModelParameterEstimation(model,data_train,data_val,p_opts=None,
             
     return params,params_val,float(F_train),float(F_val)
 
-def parallel_mode(model,data,params=None):
-      
-    loss = 0
 
-    
-    simulation = []
-    
-    # Loop over all batches 
-    for i in range(0,len(data['data'])):
-        
-        io_data = data['data'][i]
-        x0 = data['init_state'][i]
-        try:
-            switch = data['switch'][i]
-            switch = [io_data.index.get_loc(s) for s in switch]
-            print('Kontrolliere ob diese Zeile gewünschte Indizes zurückgibt!!!')               
-        except KeyError:
-            switch = None
-        
-        kwargs = {'switching_instances':switch}
-        
-        y_ref = io_data[model.y_label].values
-        
-        u = io_data.iloc[0:-1][model.u_label].values
-
-        # Simulate Model
-        pred = model.Simulation(x0,u,params,**kwargs)
-        
-        if isinstance(pred, tuple):           
-            x_est= pred[0]
-            y_est= pred[1]
-        else:
-            y_est = pred
-            
-        # Calculate simulation error            
-        # Check for the case, where only last value is available
-        
-        if y_ref.shape[0]==1:           # MUST BE UPDATED TO WORK WITH QUALITY DATA
-
-            y_est=y_est[-1,:]
-            e= y_ref - y_est
-            loss = loss + cs.sumsqr(e[-1])
-    
-        else :
-            e = y_ref - y_est
-            loss = loss + cs.sumsqr(e)
-            
-        if params is None:
-            y_est = np.array(y_est)
-            
-            df = pd.DataFrame(data=y_est, columns=model.y_label,
-                              index=io_data.index)
-            
-            simulation.append(df)
-        else:
-            simulation = None
-            
-    return loss,simulation
-
-def static_mode(model,u,y_ref,params=None):
-    
-    loss = 0
-    y = []
-    e = []
-    
-                    
-    # Loop over all batches 
-    for i in range(0,len(u)): 
-
-        # One-Step prediction
-        for k in range(u[i].shape[0]):  
-            # print(k)
-            y_new = model.OneStepPrediction(u[i][k,:],params)
-            # print(y_new)
-            y.append(y_new)
-            e.append(y_ref[i][k,:]-y_new)
-            # Calculate one step prediction error
-            loss = loss + cs.sumsqr(e[-1]) 
-            
-        break
-    
-    return loss,e,y
 
 
 def series_parallel_mode(model,data,params=None):
@@ -593,30 +512,108 @@ def EstimateNonlinearStateSequenceEKF(model,data,lam):
 def EKF_Filter(model,io_data,w,v):
     
     state_est = pd.DataFrame(data=[],index=io_data.index,
-                             columns=['x_prio','x_post','Pf_prio','Pf_post'])
+                             columns=['x_prio','x_post','Pf_prio','Pf_post',
+                                      'F','B'])
     
-    state_est['x_prio'].iloc[0] = np.zeros((model.dim_x,1))
-    state_est['x_post'].iloc[0] = np.zeros((model.dim_x,1))
-    
+    # Initialize Kalman-Filter
+    try:
+        state_est['x_prio'].iloc[0] = io_data['x_ref'].iloc[0]
+        state_est['x_post'].iloc[0] = io_data['x_ref'].iloc[0]
+    except KeyError:
+        state_est['x_prio'].iloc[0] = np.zeros((model.dim_x,1))
+        state_est['x_post'].iloc[0] = np.zeros((model.dim_x,1))
+
+
+    state_est['Pf_prio'].loc[0] = np.zeros((model.dim_x,model.dim_x))
+    state_est['Pf_post'].loc[0] = np.zeros((model.dim_x,model.dim_x))
+
     # Noise covariance matrices 
     Q = np.eye(model.dim_x) * w
-    P = np.eye(model.dim_y) * v
-
-    
+    R = np.eye(model.dim_y) * v
     
     for k in io_data.index[1::]:
         
-        P_old = state_est['Pf_post'].loc[k-1]
-        P_new
+        x_post = state_est['x_post'].iloc[k-1]
+        x_prio = state_est['x_prio'].iloc[k-1]
         
+        # Linearization around x_post of last time step for state transition
+        uk = io_data.iloc[k-1][model.u_label].values
+        pred = model.OneStepPrediction(x0=x_post,u0=uk)
+        
+        F = np.array(pred['dfdx'])
+        B = np.array(pred['dfdu'])
+    
         # Propagate state
-        state_est['x_prio'].loc[k] = F.dot(state_est['x_prio'].loc[k-1])
+        x_prio = np.array(pred['x_new'])
+    
+        # Linearization around x_prio of this time step for output equation        
+        pred = model.OneStepPrediction(x0=x_prio,u0=uk)
         
+        H = np.array(pred['dgdx'])
+        y_prio = np.array(pred['y_old'])
+        
+        # Error covariance propagation
+        P_old = state_est['Pf_post'].loc[k-1]
         P_new = F.dot(P_old).dot(F.T) + Q
+        
+        
+        # Kalman gain matrix
+        g = np.linalg.inv(H.dot(P_new).dot(H.T)+R)
+        G = P_new.dot(H.T).dot(g)
+        
+        # State estimate update
+        y = io_data.loc[k][model.y_label].values.reshape((-1,1))
+        x_post = x_prio + G.dot(y-y_prio)
+        
+        # Error covariance update
         state_est['Pf_prio'].loc[k] = P_new
+        state_est['Pf_post'].loc[k] = (np.eye(model.dim_x) - G.dot(H)).dot(P_new)
+            
         
+        # Save estimated states
+        state_est['x_post'].loc[k] = x_post
+        state_est['x_prio'].loc[k] = x_prio
         
-        G = 
+        # Save linearization
+        state_est['F'].loc[k] = F
+        state_est['B'].loc[k] = B
+        
+    return state_est
+        
+def RTS_Smoother(model,io_data,w,v):
+    
+    # Apply EKF for forward filtering
+    forward_est = EKF_Filter(model,io_data,w,v)
+
+    smooth_est = pd.DataFrame(data=[],index=io_data.index,
+                             columns=['x_prio','x_post','Pf_prio','Pf_post',
+                                      'F','B','P','x'])
+    # Initialize smoother
+    idx = io_data.index[-1]
+    
+    smooth_est['P'].loc[idx] = forward_est['Pf_post'].loc[idx]
+    smooth_est['x'].loc[idx] = forward_est['x_post'].loc[idx]
+    
+    
+    for k in reversed(io_data.index[0:-1]):
+        
+        Pf_post = forward_est['Pf_post'].loc[k]
+        Pf_prio = forward_est['Pf_prio'].loc[k+1]
+        F = forward_est['F'].loc[k+1]
+        
+        P = smooth_est['P'].loc[k+1]
+        x = smooth_est['x'].loc[k+1]
+        
+        A = Pf_post.dot(F.T).dot(np.linalg.inv(Pf_prio))
+        
+        P = Pf_post - A.dot(Pf_prio-P).dot(A.T)
+        
+        x =  forward_est['x_post'].loc[k] + A.dot(x-forward_est['x_prio'].loc[k+1])
+        
+        smooth_est['P'].loc[k] = P
+        smooth_est['x'].loc[k] = x
+    
+    return smooth_est, forward_est
         
 
 def ARXParameterEstimation(model,data,p_opts=None,s_opts=None, mode='parallel'):

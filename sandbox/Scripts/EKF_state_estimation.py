@@ -54,10 +54,10 @@ nl_system.Parameters = {'A': np.array([[1]]),
 # Generate identifikation data
 N = 1000
 
-# np.random.seed(42)
+np.random.seed(42)
 
 x0 = np.ones((1,1))*0
-u = np.random.normal(0,1,(N,1))
+u = np.random.normal(0,2,(N,1))
 # u = APRBS(1000,[-2,2],[100,200]).T
 x,y = nl_system.Simulation(x0, u)
 
@@ -98,17 +98,16 @@ data = {'data':[io_data],'init_state': [init_state]}
 nl_system_est = NN.DummySystem2(dim_u=1,dim_x=1,dim_y=1,dim_h=1,u_lab=['u'],y_lab=['y'], 
              frozen_params = [], init_proc='random')
 
-initial_params = {'A': theta[[0]], 
-                  'B': theta[[1]],  
-                  'C': np.array([[1]])}
-                  # 'W_h': np.array([[0.1]]), 
-                  # 'b_h': np.array([[0.0]]),
-                  # 'W_o': np.array([[1]]), 
-                  # 'b_o': np.array([[0]])}
+# initial_params = {'A': np.array([theta[0]]),#]np.array([[0]]), #np.array([[0]]), 
+#                   'B': np.array([theta[1]]),#np.array([[0.5]]), #np.array([[0.5]]),  
+#                   'C': np.array([[1]])}
+#                   # 'W_h': np.array([[0.5]]),
+#                   # 'b_h': np.array([[0.0]]),
+#                   # 'W_o': np.array([[1]]), 
+#                   # 'b_o': np.array([[0]])}
                                 
-
-nl_system_est.Parameters.update(initial_params)
-nl_system_est.InitialParameters = initial_params
+# nl_system_est.Parameters.update(initial_params)
+# nl_system_est.InitialParameters = initial_params
 
 # Figure for x_est
 fig2 = plt.figure()
@@ -127,27 +126,37 @@ for i in range(0,16):
     # plt.figure(fig1)
     # plt.scatter(x_in,x_est,label='x_est')
     
-    # Estimate state sequence
-    x_LS = param_optim.EstimateNonlinearStateSequenceEKF(nl_system_est,data,1)
+    # Estimate state sequence with least squares
+    # x_LS = param_optim.EstimateNonlinearStateSequenceEKF(nl_system_est,data,1)
+    
+    # Estimate state sequence with EKF
+    # state_est = param_optim.EKF_Filter(nl_system_est,io_data,0.1,0.1)
+    # x_LS = pd.DataFrame(data = state_est['x_post'].values, index = state_est.index,
+    #                     columns=['x_LS'])
+    
+    rts_state,ekf_state = param_optim.RTS_Smoother(nl_system_est,io_data,2,2)
+    
+    x_LS = pd.DataFrame(data = rts_state['x'].values, index = rts_state.index,
+                        columns=['x_LS'])    
     
     if i//5==0:
         plt.figure(fig2)
         plt.plot(x_LS['x_LS'],label='x_LS')
         
     
-    print(np.linalg.norm(x_LS.values-x))
-# 5.832474566298009
+    # print(np.linalg.norm(x_LS.values-x))
+    # 5.832474566298009
 
 
     io_data['x_ref']=x_LS['x_LS'].values
     io_data['x_LS']=x_LS['x_LS']
     
-    s_opts = {"max_iter": 1, "print_level":1}
+    s_opts = {"max_iter": 10, "print_level":1}
     # Now estimate parameters of a model given the state space sequence
     res = param_optim.ModelTraining(nl_system_est,data,data,initializations=1,p_opts=None,
                                     s_opts=s_opts,mode='series')
 
-
+    print( nl_system_est.Parameters)
     nl_system_est.Parameters.update(res.iloc[0]['params_val'])
     nl_system_est.InitialParameters.update(res.iloc[0]['params_val'])
     
