@@ -18,8 +18,13 @@ import seaborn as sns
 
 from scipy.io import loadmat
 
-import models.NN as NN
+import sys
+sys.path.insert(0,'E:\GitHub\LPV_SysID\sandbox')
+
+from models import NN
 from optim import param_optim
+
+
 
 
 def BestFitRate(y_target,y_est):
@@ -37,35 +42,25 @@ def BestFitRate(y_target,y_est):
 ''' Data Preprocessing '''
 
 ################ Load Data ####################################################
-train = loadmat('Benchmarks/Bioreactor/APRBS_Data_3')
+train = loadmat('../Benchmarks/Bioreactor/APRBS_Data_3')
 train = train['data']
-val = loadmat('Benchmarks/Bioreactor/APRBS_Data_1')
+val = loadmat('../Benchmarks/Bioreactor/APRBS_Data_1')
 val = val['data']
-test = loadmat('Benchmarks/Bioreactor/APRBS_Data_2')
+test = loadmat('../Benchmarks/Bioreactor/APRBS_Data_2')
 test = test['data']
 
 
 ################ Subsample Data ###############################################
-train = train[0::50,:]
-val = val[0::50,:]
-test = test[0::50,:]
+train = pd.DataFrame(data=train[0::50,:],columns = ['u','y'])
+val = pd.DataFrame(data=val[0::50,:],columns = ['u','y'])
+test = pd.DataFrame(data=test[0::50,:],columns = ['u','y'])
 ################# Pick Training- Validation- and Test-Data ####################
-
-train_u = train[0:-1,0].reshape(1,-1,1)
-train_y = train[1::,1].reshape(1,-1,1)
-
-val_u = val[0:-1,0].reshape(1,-1,1)
-val_y = val[1::,1].reshape(1,-1,1)
-
-test_u = test[0:-1,0].reshape(1,-1,1)
-test_y = test[1::,1].reshape(1,-1,1)
 
 init_state = np.zeros((1,2,1))
 
 # Arrange Training and Validation data in a dictionary with the following
 # structure. The dictionary must have these keys
-data = {'u_train':train_u, 'y_train':train_y,'init_state_train': init_state,
-        'u_val':val_u, 'y_val':val_y,'init_state_val': init_state}
+data = {'data':[val], 'init_state':[init_state]}
 
 
 BFR_on_val_data = pd.DataFrame(columns = ['BFR','model','initialization','theta'])
@@ -82,7 +77,7 @@ for model in models:
     for dim in dims:
         
         # Load identification results
-        file = 'results_statesched/' + 'Bioreactor_' + model + '_2states_theta' + str(dim) + '.pkl'
+        file = '../results_statesched/' + 'Bioreactor_' + model + '_2states_theta' + str(dim) + '.pkl'
         ident_results = pkl.load(open(file,'rb'))
                 
         
@@ -98,15 +93,16 @@ for model in models:
         elif model == 'Lachhab':
             LPV_model = NN.LachhabLPV(dim_u=1,dim_x=2,dim_y=1,dim_thetaA=dim,
                                       dim_thetaB=dim, dim_thetaC=0,
-                                      initial_params={},name='Lachhab_LPV') 
+                                      initial_params={}) 
         
         # Assign parameters to model and evaluate model fit
         for init in range(0,10):
             LPV_model.Parameters = ident_results.loc[init,'params']
+            _,sim = param_optim.parallel_mode(LPV_model,data)
             
-            x_est, y_est = LPV_model.Simulation(init_state[0],val_u[0])
-            y_est = np.array(y_est)
-        
+            y_est = sim['y']
+
+       
             BFR = BestFitRate(val_y[0],y_est)
             
             new_row = pd.DataFrame(data = [[BFR[0], model, init, dim]], 
